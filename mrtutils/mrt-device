@@ -90,7 +90,7 @@ class Device:
         self.name = name
         self.prefix = ""
         self.bus = "I2C"
-        self.addr = 0
+        self.i2c_addr = 0
         self.addrSize =1
         self.aiMask = 0 #auto incrment mask 
         self.regs = {}
@@ -99,6 +99,20 @@ class Device:
         reg.device = self
         self.regs[reg.name] = reg
 
+    def camelCase(self, text):
+        out =""
+        cap = True 
+        for char in text:
+            if char != '_':
+                if cap:
+                    out+= char.upper()
+                else:
+                    out+= char.lower()
+                cap = False
+            else:
+                cap = True
+            
+        return out
 
     def parseYAML(self,yamlFile):
         data = open(yamlFile)
@@ -112,6 +126,9 @@ class Device:
         
         if 'bus' in objDevice:
             self.bus = objDevice['bus']
+        
+        if 'i2c_addr' in objDevice:
+            self.i2c_addr = objDevice['i2c_addr']
         
         if 'ai_mask' in objDevice:
             self.aiMask = objDevice['ai_mask'] #int(objDecive['ai_mask'],0)
@@ -208,7 +225,7 @@ def buildTemplate(object, templateFile, outputFile):
     text_file.close()
 
 def buildRegisterFiles(device , outputPath):
-    baseName = device.name + "_regs"
+    baseName = device.name.lower() + "_dev" 
     buildTemplate(device, 'templates/reg_header_template.h', outputPath +"/"+baseName + ".h" )
     buildTemplate(device, 'templates/reg_source_template.c', outputPath +"/"+baseName + ".c" )
 
