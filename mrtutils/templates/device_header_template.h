@@ -14,9 +14,8 @@ extern "C"
 #include <stdbool.h>
 #include "Devices/RegDevice/register_device.h"
 
-/*USER_TOP*/
-
-/*END_USER_TOP*/
+/*user-block-top*/
+/*user-block-top*/
 
 % if "I2C" in obj.bus.upper():
 #define ${obj.prefix.upper()}_I2C_ADDRESS obj.i2c_addr
@@ -58,9 +57,8 @@ typedef struct{
     % for key,reg in obj.regs.items():
     mrt_reg_t* ${"m" + obj.camelCase(reg.name)};  //${reg.desc}
 % endfor
-/*USER_STRUCT*/
-
-/*END_USER_STRUCT*/
+/*user-block-struct*/
+/*user-block-struct*/
 }${obj.name}_t;
 
 % if "I2C" in obj.bus.upper():
@@ -120,9 +118,8 @@ mrt_status_t ${obj.prefix}_init_spi(${obj.name}_t* dev, mrt_spi_handle_t spi);
 ## % endfor
 
 
-/*USER_FUNCTIONS*/
-
-/*END_USER_FUNCTIONS*/
+/*user-block-functions*/
+/*user-block-function*/
 
 #ifdef __cplusplus
 }

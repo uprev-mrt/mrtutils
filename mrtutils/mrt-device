@@ -12,6 +12,7 @@ from mako.template import Template
 import yaml
 import argparse
 import pkgutil
+from mrtutils.mrtTemplateHelper import *
 
 sizeDict = {
     "uint8" : 1,
@@ -219,15 +220,26 @@ def init_args():
 
 
 def buildTemplate(object, templateFile, outputFile):
+    exists= False
+    cr = CodeReplacer()
+    newContents =""
+    if os.path.isfile(outputFile):
+        exists = True
+        curFile = open(outputFile, "r")
+        text = curFile.read()
+        cr.loadText(text)
+
     template = Template(pkgutil.get_data('mrtutils',templateFile) )
+    newContents = "\n".join(template.render(obj = object).splitlines())
+    newContents = cr.insertBlocks(newContents)
     text_file = open( outputFile , "w")
-    text_file.write("\n".join(template.render(obj = object).splitlines()))
+    text_file.write(newContents)
     text_file.close()
 
 def buildRegisterFiles(device , outputPath):
     baseName = device.name.lower() + "_dev" 
-    buildTemplate(device, 'templates/reg_header_template.h', outputPath +"/"+baseName + ".h" )
-    buildTemplate(device, 'templates/reg_source_template.c', outputPath +"/"+baseName + ".c" )
+    buildTemplate(device, 'templates/device_header_template.h', outputPath +"/"+baseName + ".h" )
+    buildTemplate(device, 'templates/device_source_template.c', outputPath +"/"+baseName + ".c" )
 
 def main():
     global path

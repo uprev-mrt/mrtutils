@@ -31,13 +31,20 @@ mrt_status_t ${obj.name}_init_i2c(${obj.name}_t* dev, mrt_i2c_handle_t i2c)
 
     status = init_i2c_register_device(dev->mRegDev, i2c, ${obj.prefix.upper()}_I2C_ADDRESS, ${obj.addrSize} );
     
+    /*user-block-init-i2c*/
+    /*user-block-init-i2c*/
+    
     return MRT_STATUS_OK;
 }
 % endif
 % if "SPI" in obj.bus.upper():
 mrt_status_t ${obj.prefix}_init_spi(${obj.name}_t* dev, mrt_spi_handle_t spi)
 {
-     ${obj.name}_init_regs(dev)
+    ${obj.name}_init_regs(dev)
+
+    /*user-block-spi*/
+    /*user-block-spi*/
+
     return MRT_STATUS_OK;
 }
 % endif
