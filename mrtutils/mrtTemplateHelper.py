@@ -12,7 +12,7 @@ class CodeReplacer:
         self.blocksUsed = {}
         
     
-    def loadText(self, text, regex=r"/\*user-block-(.*?)\*/(.*?)/\*user-block-\1\*/"):
+    def loadText(self, text, regex=r"/\*user-block-(.*?)-start\*/(.*?)/\*user-block-\1-end\*/"):
         rx = re.compile(regex,re.DOTALL)
 
         for match in rx.finditer(text):
@@ -22,7 +22,7 @@ class CodeReplacer:
             self.blocksUsed[token] = False
 
 
-    def insertBlocks(self, text, regex=r"/\*user-block-(.*?)\*/(.*?)/\*user-block-\1\*/"):
+    def insertBlocks(self, text, regex=r"/\*user-block-(.*?)-start\*/(.*?)/\*user-block-\1-end\*/"):
         rx = re.compile(regex,re.DOTALL)
         
         for match in rx.finditer(text):
