@@ -1,0 +1,41 @@
+---
+name: name of device
+category: Device
+description: description
+datasheet: link to datasheet
+mfg: device manufacturer
+mfg_pn: manufacturer part number
+digikey_pn: digikey part number
+
+prefix: wm  #prefix used in code generation
+bus: I2C, SPI    # defines the buses that can be used to access registers 
+i2c_addr: 0x00   # defines the I2C device address (if device uses I2C)
+
+###########################################################################################################
+#                                   REGISTERS                                                             #
+###########################################################################################################
+
+registers:
+    - DUMMY:        { addr: 0x00 , type: uint16_t, default: 0x0000, desc: dummy register}                
+
+
+###########################################################################################################
+#                                   VALUES                                                                #
+###########################################################################################################
+values:
+    - DUMMY:  #create flags and fields in the DUMMY register
+        flags:
+          - BIT0: {mask: 0x0001, desc: creates a flag at bit 0 of the DUMMY register}
+          - BIT1: {mask: 0x0002, desc: creates a flag at bit 1 of the DUMMY register}
+        fields:
+          - REMAINING: 
+              mask: 0xFFFC
+              desc: creates a 14 bit field using the remaing bits
+              values:
+                - MIN: { val: 0, desc: creates a macro for the minimum 14 bit value}
+                - MAX: {val: 0x3FFF, desc: creates a macro for the maximum 14 bit value}
+
+
+
+
+

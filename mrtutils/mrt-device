@@ -24,8 +24,7 @@ def init_args():
     parser.add_argument('-o', '--output', type=str, help='Output path', default="")
     parser.add_argument('-d', '--document', type=str, help='documentation path', default="")
     parser.add_argument('-t', '--template', type=str, help='path to create template', default="")
-
-
+    
 
 def buildTemplate(object, templateFile, outputFile):
     exists= False
@@ -67,11 +66,18 @@ def main():
     inputFile = args.input
     path = args.output
     docPath = args.document
+    templatePath = args.template
 
     device = Device('unnamed')
 
+    if not templatePath =="":
+        templatePath.replace("yml","") 
+        buildTemplate(device, 'templates/device_descriptor_template.yml', templatePath + ".yml") 
+        sys.exit()
+
+
     if inputFile == "":
-        print("No input file specified, use -e to create an example file")
+        print("No input file specified, use -t to create a template file")
         sys.exit()
 
     # if os.path.isfile(inputFile):
