@@ -23,7 +23,8 @@ setuptools.setup(
      install_requires=[
         'markdown',
         'mako',
-        'pyyaml'
+        'pyyaml',
+        'polypacket'
      ],
      classifiers=[
          "Programming Language :: Python :: 3",
