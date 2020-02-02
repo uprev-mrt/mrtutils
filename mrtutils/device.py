@@ -44,22 +44,42 @@ class FieldVal:
         if 'name' in valItem:
             self.desc = valItem['name']
 
-
-class RegFlag:
-    def __init__(self, name):
-        self.name = name 
-        self.reg = 0
-        self.val = 0 
-        self.desc = ""    
-
+ 
 class RegField:
-    def __init__(self, name):
+    def __init__(self, node):
         self.reg = 0
-        self.name = name
         self.mask = 0XFFFFFFFF
         self.desc = ""
         self.vals = []
-    
+        self.isFlag = False
+
+        self.name = list(node.keys())[0]
+        fieldItem = list(node.values())[0]
+
+        if 'mask' in fieldItem:
+            self.mask = fieldItem['mask']
+        if 'values' in fieldItem:
+            for valNode in fieldItem['values']:
+                newVal = FieldVal(valNode)
+                self.addVal(newVal)
+        if 'vals' in fieldItem:
+            for valNode in fieldItem['vals']:
+                newVal = FieldVal(valNode)
+                self.addVal(newVal)
+        if 'desc' in fieldItem:
+            self.desc = fieldItem['desc']
+        
+        if self.getSize() == 1:
+            self.isFlag = True
+
+    def getSize(self):
+        count = 0
+        n = self.mask
+        while (n): 
+            count += n & 1
+            n >>= 1
+        return count 
+
     def offset(self):
         check = self.mask
         count = 0
@@ -86,14 +106,16 @@ class DeviceReg:
         self.flags = []
         self.size = 1
         self.device = 0
+        self.hasFlags = False
+        self.hasFields = False
     
     def addField(self, field):
         field.reg = self
+        if field.isFlag:
+            self.hasFlags = True
+        else:
+            self.hasFields = True
         self.fields.append(field)
-    
-    def addFlag(self, flag):
-        flag.reg = self 
-        self.flags.append(flag)
     
     def formatHex(self, val):
         return self.device.formatHex(val, self.size)
@@ -181,43 +203,15 @@ class Device:
 
                 self.addReg(newReg)      
         
-        if 'values' in objDevice:
-            for propNode in objDevice['values']:
+        if 'fields' in objDevice:
+            for propNode in objDevice['fields']:
                 regName = list(propNode.keys())[0]
                 propItem = list(propNode.values())[0]
                 if regName in self.regs:
                     curReg = self.regs[regName]  
-                    if 'fields' in propItem:
-                        for fieldNode in propItem['fields']:
-                            newField = RegField(list(fieldNode.keys())[0])
-                            fieldItem = list(fieldNode.values())[0]
-                            if 'mask' in fieldItem:
-                                newField.mask = fieldItem['mask']
-                            if 'values' in fieldItem:
-                                for valNode in fieldItem['values']:
-                                    newVal = FieldVal(valNode)
-                                    newField.addVal(newVal)
-                            if 'vals' in fieldItem:
-                                for valNode in fieldItem['vals']:
-                                    newVal = FieldVal(valNode)
-                                    newField.addVal(newVal)
-                            
-                            curReg.addField(newField)
-
-                    if 'flags' in propItem:
-                        for flagNode in propItem['flags']:
-                            newFlag = RegFlag(list(flagNode.keys())[0])
-                            flagItem = list(flagNode.values())[0]
-                            if 'name' in flagItem:
-                                newFlag.name = flagItem['name']
-                            if 'mask' in flagItem:
-                                newFlag.val = flagItem['mask']
-                            if 'val' in flagItem:
-                                newFlag.val = flagItem['val']
-                            if 'desc' in flagItem:
-                                newFlag.desc = flagItem['desc']
-                            
-                            curReg.addFlag(newFlag)
+                    for fieldNode in propItem:
+                        newField = RegField(fieldNode)
+                        curReg.addField(newField)
 
         print("Parsed device: " + self.name )
         print( "registers: " + str(len(self.regs)))

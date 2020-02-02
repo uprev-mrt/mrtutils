@@ -21,32 +21,28 @@
 
 
 /*******************************************************************************
-  Flags                                                                              
-*******************************************************************************/
-
-% for key,reg in obj.regs.items():
-% if  len(reg.flags) > 0 :
-/* ${reg.name} Register Flags */
-    %for flag in reg.flags:
-#define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+flag.name.upper()}                       ${reg.formatHex(flag.val)}
-    %endfor
-
-% endif
-% endfor
-
-/*******************************************************************************
-  Field Values                                                                              
+  Fields                                                                              
 *******************************************************************************/
 
 % for key,reg in obj.regs.items():
 % if len(reg.fields) > 0 :
 /* ${reg.name} Register Fields */
+    %if reg.hasFlags:
+    /* ${reg.name} -> Flags */
+    %endif
     %for field in reg.fields:
-  /* ${reg.name} -> ${field.name} */
-  #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"}        ${reg.formatHex(field.mask)}
-    %for val in field.vals:
-  #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_" + val.name.upper()}      ${reg.formatHex(val.val)}
+    %if field.isFlag:
+    #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper()}                       ${reg.formatHex(field.mask)}
+    %endif
     %endfor
+    %for field in reg.fields:
+    %if not field.isFlag:
+    /* ${reg.name} -> ${field.name} */
+    #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"}        ${reg.formatHex(field.mask)}
+    %for val in field.vals:
+    #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_" + val.name.upper()}      ${reg.formatHex(val.val)}
+    %endfor
+    %endif
     %endfor
 % endif
 % endfor
@@ -97,7 +93,8 @@
 
 % for key,reg in obj.regs.items():
 % if "R" in reg.perm.upper():
-%for field in reg.fields:
+% for field in reg.fields:
+% if not field.isFlag:
 /**
  * @brief reads the ${field.name} field from the device 
  * @param dev ptr to ${obj.name} device
@@ -106,6 +103,7 @@
 %endfor
  */
 #define ${obj.prefix.lower() +"_get_"+ reg.name.lower()+"_"+field.name.lower()}(dev) regdev_read_field(dev->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"} )
+%endif
 %endfor
 %endif
 % endfor
@@ -118,6 +116,7 @@
 % for key,reg in obj.regs.items():
 % if "W" in reg.perm.upper():
 %for field in reg.fields:
+% if not field.isFlag:
 /**
  * @brief writes the ${field.name} field from the device 
  * @param dev ptr to ${obj.name} device
@@ -126,6 +125,7 @@
 %endfor
  */
 #define ${obj.prefix.lower() +"_set_"+ reg.name.lower()+"_"+field.name.lower()}(dev) regdev_write_field(dev->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"} )
+%endif
 %endfor
 %endif
 % endfor
