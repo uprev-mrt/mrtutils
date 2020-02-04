@@ -52,6 +52,8 @@ class RegField:
         self.desc = ""
         self.vals = []
         self.isFlag = False
+        self.bitCount = 0
+        self.startBit =0
 
         self.name = list(node.keys())[0]
         fieldItem = list(node.values())[0]
@@ -71,6 +73,9 @@ class RegField:
         
         if self.getSize() == 1:
             self.isFlag = True
+        
+        self.bitCount = self.getSize()
+        self.startBit = self.bitCount + self.offset()
 
     def getSize(self):
         count = 0
@@ -124,6 +129,38 @@ class DeviceReg:
         val = "{0:#0{1}X}".format(self.addr,(self.device.addrSize *2) + 2)
         val = val.replace("X","x")
         return val
+    
+    def getNextfieldByStartBit(self, startBit):
+
+        found = False
+        for field in self.fields:
+            if field.startBit == startBit:
+                return field , 0
+        
+        while not found and startBit >= 0:
+            startBit = startBit -1 
+            for field in self.fields:
+                if field.startBit == startBit:
+                    return False , startBit
+        
+        return False, startBit
+
+    
+    
+    def printFieldMap(self):
+        ret =""
+        i = self.size * 8
+        while i > 0:
+            field , nextStart = self.getNextfieldByStartBit(i)
+            if field:
+                ret = ret+"<td class=\"field\" colspan=\""+str(field.bitCount)+"\">" +field.name+"</td>\n"
+                i = i - field.bitCount
+            else :
+                ret = ret+"<td class=\"empty\" colspan=\""+ str(i - nextStart)+"\"></td>\n"
+                i = nextStart
+        
+        return ret
+
 
 
 class Device:
@@ -135,6 +172,9 @@ class Device:
         self.addrSize =1
         self.aiMask = 0 #auto incrment mask 
         self.regs = {}
+        self.datasheet =""
+        self.desc=""
+        self.digikey_pn =""
 
     def addReg(self, reg):
         reg.device = self
@@ -173,8 +213,26 @@ class Device:
         if 'bus' in objDevice:
             self.bus = objDevice['bus']
         
+        if 'digikey_pn' in objDevice:
+            self.digikey_pn = objDevice['digikey_pn']
+
+        if 'mfg_pn' in objDevice:
+            self.mfg_pn = objDevice['mfg_pn']
+        
+        if 'desc' in objDevice:
+            self.desc = objDevice['desc']
+        
+        if 'description' in objDevice:
+            self.desc = objDevice['description']
+        
         if 'i2c_addr' in objDevice:
             self.i2c_addr = objDevice['i2c_addr']
+
+        if 'datasheet' in objDevice:
+            self.datasheet = objDevice['datasheet']
+        
+        if 'addr_size' in objDevice:
+            self.addr_size = objDevice['addr_size']
         
         if 'ai_mask' in objDevice:
             self.aiMask = objDevice['ai_mask'] #int(objDecive['ai_mask'],0)

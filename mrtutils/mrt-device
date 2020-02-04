@@ -51,6 +51,8 @@ def buildDeviceSource(device , outputPath, baseName =''):
     buildTemplate(device, 'templates/device_header_template.h', outputPath +"/"+baseName + ".h" )
     buildTemplate(device, 'templates/device_source_template.c', outputPath +"/"+baseName + ".c" )
     buildTemplate(device, 'templates/device_val_header.h', outputPath +"/"+baseName + "_dev.h" )
+    buildTemplate(device, 'templates/device_doc.html', outputPath +"/README.md" )
+    buildTemplate(device, 'templates/device_doc.html', outputPath +"/README.html" )
 
 
 def main():

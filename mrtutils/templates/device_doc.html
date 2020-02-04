@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>${obj.name} Device</title>
+</head>
+<body>
+<div class="content">
+<h1>${obj.name} Device</h1>
+<ul>
+  <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device">MrT Device Utility</a> </li>
+  <li> Bus:  ${obj.bus}</li>
+  %if not obj.datasheet == '':
+  <li>Datasheet: <a href="${obj.datasheet}">${obj.datasheet[:24] + (obj.datasheet[24:] and '...')}</a> </li>
+  %endif
+  %if not obj.digikey_pn == '':
+  <li> DigiKey: <a href="https://www.digikey.com/products/en?KeyWords=${obj.digikey_pn}">${obj.digikey_pn}</a></li>
+  %endif
+  %if "I2C" in obj.bus.upper():
+  <li> I2C Address: ${ obj.formatHex(obj.i2c_addr, 1)}</li>
+  %endif
+</ul>
+<hr/>
+<h2>Description: </h2>
+<p>${obj.desc}</p>
+
+<br/>
+
+
+<hr class="section">
+<h2 class="right"> Register Map</h2>
+<hr class="thick">
+
+<table class="fields">
+    <tr>
+        <th>Name</th>
+        <th>Address</th>
+        <th>Type</th>
+        <th>Access</th>
+        <th>Default</th>
+        <th>Description</th>
+    </tr>
+    %for key,reg in obj.regs.items():
+    <tr>
+        <td><a href="#register_${reg.name.lower()}_detail">${reg.name}</a></td>
+        <td>${reg.printAddr()}</td>
+        <td>${reg.type}</td>
+        <td>${reg.perm.upper()}</td>
+        <td>${reg.formatHex(reg.default)}</td>
+        <td>${reg.desc}</td>
+    </tr>
+    %endfor
+
+</table>
+
+
+
+<hr class="section">
+<h2 class="right"> Registers</h2>
+<hr class="thick">
+
+
+
+%for key,reg in obj.regs.items():
+<div id="register_${reg.name.lower()}_detail" class="packet">
+<h2>${reg.name} </h2>
+<hr/>
+<ul>
+    <li class="note">  Address: <b>[${reg.printAddr()}]</b></li>
+    %if reg.hasDefault:
+    <li class="note">  Default: <b>[${reg.formatHex(reg.default)}]</b></li>
+    %endif
+</ul>
+
+<p>${reg.desc}</p>
+
+
+<table class="fields" width="80%">
+  <tr>
+    <th class="smallCell">bit</th>
+    %for i in range(reg.size * 8):
+    <th> ${(reg.size*8) -(i+1)}</th>
+    %endfor
+  </tr>
+  <tr>
+    <th class="smallCell">Field</th>
+   ${reg.printFieldMap()}
+  </tr>
+  %if reg.hasDefault:
+  <tr>
+    <th class="smallCell">Default</th>
+    %for i in range(reg.size * 8):
+    %if reg.default & (1 << ((reg.size * 8) -(i+1))):
+      <td class="one" >1</td>
+    %else:
+      <td class="zero" >0</td>
+    %endif
+    %endfor
+   </tr>
+   %endif
+</table>
+%endfor
+
+</div>
+</body>
+<style>
+table.fixed { table-layout:auto; }
+table.fixed td { overflow:visible; }
+
+table.fields{
+  table-layout:auto;
+}
+
+body {
+  padding:0;
+}
+
+.content{
+  padding-top: 0;
+  padding-left: 1%;
+  padding-right: 1%;
+  background-color: #fff;
+}
+
+@media print {
+  .packet {
+    page-break-inside: avoid;
+    padding-top: 4px;
+  }
+  .content{
+    width: 100%;
+  }
+  body{
+    background-color: #fff;
+  }
+}
+
+@media screen {
+  .content{
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0;
+    padding-top: 4px;
+    box-shadow: 5px 10px #AAA;
+  }
+
+  body{
+    background-color: #ccc;
+    padding: 0;
+  }
+}
+
+html *{
+  font-size: 1em ;
+   color: #000 ;
+  font-family: Arial ;
+}
+
+hr.section {
+  border-style: solid;
+  border-width: 2px;
+  opacity: 1;
+}
+
+
+hr.thick {
+  border-style: solid;
+  border-width: 1px;
+  border-color: #94b2d3;
+  opacity: 1;
+}
+
+hr {
+  opacity: 0.5;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+td {
+  border: 1px solid #000000;
+  text-align: left;
+  padding: 5px;
+  vertical-align: top;
+}
+
+.smallCell
+{
+    width: 1px;
+    white-space: nowrap;
+}
+
+td.zero{
+  background-color: #ce927e;
+}
+
+td.one{
+  background-color: #98cd98;
+}
+
+td.empty{
+  background-color: #cccccc;
+}
+
+td.field{
+  width: 1px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.desc{
+  font-size: 1.2em;
+}
+
+th {
+  border: 1px solid #000000;
+  text-align: left;
+  padding: 5px;
+  background-color: #94b2d3;
+}
+
+li.val{
+  opacity: 0.6;
+}
+
+h1{
+  font-size: 2.0em;
+}
+
+h2 
+{
+  font-size: 1.3em;
+}
+
+h2.right{
+  text-align: center;
+  font-size: 1.3em;
+}
+
+h3
+{
+  font-size: 1.8em;
+  color: #003366;
+}
+
+h4 
+{
+  font-size: 1.1em;
+  color: #003366;
+}
+
+
+.note{
+  font-style: italic;
+  opacity: 0.6;
+}
+
+a{
+  text-decoration:none;
+}
+
+a:link {
+  color: blue;
+}
+
+/* visited link */
+a:visited {
+  color: blue;
+}
+
+table.fixed tr td:last-child{
+    width:1%;
+    white-space:nowrap;
+}
+</style>
+</html>

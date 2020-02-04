@@ -41,6 +41,7 @@
     #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"}        ${reg.formatHex(field.mask)}
     %for val in field.vals:
     #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_" + val.name.upper()}      ${reg.formatHex(val.val)}
+    
     %endfor
     %endif
     %endfor
@@ -103,6 +104,7 @@
 %endfor
  */
 #define ${obj.prefix.lower() +"_get_"+ reg.name.lower()+"_"+field.name.lower()}(dev) regdev_read_field(dev->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"} )
+
 %endif
 %endfor
 %endif
@@ -125,6 +127,7 @@
 %endfor
  */
 #define ${obj.prefix.lower() +"_set_"+ reg.name.lower()+"_"+field.name.lower()}(dev) regdev_write_field(dev->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"} )
+
 %endif
 %endfor
 %endif
