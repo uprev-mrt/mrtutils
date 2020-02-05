@@ -191,13 +191,27 @@ class DeviceReg:
     def printFieldMap(self):
         ret =""
         i = self.size * 8
+        bit = self.size * 8
         while i > 0:
             field , nextStart = self.getNextfieldByStartBit(i)
             if field:
-                ret = ret+"<td class=\"field\" colspan=\""+str(field.bitCount)+"\">" +field.name+"</td>\n"
+                ret = ret+"<td class=\"field\" colspan=\""+str(field.bitCount)+"\">\n"
+                ret = ret+ "    <div class=\"field_lable\" >" +field.name +"</div>\n"
+                for a in range(field.bitCount):
+                    ret = ret+ "<div class=\"bit\"><div class=\"bitno\"></div></div>"
+                    bit = bit-a 
+                    if bit % (self.device.smallestReg*8) == 0:
+                        ret = ret+"</tr><tr>"
+                ret = ret+"</td>\n"
                 i = i - field.bitCount
             else :
                 ret = ret+"<td class=\"empty\" colspan=\""+ str(i - nextStart)+"\"></td>\n"
+                for a in range(i - nextStart):
+                    ret = ret+ "<div class=\"bit\"><div class=\"bitno\"></div></div>"
+                    bit = bit-a 
+                    if bit % (self.device.smallestReg*8) == 0:
+                        ret = ret+"</tr><tr>"
+                ret = ret+"</td>\n"
                 i = nextStart
         
         return ret
