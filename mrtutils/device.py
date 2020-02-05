@@ -28,6 +28,24 @@ sizeDict = {
 args = None
 parser = None
 
+class DevConfig:
+    def __init__(self, node):
+        self.field = 0
+        self.val = 0 
+        self.desc = ""
+        self.regVals = []
+
+        self.name = list(node.keys())[0]
+        configItem = list(node.values())[0]
+        if 'desc' in configItem:
+            self.desc = configItem['desc']
+        
+        if 'registers' in configItem:
+            for regNode in configItem['registers']:
+                self.regVals.append(regNode)
+        if 'regs' in configItem:
+            for regNode in configItem['regs']:
+                self.regVals.append(regNode)
 
 class FieldVal:
     def __init__(self, node):
@@ -149,11 +167,13 @@ class DeviceReg:
         self.default = 0
         self.hasDefault = False
         self.fields = []
+        self.fieldDict = {}
         self.flags = []
         self.size = 1
         self.device = 0
         self.hasFlags = False
         self.hasFields = False
+        self.configs = {}
     
     def addField(self, field):
         field.reg = self
@@ -161,6 +181,8 @@ class DeviceReg:
             self.hasFlags = True
         else:
             self.hasFields = True
+
+        self.fieldDict[field.name] = field
         self.fields.append(field)
     
     def formatHex(self, val):
@@ -231,6 +253,7 @@ class Device:
         self.desc=""
         self.digikey_pn =""
         self.smallestReg = 4 
+        self.configs = {}
 
     def addReg(self, reg):
         reg.device = self
@@ -238,6 +261,31 @@ class Device:
             self.smallestReg = reg.size
 
         self.regs[reg.name] = reg
+    
+    def addConfig(self,config):
+        self.configs[config.name] = config
+        for item in config.regVals:
+            print(self.getConfigLine(item))
+
+    def getConfigLine(self,configReg):
+        ret = ""
+        regName = list(configReg.keys())[0]
+        regItem = list(configReg.values())[0]
+
+        if regName in self.regs:
+            curReg = self.regs[regName]
+            ret = self.prefix.lower() + "_write_reg( dev, dev->"
+            ret+= "m"+ self.camelCase(regName) + ", "
+            if type( regItem) is dict:
+                for key,value in regItem.items():
+                    ret+= key + " | "
+            else: 
+                ret+= self.formatHex(regItem, curReg.size)
+
+            ret+=");"
+
+        return ret        
+        
 
     def formatHex(self, val, size):
         val = "{0:#0{1}X}".format(val,(size *2) + 2)
@@ -329,6 +377,17 @@ class Device:
                     for fieldNode in propItem:
                         newField = RegField(fieldNode)
                         curReg.addField(newField)
+        
+        if 'configs' in objDevice:
+            for configNode in objDevice['configs']:
+                configItem = DevConfig(configNode)
+                self.addConfig(configItem)
+        
+        if 'configurations' in objDevice:
+            for configNode in objDevice['configurations']:
+                configItem = DevConfig(configNode)
+                self.addConfig(configItem)
+               
 
         print("Parsed device: " + self.name )
         print( "registers: " + str(len(self.regs)))
