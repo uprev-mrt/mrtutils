@@ -53,6 +53,21 @@
 </table>
 
 
+<table class="fields" width="80%">
+    <tr>
+      <th class="smallCell">bit</th>
+      %for i in range(obj.smallestReg * 8):
+      <th> ${(obj.smallestReg *8) -(i+1)}</th>
+      %endfor
+    </tr>
+    %for key, reg in obj.regs.items():
+    <tr>
+     ${reg.printFieldMap()}
+     </tr>
+     %endfor
+  </table>
+
+
 
 </div>
 </body>
