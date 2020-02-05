@@ -79,10 +79,7 @@ def main():
     if inputFile == "":
         print("No input file specified, use -t to create a template file")
         sys.exit()
-    
-    if not docPath == "":
-        buildTemplate(device, 'templates/device_doc.html', docPath +"/README.md" )
-        buildTemplate(device, 'templates/device_doc.html', docPath +"/README.html" )
+
 
     # if os.path.isfile(inputFile):
     print("parsing " + inputFile )
@@ -90,6 +87,11 @@ def main():
 
     print(" Generating Register files for " + device.name)
     buildDeviceSource(device, path)
+
+    if not docPath == "":
+        buildTemplate(device, 'templates/device_doc.html', docPath +"/README.md" )
+        buildTemplate(device, 'templates/device_doc.html', docPath +"/README.html" )
+        buildTemplate(device, 'templates/device_regmap.html', docPath +"/regmap.html" )
 
 
 if __name__ == "__main__":
