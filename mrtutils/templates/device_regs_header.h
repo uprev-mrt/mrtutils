@@ -16,7 +16,7 @@
 *******************************************************************************/
 
 % for key,reg in obj.regs.items():
-#define ${obj.prefix.upper() +"_REG_"+reg.name.upper()+"_ADDR"}                       ${reg.printAddr()}
+#define ${reg.getAddrMacro(58)} ${reg.printAddr()} /* ${reg.desc} */
 % endfor
 
 
@@ -32,19 +32,20 @@
     %endif
     %for field in reg.fields:
     %if field.isFlag:
-    #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper()}                       ${reg.formatHex(field.mask)}
+    #define ${field.getFieldFlagMacro(54)} ${reg.formatHex(field.mask)} /* ${field.desc} */
     %endif
     %endfor
     %for field in reg.fields:
     %if not field.isFlag:
     /* ${reg.name} -> ${field.name} */
-    #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"}        ${reg.formatHex(field.mask)}
+    #define ${field.getFieldMaskMacro(54)} ${reg.formatHex(field.mask)}
+    #define ${field.getFieldOffsetkMacro(54)} ${reg.formatHex(field.offset)}
     %for val in field.vals:
-    #define ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_" + val.name.upper()}      ${reg.formatHex(val.val)}
-    
+      #define ${val.getFieldValMacro(52)} ${reg.formatHex(val.val)} /* ${val.desc} */
     %endfor
     %endif
     %endfor
+
 % endif
 % endfor
 
@@ -54,7 +55,7 @@
 
 % for key,reg in obj.regs.items():
 % if reg.hasDefault:
-#define ${obj.prefix.upper() +"_"+reg.name.upper()+"_DEFAULT"}  ${reg.formatHex(reg.default)}
+#define ${reg.getDefaultMacro(58)} ${reg.formatHex(reg.default)}
 % endif
 % endfor
 

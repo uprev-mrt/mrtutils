@@ -44,6 +44,22 @@ class FieldVal:
         if 'name' in valItem:
             self.desc = valItem['name']
 
+    def getFieldValMacro(self, spacing = 0):
+        ret = self.field.reg.device.prefix.upper() +"_"+self.field.reg.name.upper()+"_"+self.field.name.upper() +"_" + self.name.upper()
+        if spacing > 0:
+            spaces = spacing - len(ret)
+            ret = ret + (" " * spaces)
+        return ret
+    
+    def getFieldValMaskMacro(self, spacing = 0):
+        ret = self.field.reg.device.prefix.upper() +"_"+self.field.reg.name.upper()+"_"+self.field.name.upper() +"_" + self.name.upper() + "_MASK"
+        if spacing > 0:
+            spaces = spacing - len(ret)
+            ret = ret + (" " * spaces)
+        return ret
+    
+    def getOffSetValue(self):
+        return val << self.field.offset
  
 class RegField:
     def __init__(self, node):
@@ -75,7 +91,8 @@ class RegField:
             self.isFlag = True
         
         self.bitCount = self.getSize()
-        self.startBit = self.bitCount + self.offset()
+        self.offset = self.getOffset()
+        self.startBit = self.bitCount + self.offset
 
     def getSize(self):
         count = 0
@@ -85,7 +102,7 @@ class RegField:
             n >>= 1
         return count 
 
-    def offset(self):
+    def getOffset(self):
         check = self.mask
         count = 0
         while not check & 1:
@@ -97,6 +114,30 @@ class RegField:
     def addVal(self, fieldVal):
         fieldVal.field = self
         self.vals.append(fieldVal)
+
+    def getFieldMaskMacro(self, spacing = 0):
+        ret = self.reg.device.prefix.upper() +"_"+self.reg.name.upper()+"_"+self.name.upper() +"_FIELD_MASK"
+
+        if spacing > 0:
+            spaces = spacing - len(ret)
+            ret = ret + (" " * spaces)
+        return ret
+    
+    def getFieldOffsetkMacro(self, spacing = 0):
+        ret = self.reg.device.prefix.upper() +"_"+self.reg.name.upper()+"_"+self.name.upper() +"_FIELD_OFFSET"
+
+        if spacing > 0:
+            spaces = spacing - len(ret)
+            ret = ret + (" " * spaces)
+        return ret
+
+    def getFieldFlagMacro(self, spacing = 0):
+        ret = self.reg.device.prefix.upper() +"_"+ self.reg.name.upper()+"_"+self.name.upper()
+
+        if spacing > 0:
+            spaces = spacing - len(ret)
+            ret = ret + (" " * spaces)
+        return ret
 
 class DeviceReg:
     def __init__(self,name):
@@ -160,6 +201,20 @@ class DeviceReg:
                 i = nextStart
         
         return ret
+    
+    def getAddrMacro(self, spacing = 0):
+        ret = self.device.prefix.upper() +"_REG_"+self.name.upper()+"_ADDR"
+        if spacing > 0:
+            spaces = spacing - len(ret)
+            ret = ret + (" " * spaces)
+        return ret 
+    
+    def getDefaultMacro(self, spacing = 0):
+        ret = self.device.prefix.upper() +"_"+self.name.upper()+"_DEFAULT"
+        if spacing > 0:
+            spaces = spacing - len(ret)
+            ret = ret + (" " * spaces)
+        return ret
 
 
 
@@ -175,9 +230,13 @@ class Device:
         self.datasheet =""
         self.desc=""
         self.digikey_pn =""
+        self.smallestReg = 4 
 
     def addReg(self, reg):
         reg.device = self
+        if reg.size < self.smallestReg:
+            self.smallestReg = reg.size
+
         self.regs[reg.name] = reg
 
     def formatHex(self, val, size):
