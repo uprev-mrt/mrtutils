@@ -30,15 +30,19 @@ def buildTemplate(object, templateFile, outputFile):
     exists= False
     cr = CodeReplacer()
     newContents =""
+    headerPattern = r"@file (.*?\.)(.*?) \*/"
     if os.path.isfile(outputFile):
         exists = True
         curFile = open(outputFile, "r")
         text = curFile.read()
         cr.loadText(text)
+        cr.loadText(text,headerPattern)
 
     template = Template(pkgutil.get_data('mrtutils',templateFile) )
     newContents = "\n".join(template.render(obj = object).splitlines())
     newContents = cr.insertBlocks(newContents)
+    newContents = cr.insertBlocks(newContents,headerPattern)
+    cr.printDrops()
     text_file = open( outputFile , "w")
     text_file.write(newContents)
     text_file.close()

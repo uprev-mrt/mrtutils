@@ -136,11 +136,18 @@
 % endfor
 
 /*******************************************************************************
-  CONFIG                                                                             
+  Configs                                                                            
 *******************************************************************************/
-## %for key,config in obj.configs:
-## %for regVal in config.regVals:
-## ${obj.getConfigLine(regVal)}
-## %endfor
-## %endfor
+
+%for key,config in obj.configs.items():
+/**
+ * @brief ${config.desc.replace("\n","\n *        ")}
+ * @param dev ptr to ${obj.name} device
+ */
+#define ${obj.prefix.lower()+"_load_config_"+config.name}(dev) ${"\\"}
+ %for regVal in config.regVals:
+${obj.getConfigLine(regVal, 48, True)} ${config.getDesc(regVal,32)} ${"\\"}
+%endfor
+
+%endfor
 

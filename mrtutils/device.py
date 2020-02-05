@@ -46,6 +46,28 @@ class DevConfig:
         if 'regs' in configItem:
             for regNode in configItem['regs']:
                 self.regVals.append(regNode)
+    
+    def getDesc(self,regVal, spacing =0):
+        ret =""
+        regName = list(regVal.keys())[0]
+        regItem = list(regVal.values())[0]
+        if type(regItem) is dict:
+            if 'desc' in regItem:
+                return regItem['desc']
+            else:
+                ret+="/*"
+                for key,value in regItem.items():
+                    ret+= " "+key+": "+ str(value) +" ,"
+                ret+=",*/"
+                ret = ret.replace(",,", "")
+        else:
+            ret=""
+
+        spaces = spacing - len(ret)
+        ret+= (" " * spaces)
+        
+        return ret
+
 
 class FieldVal:
     def __init__(self, node):
@@ -85,6 +107,7 @@ class RegField:
         self.mask = 0XFFFFFFFF
         self.desc = ""
         self.vals = []
+        self.valDict = {}
         self.isFlag = False
         self.bitCount = 0
         self.startBit =0
@@ -132,6 +155,7 @@ class RegField:
     def addVal(self, fieldVal):
         fieldVal.field = self
         self.vals.append(fieldVal)
+        self.valDict[fieldVal.name] = fieldVal
 
     def getFieldMaskMacro(self, spacing = 0):
         ret = self.reg.device.prefix.upper() +"_"+self.reg.name.upper()+"_"+self.name.upper() +"_FIELD_MASK"
@@ -264,27 +288,38 @@ class Device:
     
     def addConfig(self,config):
         self.configs[config.name] = config
-        for item in config.regVals:
-            print(self.getConfigLine(item))
 
-    def getConfigLine(self,configReg):
+    def getConfigLine(self,configReg,spacing =0, macro = False):
         ret = ""
         regName = list(configReg.keys())[0]
         regItem = list(configReg.values())[0]
 
         if regName in self.regs:
             curReg = self.regs[regName]
-            ret = self.prefix.lower() + "_write_reg( dev, dev->"
+            if(macro):
+                ret = self.prefix.lower() + "_write_reg( (dev), &(dev)->"
+            else:
+                ret = self.prefix.lower() + "_write_reg( dev, &dev->"
             ret+= "m"+ self.camelCase(regName) + ", "
             if type( regItem) is dict:
+                val =0
                 for key,value in regItem.items():
-                    ret+= key + " | "
+                    if key in curReg.fieldDict:
+                        curField = curReg.fieldDict[key]
+                        if type(value) is str:
+                            if value in curField.valDict:
+                                val = val | (curField.valDict[value].val << curField.offset) & curField.mask
+                        else:
+                            val = val | (value << curField.offset) & curField.mask
+                
+                ret+= self.formatHex(val, curReg.size)
             else: 
                 ret+= self.formatHex(regItem, curReg.size)
 
             ret+=");"
-
-        return ret        
+        spaces = spacing - len(ret)
+        ret+= (" "*spaces)
+        return ret
         
 
     def formatHex(self, val, size):

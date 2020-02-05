@@ -4,6 +4,7 @@
   * @link [https://github.com/uprev-mrt/mrtutils/wiki/mrt-device]
   * @brief Device driver for ${obj.name} device
   *
+  *
   */
 
 #ifdef __cplusplus
