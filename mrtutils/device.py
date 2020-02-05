@@ -28,6 +28,46 @@ sizeDict = {
 args = None
 parser = None
 
+class DevConfig:
+    def __init__(self, node):
+        self.field = 0
+        self.val = 0 
+        self.desc = ""
+        self.regVals = []
+
+        self.name = list(node.keys())[0]
+        configItem = list(node.values())[0]
+        if 'desc' in configItem:
+            self.desc = configItem['desc']
+        
+        if 'registers' in configItem:
+            for regNode in configItem['registers']:
+                self.regVals.append(regNode)
+        if 'regs' in configItem:
+            for regNode in configItem['regs']:
+                self.regVals.append(regNode)
+    
+    def getDesc(self,regVal, spacing =0):
+        ret =""
+        regName = list(regVal.keys())[0]
+        regItem = list(regVal.values())[0]
+        if type(regItem) is dict:
+            if 'desc' in regItem:
+                return regItem['desc']
+            else:
+                ret+="/*"
+                for key,value in regItem.items():
+                    ret+= " "+key+": "+ str(value) +" ,"
+                ret+=",*/"
+                ret = ret.replace(",,", "")
+        else:
+            ret=""
+
+        spaces = spacing - len(ret)
+        ret+= (" " * spaces)
+        
+        return ret
+
 
 class FieldVal:
     def __init__(self, node):
@@ -67,6 +107,7 @@ class RegField:
         self.mask = 0XFFFFFFFF
         self.desc = ""
         self.vals = []
+        self.valDict = {}
         self.isFlag = False
         self.bitCount = 0
         self.startBit =0
@@ -114,6 +155,7 @@ class RegField:
     def addVal(self, fieldVal):
         fieldVal.field = self
         self.vals.append(fieldVal)
+        self.valDict[fieldVal.name] = fieldVal
 
     def getFieldMaskMacro(self, spacing = 0):
         ret = self.reg.device.prefix.upper() +"_"+self.reg.name.upper()+"_"+self.name.upper() +"_FIELD_MASK"
@@ -149,11 +191,13 @@ class DeviceReg:
         self.default = 0
         self.hasDefault = False
         self.fields = []
+        self.fieldDict = {}
         self.flags = []
         self.size = 1
         self.device = 0
         self.hasFlags = False
         self.hasFields = False
+        self.configs = {}
     
     def addField(self, field):
         field.reg = self
@@ -161,6 +205,8 @@ class DeviceReg:
             self.hasFlags = True
         else:
             self.hasFields = True
+
+        self.fieldDict[field.name] = field
         self.fields.append(field)
     
     def formatHex(self, val):
@@ -231,6 +277,7 @@ class Device:
         self.desc=""
         self.digikey_pn =""
         self.smallestReg = 4 
+        self.configs = {}
 
     def addReg(self, reg):
         reg.device = self
@@ -238,6 +285,42 @@ class Device:
             self.smallestReg = reg.size
 
         self.regs[reg.name] = reg
+    
+    def addConfig(self,config):
+        self.configs[config.name] = config
+
+    def getConfigLine(self,configReg,spacing =0, macro = False):
+        ret = ""
+        regName = list(configReg.keys())[0]
+        regItem = list(configReg.values())[0]
+
+        if regName in self.regs:
+            curReg = self.regs[regName]
+            if(macro):
+                ret = self.prefix.lower() + "_write_reg( (dev), &(dev)->"
+            else:
+                ret = self.prefix.lower() + "_write_reg( dev, &dev->"
+            ret+= "m"+ self.camelCase(regName) + ", "
+            if type( regItem) is dict:
+                val =0
+                for key,value in regItem.items():
+                    if key in curReg.fieldDict:
+                        curField = curReg.fieldDict[key]
+                        if type(value) is str:
+                            if value in curField.valDict:
+                                val = val | (curField.valDict[value].val << curField.offset) & curField.mask
+                        else:
+                            val = val | (value << curField.offset) & curField.mask
+                
+                ret+= self.formatHex(val, curReg.size)
+            else: 
+                ret+= self.formatHex(regItem, curReg.size)
+
+            ret+=");"
+        spaces = spacing - len(ret)
+        ret+= (" "*spaces)
+        return ret
+        
 
     def formatHex(self, val, size):
         val = "{0:#0{1}X}".format(val,(size *2) + 2)
@@ -329,6 +412,17 @@ class Device:
                     for fieldNode in propItem:
                         newField = RegField(fieldNode)
                         curReg.addField(newField)
+        
+        if 'configs' in objDevice:
+            for configNode in objDevice['configs']:
+                configItem = DevConfig(configNode)
+                self.addConfig(configItem)
+        
+        if 'configurations' in objDevice:
+            for configNode in objDevice['configurations']:
+                configItem = DevConfig(configNode)
+                self.addConfig(configItem)
+               
 
         print("Parsed device: " + self.name )
         print( "registers: " + str(len(self.regs)))

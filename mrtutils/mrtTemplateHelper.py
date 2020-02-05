@@ -12,7 +12,7 @@ class CodeReplacer:
         self.blocksUsed = {}
         
     
-    def loadText(self, text, regex=r"/\*user-block-(.*?)-start\*/(.*?)/\*user-block-\1-end\*/"):
+    def loadText(self, text, regex=r"\*user-block-(.*?)-start\*(.*?)\*user-block-\1-end\*"):
         rx = re.compile(regex,re.DOTALL)
 
         for match in rx.finditer(text):
@@ -22,7 +22,7 @@ class CodeReplacer:
             self.blocksUsed[token] = False
 
 
-    def insertBlocks(self, text, regex=r"/\*user-block-(.*?)-start\*/(.*?)/\*user-block-\1-end\*/"):
+    def insertBlocks(self, text, regex=r"\*user-block-(.*?)-start\*(.*?)\*?user-block-\1-end\*"):
         rx = re.compile(regex,re.DOTALL)
         
         for match in rx.finditer(text):
@@ -31,12 +31,15 @@ class CodeReplacer:
                 self.blocksUsed[token] = True
                 text = text.replace(match.group(), self.blocks[token])
         
+        
+        return text
+
+    def printDrops(self):
+        
         for token, used in self.blocksUsed.items():
             if not used:
                 print(" Code block dropped: " + token)
                 print(self.blocks[token])
-        
-        return text
 
 
 
