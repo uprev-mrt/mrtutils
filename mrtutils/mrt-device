@@ -50,9 +50,7 @@ def buildDeviceSource(device , outputPath, baseName =''):
 
     buildTemplate(device, 'templates/device_header_template.h', outputPath +"/"+baseName + ".h" )
     buildTemplate(device, 'templates/device_source_template.c', outputPath +"/"+baseName + ".c" )
-    buildTemplate(device, 'templates/device_val_header.h', outputPath +"/"+baseName + "_dev.h" )
-    buildTemplate(device, 'templates/device_doc.html', outputPath +"/README.md" )
-    buildTemplate(device, 'templates/device_doc.html', outputPath +"/README.html" )
+    buildTemplate(device, 'templates/device_regs_header.h', outputPath +"/"+baseName + "_regs.h" )
 
 
 def main():
@@ -81,6 +79,10 @@ def main():
     if inputFile == "":
         print("No input file specified, use -t to create a template file")
         sys.exit()
+    
+    if not docPath == "":
+        buildTemplate(device, 'templates/device_doc.html', docPath +"/README.md" )
+        buildTemplate(device, 'templates/device_doc.html', docPath +"/README.html" )
 
     # if os.path.isfile(inputFile):
     print("parsing " + inputFile )
