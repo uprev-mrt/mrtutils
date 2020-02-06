@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>${obj.name} Device</title>
+  <title>${obj.name.upper()} Device</title>
 </head>
 <body>
 <div class="content">
-<h1>${obj.name} Device</h1>
+<h1>${obj.name.upper()} Device</h1>
 <ul>
   <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device">MrT Device Utility</a> </li>
   <li> Bus:  ${obj.bus}</li>
@@ -28,6 +28,12 @@
 <div class="regmap" align="center">
 <hr class="section">
 <h2 class="right"> Register Map</h2>
+<div align="right" width="100%">
+  Configuration:
+  <select id="cfgSelect" onchange="setConfig(this)"> 
+    <option value="none">None</option>
+  </select>
+</div>
 <hr class="thick">
 
 <table class="fields" width="95%">
@@ -46,6 +52,110 @@
 
 
 </div>
+<script>
+  
+  var device = {
+    regSize : 32,
+    currentVals : {},
+    configs :{}
+  };
+
+var cfgDefault_vals = [];
+% for key,reg in obj.regs.items():
+% if reg.hasDefault:
+    cfgDefault_vals.push({ name: "${reg.name}", val : ${reg.default} });
+% endif
+% endfor
+device.configs['Default'] = cfgDefault_vals;
+
+
+%for key,config in obj.configs.items():
+var cfg${config.name}_vals = [];
+%for regVal in config.regVals:
+<% name , val = obj.getConfigRegVal(regVal) %> \
+    cfg${config.name}_vals.push({ name: "${name}", val : ${val} });
+%endfor
+device.configs['${config.name}'] = cfg${config.name}_vals;
+%endfor
+
+  
+function showSettings(){
+    for(var k in device.currentVals){
+      var v = device.currentVals[k];
+      var bit = device.regSize - 1; //0 based
+      var mask =0;
+      while(bit >= 0)
+      {
+        mask = (v >> bit) & 1;
+        var element = document.getElementById(k + "_bit_" + bit);
+        
+        if(element)
+        {
+          if(mask)
+          {
+            element.classList.add("one");
+            element.classList.remove("zero");
+          }
+          else
+          {
+            element.classList.remove("one");
+            element.classList.add("zero");
+          }
+
+        }
+
+        bit--;
+      }
+
+    }
+  }
+
+
+  function loadConfig(config)
+  {
+    if(config == 'none')
+    {
+      var bits = document.getElementsByClassName("bit");
+      for(var i = 0; i < bits.length; i++)
+      {
+        bits[i].classList.remove("one");
+        bits[i].classList.remove("zero");
+      }
+
+    }
+    else
+    {
+      //first load defaults 
+      device.configs['Default'].forEach(val => {
+        device.currentVals[val.name] = val.val;
+      });
+  
+      device.configs[config].forEach(val => {
+        device.currentVals[val.name] = val.val;
+      });
+      showSettings();
+    }
+
+  }
+
+
+  function setConfig(selectObj)
+  {
+    var value = selectObj.value;
+    loadConfig(value);
+  }
+
+  var sel =  document.getElementById("cfgSelect");
+
+  for(var k in device.configs){
+    var option = document.createElement("option");
+    option.text = k;
+    option.Value = k;
+    sel.add(option);
+  }
+
+
+</script>
 </body>
 <style>
 table.fixed { table-layout:auto; }
@@ -133,14 +243,39 @@ td {
   white-space: nowrap;
 }
 
-
-
-td.zero{
-  background-color: #ce927e;
+.field{
+  text-align: center;
+  padding: 0px;
 }
 
+
+.bit{
+  border-right: 1px dotted #999;
+  border-left: 1px dotted #999;
+}
+
+.bit.first{
+  border-left: 1px solid black;
+}
+
+td:last-child{
+  border-right: 1px solid black;
+}
+td:first-child{
+  border-left: 1px solid black;
+}
+
+
 td.one{
-  background-color: #98cd98;
+  background-color: #acdbac;
+}
+
+td.zero{
+  background-color: #e2af9e;
+}
+
+.first{
+  border-lef
 }
 
 td.empty{

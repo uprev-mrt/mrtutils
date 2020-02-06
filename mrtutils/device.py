@@ -53,7 +53,7 @@ class DevConfig:
         regItem = list(regVal.values())[0]
         if type(regItem) is dict:
             if 'desc' in regItem:
-                return regItem['desc']
+                return "/* "+regItem['desc']+" */"
             else:
                 ret+="/*"
                 for key,value in regItem.items():
@@ -283,14 +283,23 @@ class DeviceReg:
 
             if field:
                 tt_lbl , tt_msg = field.getToolTip()
-                ret += "<td class=\"field\" colspan=\""+str(fieldlen)+"\"><a data-tt data-tt-lbl=\""+tt_lbl+"\" data-tt-msg=\""+tt_msg+"\">" +field.name+"</a></td>"
+                divField = "\n<div class=\"field\" style=\"margin-right:-"+ str(((fieldlen-1) * 100)) +"%\" >\n<a data-tt data-tt-lbl=\""+tt_lbl+"\" data-tt-msg=\""+tt_msg+"\">" +field.name+"</a></div>"
+                ret += "\n<td id=\"" +self.name + "_bit_" + str(bit-1) +"\" class=\"bit first\" >"+ divField+"</td>"
+                for b in range(1,fieldlen):
+                    ret+= "<td id=\"" + self.name + "_bit_" + str(bit - (b+1))+"\" class=\"bit\"></td>"
+
                 if contlen > 0:
-                    ret += "</tr>\n<tr><td class=\"field\" colspan=\""+str(contlen)+"\"><a data-tt data-tt-lbl=\""+tt_lbl+"\" data-tt-msg=\""+tt_msg+"\">" +field.name+"</a></td>"
+                    divField = "<div class=\"field\" style=\"margin-right:-"+ str(((contlen-1) * 100)) +"%\" ><a data-tt data-tt-lbl=\""+tt_lbl+"\" data-tt-msg=\""+tt_msg+"\">" +field.name+"</a></div>"
+                    ret += "\n<td id=\"" +self.name + "_bit_" + str(bit) +"\" class=\"bit first\" >"+ divField+"</td>"
+                    for b in range(1,contlen):
+                        ret+= "<td id=\"" + self.name + "_bit_" + str(bit - (fieldlen + b+1))+"\" class=\"bit\"></td>"
             else :
                 ret += "<td class=\"empty\" colspan=\""+ str(fieldlen)+"\">.</td>"
                 if contlen > 0:
-                    ret += "</tr>\n<tr><td class=\"empty\" colspan=\""+ str(contlen)+"\">.</td>"
+                    ret += "</tr>\n<tr><td class=\"empty\" colspan=\""+ str(contlen )+"\">.</td>"
+            
             bit -= (fieldlen + contlen)
+
             if( bit > 0) and (bit % width == 0):
                 ret+="</tr>\n<tr>"
             elif bit == 0:
@@ -370,6 +379,29 @@ class Device:
         spaces = spacing - len(ret)
         ret+= (" "*spaces)
         return ret
+
+    def getConfigRegVal(self,configReg):
+        
+        regName = list(configReg.keys())[0]
+        regItem = list(configReg.values())[0]
+        val = 0
+        if regName in self.regs:
+            curReg = self.regs[regName]
+            if type( regItem) is dict:
+                val =0
+                for key,value in regItem.items():
+                    if key in curReg.fieldDict:
+                        curField = curReg.fieldDict[key]
+                        if type(value) is str:
+                            if value in curField.valDict:
+                                val = val | (curField.valDict[value].val << curField.offset) & curField.mask
+                        else:
+                            val = val | (value << curField.offset) & curField.mask
+                
+            else: 
+                val = regItem
+
+        return regName, val
         
 
     def formatHex(self, val, size):

@@ -144,7 +144,7 @@
  * @brief ${config.desc.replace("\n","\n *        ")}
  * @param dev ptr to ${obj.name} device
  */
-#define ${obj.prefix.lower()+"_load_config_"+config.name}(dev) ${"\\"}
+#define ${obj.prefix.upper()+"_LOAD_CONFIG_"+config.name.upper()}(dev) ${"\\"}
  %for regVal in config.regVals:
 ${obj.getConfigLine(regVal, 48, True)} ${config.getDesc(regVal,32)} ${"\\"}
 %endfor
