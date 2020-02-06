@@ -99,13 +99,13 @@
 % for field in reg.fields:
 % if not field.isFlag:
 /**
- * @brief reads the ${field.name} field from the device 
+ * @brief reads the ${field.name} field from the ${reg.name} register 
  * @param dev ptr to ${obj.name} device
 %for val in field.vals:
  * @return ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_" + val.name.upper()} ${val.desc}
 %endfor
  */
-#define ${obj.prefix.lower() +"_get_"+ reg.name.lower()+"_"+field.name.lower()}(dev) regdev_read_field(dev->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"} )
+#define ${obj.prefix.lower() +"_get_"+ reg.name.lower()+"_"+field.name.lower()}(dev) regdev_read_field(&(dev)->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${field.getFieldMaskMacro()} )
 
 %endif
 %endfor
@@ -122,13 +122,13 @@
 %for field in reg.fields:
 % if not field.isFlag:
 /**
- * @brief writes the ${field.name} field from the device 
+ * @brief writes the ${field.name} field to the ${reg.name} register 
  * @param dev ptr to ${obj.name} device
 %for val in field.vals:
  * @option ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_" + val.name.upper()} ${val.desc}
 %endfor
  */
-#define ${obj.prefix.lower() +"_set_"+ reg.name.lower()+"_"+field.name.lower()}(dev) regdev_write_field(dev->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_MASK"} )
+#define ${obj.prefix.lower() +"_set_"+ reg.name.lower()+"_"+field.name.lower()}(dev, val) regdev_write_field(&(dev)->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${field.getFieldMaskMacro()} , (val) )
 
 %endif
 %endfor

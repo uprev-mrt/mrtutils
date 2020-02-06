@@ -36,17 +36,9 @@
 </div>
 <hr class="thick">
 
-<table class="fields" width="95%">
-    <tr>
-      <th width="14%">Register</th>
-      <th width="1%">RW</th>
-      %for i in range(obj.smallestReg * 8):
-      <th width="${85/ (obj.smallestReg * 8)}%"> ${(obj.smallestReg *8) -(i+1)}</th>
-      %endfor
-    </tr>
-    %for key, reg in obj.regs.items():
-     ${reg.printRegMap(obj.smallestReg *8)}
-     %endfor
+
+  <table class="fields" id="regMap" width="95%">
+
   </table>
 </div>
 
@@ -54,35 +46,187 @@
 </div>
 <script>
   
-  var device = {
-    regSize : 32,
-    currentVals : {},
-    configs :{}
+  var device = ${obj.printJSON()};
+
+  var sel =  document.getElementById("cfgSelect");
+
+  for(var k in device.configs){
+    var option = document.createElement("option");
+    option.text = k;
+    option.Value = k;
+    sel.add(option);
+  }
+
+  function checkBit(reg, bit)
+{
+  let resp = {
+    field: {},
+    len: 0,
+    cont : false
   };
 
-var cfgDefault_vals = [];
-% for key,reg in obj.regs.items():
-% if reg.hasDefault:
-    cfgDefault_vals.push({ name: "${reg.name}", val : ${reg.default} });
-% endif
-% endfor
-device.configs['Default'] = cfgDefault_vals;
+  let next = 1000;
+  bit -=1
+  for(let name in reg.fields)
+  {
+    let field = reg.fields[name];
+    let start = field.offset + (field.size -1);
+    let end = field.offset;
+
+    if(bit == start) //we are at the start of the field 
+    {
+      field.name = name;
+      resp.field = field;
+      resp.len = field.size;
+      resp.cont = false;
+      return resp;
+    }
+    else if( (bit < start) && (bit >= end)) //we are mid-field
+    {
+      field.name = name;
+      resp.field = field;
+      resp.len = field.size - (bit - end);
+      resp.cont = true;
+      return resp;
+    }
+
+    if( (bit > start) && ((bit - start ) < next))
+      next = bit - start;
+  }
+
+  resp.len = next;
+  resp.field = null;
+  return resp;
+}
 
 
-%for key,config in obj.configs.items():
-var cfg${config.name}_vals = [];
-%for regVal in config.regVals:
-<% name , val = obj.getConfigRegVal(regVal) %> \
-    cfg${config.name}_vals.push({ name: "${name}", val : ${val} });
-%endfor
-device.configs['${config.name}'] = cfg${config.name}_vals;
-%endfor
+function buildRegMap(tableId, dev)
+{
 
+  let table = document.getElementById(tableId);
+
+  let head = table.insertRow();
+
+  let headcell = document.createElement("th");
+  headcell.textContent = "Register";
+  headcell.setAttribute("width", "12%");
+  head.appendChild(headcell);
+  headcell = document.createElement("th");
+  headcell.textContent ="RW";
+  headcell.setAttribute("width", "3%");
+  head.appendChild(headcell);
+  let cellWidth = 85 / dev.smallestReg;
+  for(var n = dev.smallestReg; n > 0; n--)
+  {
+    headcell = document.createElement("th");
+    headcell.textContent = (n -1).toString();
+    headcell.setAttribute("width", cellWidth.toString() + "%");
+    head.appendChild(headcell);
+  }
+
+  for(let name in dev.regs)
+  {
+    let reg = dev.regs[name];
+    let rowSpan = reg.size / dev.smallestReg;
+    let row = table.insertRow();
+    let bit = reg.size;
+
+    let head = document.createElement("th");
+    let access = document.createElement("th");
+    head.textContent = name;
+    head.setAttribute("rowspan",rowSpan);
+    access.textContent =reg.perm;
+    access.setAttribute("rowspan",rowSpan);
+
+    row.appendChild(head);
+    row.appendChild(access);
+
+    let count = 0;
+
+    while(bit > 0)
+    {
+      var i = dev.smallestReg;
+      while( i > 0)
+      {
+        let resp = checkBit(reg, bit);
+        if(resp.len > (i))
+          resp.len = i;
+
+        let cell = document.createElement("td");
+
+        if(resp.field != null)
+        {
+          
+          cell.classList.add("bit");
+          cell.setAttribute("id", reg.name + "_bit_"+ (bit -1).toString());
+          let fieldName = resp.field.name;
+          if(resp.len == 1)
+          {
+            fieldName = fieldName.substring(0,5) + "..";
+          }
+
+          let fieldDiv = document.createElement("div");
+          fieldDiv.classList.add("field");
+          fieldDiv.setAttribute("style", "margin-right:-" + ((resp.len -1) * 100).toString() +"%;");
+
+          let fieldAnch = document.createElement("a");
+
+          if( !resp.cont) //this is a new field starting
+          {
+            cell.classList.add("first");
+            fieldAnch.textContent = fieldName
+            if(resp.field.size > resp.len)
+              fieldAnch.textContent +="[" + (resp.field.size -1).toString() +":" + (resp.field.size - resp.len).toString() +"]";
+          }
+          else 
+          {
+            fieldAnch.textContent = resp.field.name 
+            if(resp.field.size > resp.len)
+              fieldAnch.textContent += "[" + ( resp.len -1).toString() +":" + (0).toString() +"]";
+          }
+
+          fieldAnch.setAttribute("data-tt",'');
+          fieldAnch.setAttribute("data-tt-lbl", resp.field.name +"\n\n" +resp.field.desc );
+          let valStr ="\n";
+          resp.field.vals.forEach(val => {
+            valStr+= "b"+val.val.toString(2).padStart(resp.field.size,"0") + " : " + val.desc +"\n";
+          });
+          fieldAnch.setAttribute("data-tt-msg", valStr);
+
+          fieldDiv.appendChild(fieldAnch);
+          cell.appendChild(fieldDiv);
+          row.appendChild(cell);
+
+          for(var a =1 ; a < (resp.len); a++)
+          {
+            cell = document.createElement("td");
+            cell.classList.add("bit");
+            cell.setAttribute("id", name + "_bit_"+ (bit -(a+1)).toString());
+            row.appendChild(cell);
+          }
+
+        }
+        else
+        {
+          cell.classList.add("empty");
+          cell.setAttribute("colspan", resp.len);
+          cell.textContent=".";
+          row.appendChild(cell);
+        }
+
+        i -= resp.len;
+        bit-= resp.len;
+      }
+      if(bit > 0 )
+        row = table.insertRow();
+    }
+  }
+}
   
 function showSettings(){
     for(var k in device.currentVals){
       var v = device.currentVals[k];
-      var bit = device.regSize - 1; //0 based
+      var bit = device.largestReg - 1; //0 based
       var mask =0;
       while(bit >= 0)
       {
@@ -126,18 +270,20 @@ function showSettings(){
     else
     {
       //first load defaults 
-      device.configs['Default'].forEach(val => {
-        device.currentVals[val.name] = val.val;
-      });
-  
-      device.configs[config].forEach(val => {
-        device.currentVals[val.name] = val.val;
-      });
+      for(var k in device.configs['Default'])
+      {
+        device.currentVals[k] = device.configs['Default'][k];
+      }
+
+      for(var k in device.configs[config])
+      {
+        device.currentVals[k] = device.configs[config][k];
+      }
+
       showSettings();
     }
 
   }
-
 
   function setConfig(selectObj)
   {
@@ -145,15 +291,8 @@ function showSettings(){
     loadConfig(value);
   }
 
-  var sel =  document.getElementById("cfgSelect");
 
-  for(var k in device.configs){
-    var option = document.createElement("option");
-    option.text = k;
-    option.Value = k;
-    sel.add(option);
-  }
-
+  buildRegMap("regMap", device);
 
 </script>
 </body>
@@ -162,7 +301,7 @@ table.fixed { table-layout:auto; }
 table.fixed td { overflow:visible; }
 
 table.fields{
-  table-layout:auto;
+  table-layout:fixed;
 }
 
 body {
@@ -190,7 +329,7 @@ body {
 
 @media screen {
   .content{
-    width: 50%;
+    width: 65%;
     margin-left: auto;
     margin-right: auto;
     margin-top: 0;
@@ -231,6 +370,7 @@ hr {
 
 table {
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 td {
@@ -246,12 +386,14 @@ td {
 .field{
   text-align: center;
   padding: 0px;
+  font-weight: bold; 
 }
 
 
 .bit{
   border-right: 1px dotted #999;
   border-left: 1px dotted #999;
+  overflow:visible;
 }
 
 .bit.first{
@@ -274,20 +416,13 @@ td.zero{
   background-color: #e2af9e;
 }
 
-.first{
-  border-lef
-}
 
 td.empty{
   background-color: #cccccc;
   color: #cccccc;
 }
 
-td.field{
-  width: 1px;
-  white-space: nowrap;
-  text-align: center;
-}
+
 
 .desc{
   font-size: 1.2em;
@@ -384,7 +519,7 @@ table.fixed tr td:last-child{
   border: 2px solid rgba(0, 0, 0, 1);
   border-radius: 2px;
   color: #000000;
-  content: attr(data-tt-lbl) ":\A" attr(data-tt-msg);
+  content: attr(data-tt-lbl) "\A" attr(data-tt-msg);
   left: 0;
   width: 300px;
   overflow: auto;

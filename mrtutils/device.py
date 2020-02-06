@@ -9,6 +9,7 @@
 import sys
 import os
 import yaml
+import json
 
 
 sizeDict = {
@@ -34,6 +35,7 @@ class DevConfig:
         self.val = 0 
         self.desc = ""
         self.regVals = []
+        self.device = 0
 
         self.name = list(node.keys())[0]
         configItem = list(node.values())[0]
@@ -67,6 +69,34 @@ class DevConfig:
         ret+= (" " * spaces)
         
         return ret
+    
+    def getDict(self):
+        
+        json_dict = {}
+        for configReg in self.regVals:
+            regName = list(configReg.keys())[0]
+            regItem = list(configReg.values())[0]
+            val = 0
+            if regName in self.device.regs:
+                curReg = self.device.regs[regName]
+                if type( regItem) is dict:
+                    val =0
+                    for key,value in regItem.items():
+                        if key in curReg.fieldDict:
+                            curField = curReg.fieldDict[key]
+                            if type(value) is str:
+                                if value in curField.valDict:
+                                    val = val | (curField.valDict[value].val << curField.offset) & curField.mask
+                            else:
+                                val = val | (value << curField.offset) & curField.mask
+                    
+                else: 
+                    val = regItem
+
+            json_dict[regName] = val 
+
+        return json_dict    
+
 
 
 class FieldVal:
@@ -100,6 +130,11 @@ class FieldVal:
     
     def getOffSetValue(self):
         return val << self.field.offset
+    
+    def getDict(self):
+        json_dict ={"name": self.name, "val": self.val, "desc": self.desc}
+        return json_dict
+
  
 class RegField:
     def __init__(self, node):
@@ -117,6 +152,8 @@ class RegField:
 
         if 'mask' in fieldItem:
             self.mask = fieldItem['mask']
+        if 'bit' in fieldItem:
+            self.mask = 1 << fieldItem['bit']
         if 'values' in fieldItem:
             for valNode in fieldItem['values']:
                 newVal = FieldVal(valNode)
@@ -192,6 +229,18 @@ class RegField:
         
         return self.desc, message
 
+    def getDict(self):
+        val_arr = []
+        for val in self.vals:
+            val_arr.append(val.getDict())
+
+        json_dict = { "mask": self.mask, "size": self.bitCount, "offset": self.offset, "desc": self.desc, "vals": val_arr}
+
+        return json_dict
+        
+
+        
+
 class DeviceReg:
     def __init__(self,name):
         self.name = name
@@ -260,52 +309,6 @@ class DeviceReg:
         
         return ret
     
-    def printRegMap(self, width):
-        ret =""
-        lines = int(self.size * 8 / width)
-        bit = self.size * 8
-        fieldlen =0
-        contlen =0
-        remaining =0
-        
-        ret+="<tr>"
-        ret+="<th rowspan=\""+ str(lines)+"\">"+self.name+"</th><th rowspan=\""+ str(lines)+"\">"+self.perm.upper()+"</th>\n"
-        while bit > 0:
-            contlen = 0
-            field , fieldlen = self.getNextfieldByStartBit(bit)
-
-            remaining = bit % width
-            if remaining == 0:
-                remaining = width
-            if fieldlen >  remaining: #dont let it run over row
-                contlen  =  fieldlen - remaining
-                fieldlen -= contlen
-
-            if field:
-                tt_lbl , tt_msg = field.getToolTip()
-                divField = "\n<div class=\"field\" style=\"margin-right:-"+ str(((fieldlen-1) * 100)) +"%\" >\n<a data-tt data-tt-lbl=\""+tt_lbl+"\" data-tt-msg=\""+tt_msg+"\">" +field.name+"</a></div>"
-                ret += "\n<td id=\"" +self.name + "_bit_" + str(bit-1) +"\" class=\"bit first\" >"+ divField+"</td>"
-                for b in range(1,fieldlen):
-                    ret+= "<td id=\"" + self.name + "_bit_" + str(bit - (b+1))+"\" class=\"bit\"></td>"
-
-                if contlen > 0:
-                    divField = "<div class=\"field\" style=\"margin-right:-"+ str(((contlen-1) * 100)) +"%\" ><a data-tt data-tt-lbl=\""+tt_lbl+"\" data-tt-msg=\""+tt_msg+"\">" +field.name+"</a></div>"
-                    ret += "\n<td id=\"" +self.name + "_bit_" + str(bit) +"\" class=\"bit first\" >"+ divField+"</td>"
-                    for b in range(1,contlen):
-                        ret+= "<td id=\"" + self.name + "_bit_" + str(bit - (fieldlen + b+1))+"\" class=\"bit\"></td>"
-            else :
-                ret += "<td class=\"empty\" colspan=\""+ str(fieldlen)+"\">.</td>"
-                if contlen > 0:
-                    ret += "</tr>\n<tr><td class=\"empty\" colspan=\""+ str(contlen )+"\">.</td>"
-            
-            bit -= (fieldlen + contlen)
-
-            if( bit > 0) and (bit % width == 0):
-                ret+="</tr>\n<tr>"
-            elif bit == 0:
-                ret+="</tr>\n"
-        
-        return ret
     
     def getAddrMacro(self, spacing = 0):
         ret = self.device.prefix.upper() +"_REG_"+self.name.upper()+"_ADDR"
@@ -321,6 +324,14 @@ class DeviceReg:
             ret = ret + (" " * spaces)
         return ret
 
+    def getDict(self):
+        field_dict = {}
+
+        for field in self.fields:
+            field_dict[field.name] = field.getDict();
+
+        json_dict = {"name": self.name, "addr": self.addr, "type": self.type, "size": self.size * 8, "perm": self.perm.upper(), "default":self.default, "hasDefault":self.hasDefault, "desc": self.desc, "fields": field_dict}
+        return json_dict
 
 
 class Device:
@@ -336,16 +347,25 @@ class Device:
         self.desc=""
         self.digikey_pn =""
         self.smallestReg = 4 
+        self.largestReg = 1
         self.configs = {}
+        self.defaults = {}
 
     def addReg(self, reg):
         reg.device = self
         if reg.size < self.smallestReg:
             self.smallestReg = reg.size
+        
+        if reg.size > self.largestReg:
+            self.largestReg = reg.size
+        
+        if reg.hasDefault:
+            self.defaults[reg.name] = reg.default
 
         self.regs[reg.name] = reg
     
     def addConfig(self,config):
+        config.device = self
         self.configs[config.name] = config
 
     def getConfigLine(self,configReg,spacing =0, macro = False):
@@ -508,6 +528,25 @@ class Device:
 
         print("Parsed device: " + self.name )
         print( "registers: " + str(len(self.regs)))
+
+    def getDict(self):
+
+        reg_dict ={}
+        cfg_dict = {}
+        for key, reg in self.regs.items():
+            reg_dict[key] = reg.getDict()
+        
+        cfg_dict['Default'] = self.defaults
+        for key, cfg in self.configs.items():
+            cfg_dict[key] = cfg.getDict()
+
+        json_dict = {"name": self.name, "regs": reg_dict, "configs": cfg_dict, "currentVals": self.defaults, "smallestReg" : self.smallestReg * 8 , "largestReg": self.largestReg * 8}
+
+        return json_dict
+    
+    def printJSON(self):
+        return json.dumps(self.getDict());
+
 
 
 
