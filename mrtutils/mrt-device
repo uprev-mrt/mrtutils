@@ -94,7 +94,8 @@ def main():
 
     if not docPath == "":
         buildTemplate(device, 'templates/device_doc.html', docPath +"/README.md" )
-        buildTemplate(device, 'templates/device_doc.html', docPath +"/README.html" )
+        buildTemplate(device, 'templates/device_regmap.html', docPath +"/README.html" )
+        
 
 
 if __name__ == "__main__":

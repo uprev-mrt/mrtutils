@@ -181,6 +181,17 @@ class RegField:
             ret = ret + (" " * spaces)
         return ret
 
+    def getToolTip(self):
+        message = ""
+
+        for val in self.vals:
+            if self.bitCount > 4 :
+                message +="\n\tx" + format(val.val, '02x') +" = " + val.desc
+            else:
+                message +="\n\tb" + format(val.val, '0'+str(self.bitCount)+'b') +" = " + val.desc
+        
+        return self.desc, message
+
 class DeviceReg:
     def __init__(self,name):
         self.name = name
@@ -222,13 +233,14 @@ class DeviceReg:
         found = False
         for field in self.fields:
             if field.startBit == startBit:
-                return field , 0
+                return field , field.bitCount
         
-        while not found and startBit >= 0:
-            startBit = startBit -1 
+        search = startBit
+        while search >= 0:
+            search = search -1 
             for field in self.fields:
-                if field.startBit == startBit:
-                    return False , startBit
+                if field.startBit == search:
+                    return False , startBit - search
         
         return False, startBit
 
@@ -237,14 +249,52 @@ class DeviceReg:
     def printFieldMap(self):
         ret =""
         i = self.size * 8
-        while i > 0:
-            field , nextStart = self.getNextfieldByStartBit(i)
+        # while i > 0:
+        #     field , nextStart = self.getNextfieldByStartBit(i)
+        #     if field:
+        #         ret = ret+"<td class=\"field\" colspan=\""+str(field.bitCount)+"\">" +field.name+"</td>\n"
+        #         i = i - field.bitCount
+        #     else :
+        #         ret = ret+"<td class=\"empty\" colspan=\""+ str(i - nextStart)+"\"></td>\n"
+        #         i = nextStart
+        
+        return ret
+    
+    def printRegMap(self, width):
+        ret =""
+        lines = int(self.size * 8 / width)
+        bit = self.size * 8
+        fieldlen =0
+        contlen =0
+        remaining =0
+        
+        ret+="<tr>"
+        ret+="<th rowspan=\""+ str(lines)+"\">"+self.name+"</th><th rowspan=\""+ str(lines)+"\">"+self.perm.upper()+"</th>\n"
+        while bit > 0:
+            contlen = 0
+            field , fieldlen = self.getNextfieldByStartBit(bit)
+
+            remaining = bit % width
+            if remaining == 0:
+                remaining = width
+            if fieldlen >  remaining: #dont let it run over row
+                contlen  =  fieldlen - remaining
+                fieldlen -= contlen
+
             if field:
-                ret = ret+"<td class=\"field\" colspan=\""+str(field.bitCount)+"\">" +field.name+"</td>\n"
-                i = i - field.bitCount
+                tt_lbl , tt_msg = field.getToolTip()
+                ret += "<td class=\"field\" colspan=\""+str(fieldlen)+"\"><a data-tt data-tt-lbl=\""+tt_lbl+"\" data-tt-msg=\""+tt_msg+"\">" +field.name+"</a></td>"
+                if contlen > 0:
+                    ret += "</tr>\n<tr><td class=\"field\" colspan=\""+str(contlen)+"\"><a data-tt data-tt-lbl=\""+tt_lbl+"\" data-tt-msg=\""+tt_msg+"\">" +field.name+"</a></td>"
             else :
-                ret = ret+"<td class=\"empty\" colspan=\""+ str(i - nextStart)+"\"></td>\n"
-                i = nextStart
+                ret += "<td class=\"empty\" colspan=\""+ str(fieldlen)+"\">.</td>"
+                if contlen > 0:
+                    ret += "</tr>\n<tr><td class=\"empty\" colspan=\""+ str(contlen)+"\">.</td>"
+            bit -= (fieldlen + contlen)
+            if( bit > 0) and (bit % width == 0):
+                ret+="</tr>\n<tr>"
+            elif bit == 0:
+                ret+="</tr>\n"
         
         return ret
     

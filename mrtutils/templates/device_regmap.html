@@ -25,48 +25,24 @@
 
 <br/>
 
-
+<div class="regmap" align="center">
 <hr class="section">
 <h2 class="right"> Register Map</h2>
 <hr class="thick">
 
-<table class="fields">
+<table class="fields" width="95%">
     <tr>
-        <th>Name</th>
-        <th>Address</th>
-        <th>Type</th>
-        <th>Access</th>
-        <th>Default</th>
-        <th>Description</th>
-    </tr>
-    %for key,reg in obj.regs.items():
-    <tr>
-        <td><a href="#register_${reg.name.lower()}_detail">${reg.name}</a></td>
-        <td>${reg.printAddr()}</td>
-        <td>${reg.type}</td>
-        <td>${reg.perm.upper()}</td>
-        <td>${reg.formatHex(reg.default)}</td>
-        <td>${reg.desc}</td>
-    </tr>
-    %endfor
-
-</table>
-
-
-<table class="fields" width="80%">
-    <tr>
-      <th class="smallCell">bit</th>
+      <th width="14%">Register</th>
+      <th width="1%">RW</th>
       %for i in range(obj.smallestReg * 8):
-      <th> ${(obj.smallestReg *8) -(i+1)}</th>
+      <th width="${85/ (obj.smallestReg * 8)}%"> ${(obj.smallestReg *8) -(i+1)}</th>
       %endfor
     </tr>
     %for key, reg in obj.regs.items():
-    <tr>
-     ${reg.printFieldMap()}
-     </tr>
+     ${reg.printRegMap(obj.smallestReg *8)}
      %endfor
   </table>
-
+</div>
 
 
 </div>
@@ -91,9 +67,8 @@ body {
 }
 
 @media print {
-  .packet {
+  .regmap {
     page-break-inside: avoid;
-    padding-top: 4px;
   }
   .content{
     width: 100%;
@@ -111,6 +86,7 @@ body {
     margin-top: 0;
     padding-top: 4px;
     box-shadow: 5px 10px #AAA;
+    padding-bottom: 50px;
   }
 
   body{
@@ -150,15 +126,14 @@ table {
 td {
   border: 1px solid #000000;
   text-align: left;
-  padding: 5px;
+  padding-top: 6px;
   vertical-align: top;
+  font-size: 9pt;
+  width: 1px;
+  white-space: nowrap;
 }
 
-.smallCell
-{
-    width: 1px;
-    white-space: nowrap;
-}
+
 
 td.zero{
   background-color: #ce927e;
@@ -170,6 +145,7 @@ td.one{
 
 td.empty{
   background-color: #cccccc;
+  color: #cccccc;
 }
 
 td.field{
@@ -187,6 +163,7 @@ th {
   text-align: left;
   padding: 5px;
   background-color: #94b2d3;
+  font-size: 9pt;
 }
 
 li.val{
@@ -242,5 +219,52 @@ table.fixed tr td:last-child{
     width:1%;
     white-space:nowrap;
 }
+
+[data-tt] {
+  position: relative;
+  cursor: help;
+}
+
+[data-tt]:before,
+[data-tt]:after {
+  display: none;
+  position: absolute;
+  top: 0;
+}
+
+[data-tt]:before {
+  border-bottom: .6em solid #09f;
+  border-bottom: .6em solid rgba(0,153,255,0.8);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  content: "";
+  left: 20px;
+  margin-top: 1em;
+}
+
+[data-tt]:after {
+  background-color: #387aa7;
+  background-color: rgb(162, 197, 221);
+  border: 2px solid #000000;
+  border: 2px solid rgba(0, 0, 0, 1);
+  border-radius: 2px;
+  color: #000000;
+  content: attr(data-tt-lbl) ":\A" attr(data-tt-msg);
+  left: 0;
+  width: 300px;
+  overflow: auto;
+  text-align: left;
+  margin-top: 1.5em;
+  padding: 5px 15px;
+  white-space: pre-wrap;
+  z-index: 100;
+}
+
+[data-tt]:hover:after,
+[data-tt]:hover:before {
+  display: block;
+  overflow: auto;
+}
+
 </style>
 </html>
