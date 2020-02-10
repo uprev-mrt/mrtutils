@@ -1,14 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>${obj.name} Device</title>
-</head>
-<body>
-<div class="content">
+
 <h1>${obj.name} Device</h1>
 <ul>
   <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device">MrT Device Utility</a> </li>
   <li> Bus:  ${obj.bus}</li>
+  <li> RegMap: <a href="Regmap.html">Register Map</a>
   %if not obj.datasheet == '':
   <li>Datasheet: <a href="${obj.datasheet}">${obj.datasheet[:24] + (obj.datasheet[24:] and '...')}</a> </li>
   %endif
@@ -23,6 +18,9 @@
 <h2>Description: </h2>
 <p>${obj.desc}</p>
 
+<!--*user-block-description-start*-->
+
+<!--*user-block-description-end*-->
 <br/>
 
 
@@ -72,8 +70,9 @@
 </ul>
 
 <p>${reg.desc}</p>
+<!--*user-block-${reg.name.lower()}-start*-->
 
-
+<!--*user-block-${reg.name.lower()}-end*-->
 <table class="fields" width="80%">
   <tr>
     <th class="smallCell">bit</th>
@@ -98,180 +97,33 @@
    </tr>
    %endif
 </table>
+
+%if reg.hasFlags:
+<h2> Flags:</h2>
+%for field in reg.fields:
+%if field.isFlag:
+<b>${field.name}:</b> ${field.desc}<br>
+%endif
 %endfor
+%endif
 
-</div>
-</body>
-<style>
-table.fixed { table-layout:auto; }
-table.fixed td { overflow:visible; }
+%if reg.hasFields:
+<h2> Fields:</h2>
+%for field in reg.fields:
+%if not field.isFlag:
 
-table.fields{
-  table-layout:auto;
-}
+<b>${field.name}:</b> ${field.desc}
+%if len(field.vals) > 0:
+<table>
+%for val in field.vals:
+<tr><td> ${val.name} </td><td> ${val.formatVal()} </td><td>  ${val.desc}</td></tr>
+%endfor
+</table>
 
-body {
-  padding:0;
-}
+%endif
 
-.content{
-  padding-top: 0;
-  padding-left: 1%;
-  padding-right: 1%;
-  background-color: #fff;
-}
+%endif
+%endfor
+%endif
 
-@media print {
-  .packet {
-    page-break-inside: avoid;
-    padding-top: 4px;
-  }
-  .content{
-    width: 100%;
-  }
-  body{
-    background-color: #fff;
-  }
-}
-
-@media screen {
-  .content{
-    width: 50%;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 0;
-    padding-top: 4px;
-    box-shadow: 5px 10px #AAA;
-  }
-
-  body{
-    background-color: #ccc;
-    padding: 0;
-  }
-}
-
-html *{
-  font-size: 1em ;
-   color: #000 ;
-  font-family: Arial ;
-}
-
-hr.section {
-  border-style: solid;
-  border-width: 2px;
-  opacity: 1;
-}
-
-
-hr.thick {
-  border-style: solid;
-  border-width: 1px;
-  border-color: #94b2d3;
-  opacity: 1;
-}
-
-hr {
-  opacity: 0.5;
-}
-
-table {
-  border-collapse: collapse;
-}
-
-td {
-  border: 1px solid #000000;
-  text-align: left;
-  padding: 5px;
-  vertical-align: top;
-}
-
-.smallCell
-{
-    width: 1px;
-    white-space: nowrap;
-}
-
-td.zero{
-  background-color: #ce927e;
-}
-
-td.one{
-  background-color: #98cd98;
-}
-
-td.empty{
-  background-color: #cccccc;
-}
-
-td.field{
-  width: 1px;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.desc{
-  font-size: 1.2em;
-}
-
-th {
-  border: 1px solid #000000;
-  text-align: left;
-  padding: 5px;
-  background-color: #94b2d3;
-}
-
-li.val{
-  opacity: 0.6;
-}
-
-h1{
-  font-size: 2.0em;
-}
-
-h2 
-{
-  font-size: 1.3em;
-}
-
-h2.right{
-  text-align: center;
-  font-size: 1.3em;
-}
-
-h3
-{
-  font-size: 1.8em;
-  color: #003366;
-}
-
-h4 
-{
-  font-size: 1.1em;
-  color: #003366;
-}
-
-
-.note{
-  font-style: italic;
-  opacity: 0.6;
-}
-
-a{
-  text-decoration:none;
-}
-
-a:link {
-  color: blue;
-}
-
-/* visited link */
-a:visited {
-  color: blue;
-}
-
-table.fixed tr td:last-child{
-    width:1%;
-    white-space:nowrap;
-}
-</style>
-</html>
+%endfor

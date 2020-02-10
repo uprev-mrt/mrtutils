@@ -94,8 +94,8 @@ def main():
     buildDeviceSource(device, path)
 
     if not docPath == "":
-        buildTemplate(device, 'templates/device_doc.html', docPath +"/README.md" )
-        buildTemplate(device, 'templates/device_regmap.html', docPath +"/README.html" )
+        buildTemplate(device, 'templates/device_doc.md', docPath +"/README.md" )
+        buildTemplate(device, 'templates/device_regmap.html', docPath +"/REGMAP.html" )
         
 
 

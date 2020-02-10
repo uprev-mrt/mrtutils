@@ -145,8 +145,11 @@
  * @param dev ptr to ${obj.name} device
  */
 #define ${obj.prefix.upper()+"_LOAD_CONFIG_"+config.name.upper()}(dev) ${"\\"}
- %for regVal in config.regVals:
+%for regVal in config.regVals:
 ${obj.getConfigLine(regVal, 48, True)} ${config.getDesc(regVal,32)} ${"\\"}
+%if config.getDelay(regVal):
+${config.getDelay(regVal,48)}
+%endif
 %endfor
 
 %endfor

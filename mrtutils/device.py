@@ -59,7 +59,8 @@ class DevConfig:
             else:
                 ret+="/*"
                 for key,value in regItem.items():
-                    ret+= " "+key+": "+ str(value) +" ,"
+                    if not key == 'delay':
+                        ret+= " "+key+": "+ str(value) +" ,"
                 ret+=",*/"
                 ret = ret.replace(",,", "")
         else:
@@ -69,6 +70,21 @@ class DevConfig:
         ret+= (" " * spaces)
         
         return ret
+    
+    def getDelay(self, regVal, spacing = 0):
+        regName = list(regVal.keys())[0]
+        regItem = list(regVal.values())[0]
+        ret =""
+        spaces = 0
+        if 'delay' in regItem:
+            ret+= "MRT_DELAY_MS({}); ".format(regItem['delay'])
+            spaces = spacing - len(ret)
+            ret+= (" " * spaces)
+            ret+= " /* Delay for {} */ \\".format(regName)
+            return ret
+
+        return False
+
     
     def getDict(self):
         
@@ -134,6 +150,12 @@ class FieldVal:
     def getDict(self):
         json_dict ={"name": self.name, "val": self.val, "desc": self.desc}
         return json_dict
+    
+    def formatVal(self):
+        if self.field.bitCount > 6 :
+            return "x"+format(self.val, '02x')
+        else:
+            return "b"+format(self.val, '0'+str(self.field.bitCount)+'b')
 
  
 class RegField:
@@ -222,7 +244,7 @@ class RegField:
         message = ""
 
         for val in self.vals:
-            if self.bitCount > 4 :
+            if self.bitCount > 6 :
                 message +="\n\tx" + format(val.val, '02x') +" = " + val.desc
             else:
                 message +="\n\tb" + format(val.val, '0'+str(self.bitCount)+'b') +" = " + val.desc
@@ -298,14 +320,14 @@ class DeviceReg:
     def printFieldMap(self):
         ret =""
         i = self.size * 8
-        # while i > 0:
-        #     field , nextStart = self.getNextfieldByStartBit(i)
-        #     if field:
-        #         ret = ret+"<td class=\"field\" colspan=\""+str(field.bitCount)+"\">" +field.name+"</td>\n"
-        #         i = i - field.bitCount
-        #     else :
-        #         ret = ret+"<td class=\"empty\" colspan=\""+ str(i - nextStart)+"\"></td>\n"
-        #         i = nextStart
+        while i > 0:
+            field , nextStart = self.getNextfieldByStartBit(i)
+            if field:
+                ret = ret+"<td class=\"field\" colspan=\""+str(field.bitCount)+"\">" +field.name+"</td>\n"
+                i -= field.bitCount
+            else :
+                ret = ret+"<td class=\"empty\" colspan=\""+ str( nextStart)+"\"></td>\n"
+                i -= nextStart
         
         return ret
     
