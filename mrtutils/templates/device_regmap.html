@@ -109,13 +109,17 @@ function buildRegMap(tableId, dev)
 
   let headcell = document.createElement("th");
   headcell.textContent = "Register";
-  headcell.setAttribute("width", "12%");
+  headcell.setAttribute("width", "10%");
+  head.appendChild(headcell);
+  headcell = document.createElement("th");
+  headcell.textContent ="Addr";
+  headcell.setAttribute("width", "4%");
   head.appendChild(headcell);
   headcell = document.createElement("th");
   headcell.textContent ="RW";
   headcell.setAttribute("width", "3%");
   head.appendChild(headcell);
-  let cellWidth = 85 / dev.smallestReg;
+  let cellWidth = 83 / dev.smallestReg;
   for(var n = dev.smallestReg; n > 0; n--)
   {
     headcell = document.createElement("th");
@@ -133,12 +137,16 @@ function buildRegMap(tableId, dev)
 
     let head = document.createElement("th");
     let access = document.createElement("th");
+    let regAddr = document.createElement("th");
     head.textContent = name;
     head.setAttribute("rowspan",rowSpan);
+    regAddr.textContent = "x"+reg.addr.toString(16).padStart(4,"0")
+    regAddr.setAttribute("rowspan", rowSpan);
     access.textContent =reg.perm;
     access.setAttribute("rowspan",rowSpan);
 
     row.appendChild(head);
+    row.appendChild(regAddr);
     row.appendChild(access);
 
     let count = 0;

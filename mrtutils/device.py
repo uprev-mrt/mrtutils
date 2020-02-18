@@ -76,12 +76,13 @@ class DevConfig:
         regItem = list(regVal.values())[0]
         ret =""
         spaces = 0
-        if 'delay' in regItem:
-            ret+= "MRT_DELAY_MS({}); ".format(regItem['delay'])
-            spaces = spacing - len(ret)
-            ret+= (" " * spaces)
-            ret+= " /* Delay for {} */ \\".format(regName)
-            return ret
+        if type( regItem) is dict:
+            if 'delay' in regItem:
+                ret+= "MRT_DELAY_MS({}); ".format(regItem['delay'])
+                spaces = spacing - len(ret)
+                ret+= (" " * spaces)
+                ret+= " /* Delay for {} */ \\".format(regName)
+                return ret
 
         return False
 

@@ -26,9 +26,9 @@ extern "C"
 *******************************************************************************/
 
 typedef struct{
-    mrt_regdev_t mRegDev; //ptr to base register-device 
+    mrt_regdev_t mRegDev;            //ptr to base register-device 
     % for key,reg in obj.regs.items():
-    mrt_reg_t ${"m" + obj.camelCase(reg.name)};  //${reg.desc}
+    mrt_reg_t ${"m" + obj.camelCase(reg.name)+";" + (" "*(20 - len(obj.camelCase(reg.name))) )} //${reg.desc}
 % endfor
 /*user-block-struct-start*/
 /*user-block-struct-end*/

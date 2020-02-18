@@ -35,6 +35,11 @@ values:
                 - MIN: { val: 0, desc: creates a macro for the minimum 14 bit value}
                 - MAX: {val: 0x3FFF, desc: creates a macro for the maximum 14 bit value}
 
+###########################################################################################################
+#                                   Preset Configs                                                        #
+###########################################################################################################
+configs:
+    - DUMMY: {BIT0: 0, BIT1: 1, REMAINING: 0xAA}
 
 
 
