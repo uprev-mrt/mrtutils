@@ -2,6 +2,7 @@
 
 import ctypes
 
+
 #
 # class disable_file_system_redirection:
 #     _disable = ctypes.windll.kernel32.Wow64DisableWow64FsRedirection
@@ -22,6 +23,7 @@ import re
 import subprocess
 import markdown
 from threading import Thread
+from urllib.request import urlopen
 
 def getGitFileText(url, file):
     txt=""
@@ -33,6 +35,17 @@ def getGitFileText(url, file):
 
     return txt
 
+def getBitbucketFile(account, repo, file):
+    txt=""
+    # try:
+    response = urlopen("https://bitbucket.org/" + account + "/" + repo + "/raw/master/" + file)
+    html_content = response.read()
+    encoding = response.headers.get_content_charset('utf-8')
+    txt = html_content.decode(encoding)
+    # except:
+    #     print("bitbucket.org/" + account + "/" + repo + "/raw/master/" + file + "  not found")
+    
+    return txt
 
 class Submodule:
     def __init__(self, path, url):
@@ -45,6 +58,7 @@ class Submodule:
         self.exists = False
         self.requirements = []
         self.readme="x"
+        self.repo_name = url.split('/')[-1].replace(".git","")
 
 
     def checkFor(self,mods):
@@ -55,8 +69,9 @@ class Submodule:
 
     def getReadMe(self):
         print ("pulling readme for: " + self.url)
-        if self.url.find("https://"):
-            self.readme = getGitFileText( self.url, 'README.md')
+
+        if self.url.find("bitbucket"):
+            self.readme = getBitbucketFile('uprev',self.repo_name, 'README.md')
         else:
             self.readme = getGitFileText('ssh://' + self.url.replace(':','/'), 'README.md')
 

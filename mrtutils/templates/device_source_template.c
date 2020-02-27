@@ -49,7 +49,7 @@ mrt_status_t ${obj.prefix.lower()}_init_i2c(${obj.name.lower()}_t* dev, mrt_i2c_
     /*user-block-init-i2c-start*/
     /*user-block-init-i2c-end*/
     
-    return MRT_STATUS_OK;
+    return status;
 }
 % endif
 % if "SPI" in obj.bus.upper():
@@ -64,7 +64,7 @@ mrt_status_t ${obj.prefix.lower()}_init_spi(${obj.name.lower()}_t* dev, mrt_spi_
     /*user-block-spi-start*/
     /*user-block-spi-end*/
 
-    return MRT_STATUS_OK;
+    return status;
 }
 % endif
 
