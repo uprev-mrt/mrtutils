@@ -64,12 +64,10 @@ class Submodule:
     def checkFor(self,mods):
         global relativePath
         for mod in mods:
-            if(self.url == mod.url):
+            if(self.name == mod.name):
                 self.exists = True
 
     def getReadMe(self):
-        print ("pulling readme for: " + self.url)
-
         if self.url.find("bitbucket"):
             self.readme = getBitbucketFile('uprev',self.repo_name, 'README.md')
         else:
@@ -144,14 +142,23 @@ class Repo:
         self.mods =[]
         self.isRemote = True
         self.dir = RepoDirectory("root",0)
+        self.isBitbucket = False
+        nodes = self.url.split('/')
+        self.account = nodes[-2]
+        self.name = nodes[-1].replace(".git","")
 
     def setRelativePath(self,path):
         self.relativePath = path
         self.isRemote = False;
 
     def getSubModules(self):
+        data = ""
         if self.isRemote:
-            data = getGitFileText(self.url,'.gitmodules').replace('\r', '').replace('\n', '').replace('\t', '')
+            if(self.isBitbucket):
+                data = getBitbucketFile(self.account, self.name, '.gitmodules').replace('\r', '').replace('\n', '').replace('\t', '')
+            else:
+                data = getGitFileText(self.url,'.gitmodules').replace('\r', '').replace('\n', '').replace('\t', '')
+            
             #read in all modules
             regex = re.compile(r'\[(.*?)].*?path = (.*?)url = (.*?\.git)')
             modules = regex.findall(data)
@@ -159,10 +166,9 @@ class Repo:
                 if(mod[1] != "Config"):
                     self.mods.append(Submodule(mod[1], mod[2]))
         else:
-            if os.path.isfile(self.path):
-                file = open(self.path, "r")
+            if os.path.isfile(self.path + "/.gitmodules"):
+                file = open(self.path + "/.gitmodules", "r")
                 data = file.read().replace('\r', '').replace('\n', '').replace('\t', '')
-
                 #read in all modules
                 regex = re.compile(r'\[(.*?)].*?path = (.*?)url = (.*?\.git)')
                 modules = regex.findall(data)
@@ -171,7 +177,14 @@ class Repo:
 
     def getReadMe(self):
         if self.isRemote:
-            data = getGitFileText(self.url, 'README.md')
+            if(self.isBitbucket):
+                nodes = self.url.split('/')
+                name = nodes[-1]
+                account = nodes[-2]
+                data = getBitbucketFile(self.account, self.name, 'README.md')
+            else:
+                data = getGitFileText(self.url, 'README.md')
+
         return data
 
     def fetchReadmes(self):
@@ -182,13 +195,14 @@ class Repo:
     def addSubModule(self,mod):
         prev_path = os.getcwd()
         os.chdir(self.path)
-        subprocess.check_output(['git','submodule','add', mod.git_url,  self.relativePath + mod.path] )
+        print("Adding " + mod.git_url)
+        subprocess.check_output(['git','submodule','add', '-f',mod.git_url,  self.relativePath + mod.path] )
         os.chdir(prev_path)
         mod.exists = True
 
     def removeSubModule(self,mod):
         prev_path = os.getcwd()
         os.chdir(self.path)
-        subprocess.check_output(['git','--git-dir',self.path,'submodule','rm', self.relativePath + mod.path ])
+        subprocess.check_output(['git','rm', '-f', self.relativePath + mod.path ])
         os.chdir(prev_path)
         mod.exists = False

@@ -1,5 +1,5 @@
 ---
-name: name of device
+name: name_of_device
 category: Device
 description: description
 datasheet: link to datasheet
@@ -22,7 +22,7 @@ registers:
 ###########################################################################################################
 #                                   VALUES                                                                #
 ###########################################################################################################
-values:
+fields:
     - DUMMY:  #create flags and fields in the DUMMY register
         flags:
           - BIT0: {mask: 0x0001, desc: creates a flag at bit 0 of the DUMMY register}

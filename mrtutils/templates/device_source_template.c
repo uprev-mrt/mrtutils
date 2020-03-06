@@ -70,10 +70,11 @@ mrt_status_t ${obj.prefix.lower()}_init_spi(${obj.name.lower()}_t* dev, mrt_spi_
 
 mrt_status_t ${obj.prefix.lower()}_test(${obj.name.lower()}_t* dev)
 {
+    mrt_status_t status = MRT_STATUS_ERROR;
     /*user-block-test-start*/
 
     /*user-block-test-end*/
-    return MRT_STATUS_ERROR;
+    return status;
 }
 
 
