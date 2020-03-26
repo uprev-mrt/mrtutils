@@ -10,6 +10,7 @@ import sys
 import os
 import yaml
 import json
+from mrtutils.mrtYamlHelper import *
 
 
 sizeDict = {
@@ -504,10 +505,12 @@ class Device:
         if 'ai_mask' in objDevice:
             self.aiMask = objDevice['ai_mask'] #int(objDecive['ai_mask'],0)
         
+
+
         if 'registers' in objDevice:
-            for regNode in objDevice['registers']:
-                newReg = DeviceReg(list(regNode.keys())[0])
-                regItem = list(regNode.values())[0]
+            regs = yamlNormalizeNodes( objDevice['registers'], 'reg_name','addr')
+            for regItem in regs:
+                newReg = DeviceReg(regItem['reg_name'])
 
                 if 'addr' in regItem:
                     newReg.addr = regItem['addr'] #int(regItem['addr'],0) 
