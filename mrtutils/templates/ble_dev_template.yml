@@ -1,0 +1,73 @@
+---
+name: sample
+author: Jason Berger
+created: 02/20/2020
+desc: GATT profile template
+prefix: tp
+
+
+services: #list multiple services in file to create full profile
+
+  #########################################
+  #        Device Service                 #
+  #########################################
+  - Device:
+      uri: org.bluetooth.service.device_information #User URI of bluetooth sig standard service
+      prefix: ds
+      chars:
+        - {uri: org.bluetooth.characteristic.manufacturer_name_string}  #list out uris of 'optional' desired chars
+        - {uri: org.bluetooth.characteristic.model_number_string}
+        - {uri: org.bluetooth.characteristic.serial_number_string}
+        - {uri: org.bluetooth.characteristic.hardware_revision_string}
+        - {uri: org.bluetooth.characteristic.firmware_revision_string, desc: Firmware revision} #You can override defaults from Bluetooth SIG (name,desc, perm, etc..)
+  
+  #########################################
+  #        Battery Service                #
+  #########################################
+  - Battery: {uri: org.bluetooth.service.battery_service} #no need to list chars, because the only one is Mandatory
+
+  #########################################
+  #        Custom Service                 #
+  #########################################
+  - Sensor: 
+      prefix: cs
+      uuid: 71a8-1b49-ce39-0088-6b62-c8ed-9e20-9a5b 
+      chars: 
+        - Value: { type: uint16, perm: RWN , desc: value of sensor A} # uuid: 0x9e21 if uuid is blank/auto for first char in service. it will increment from service 16bit
+        - Thresh: { uuid: 0x9e22, type: uint16, perm: RW , desc: Alert Thresh for sensor} #UUID can also be specified
+        - Name: { type: string*16, perm: RW , desc: String value for sensor name} #same convention as polypacket and mrt-device for arrays because brackets break yaml parsers
+        - Type: 
+            type: enum
+            perm: RW
+            desc: Type of sensor present 
+            vals:
+              - Humidity: {desc: humidity sensor }
+              - Temperature: {desc: Temperature sensor }
+              - Barometer: {desc: Barometric Pressure sensor }
+  
+  #########################################
+  #        Firmware OTA Service           #
+  #########################################
+  - FOTA:
+      desc: sercive for performing over the air updates
+      uuid: 71a8-1b49-ce39-0088-6b62-c8ed-9A10-9a5b
+      chars:
+        - version:    { type: char*16,   perm: RW, desc: current Firmware version}  # uuid: 0x9A11
+        - newVerion:  {type: char*16,   perm: RW, desc: version of new firmware being loaded}    
+        - data:       {type: uint8*64,  perm: RW, desc: current block of data}
+        - seq:        {type: uint32,    perm: RW, desc: sequence number of current block  }
+        - crc:        {type: uint32,    perm: RW, desc: crc of new firmware  }
+        - status:
+            type: enum  
+            perm: RW 
+            desc: status of OTA process
+            vals: 
+              - IDLE: {val: 0, desc: no ota operation taking place}
+              - DOWNLOAD: {val: 1, desc: Currently downloading new firmware}
+              - COMPLETE: {val: 0, desc: Firmware download complete. ready to update}
+
+
+
+
+
+

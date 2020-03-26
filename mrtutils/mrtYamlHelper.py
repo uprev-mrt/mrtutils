@@ -47,5 +47,18 @@ def yamlNormalizeNodes(nodes, keyKey, valKey ):
         retNodes.append(newNode)
     
     return retNodes
+
+def yamlGetAttributes(node, attrDict, obj):
+
+    for key, value in node.items():
+        print(key)
+        print(value)
+        if type(value) is not list:
+            if key in attrDict:
+                newKey = attrDict[key]
+                obj[newKey] = value 
+            else:
+                obj[key] = value
+
     
 
