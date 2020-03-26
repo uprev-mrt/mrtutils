@@ -51,14 +51,12 @@ def yamlNormalizeNodes(nodes, keyKey, valKey ):
 def yamlGetAttributes(node, attrDict, obj):
 
     for key, value in node.items():
-        print(key)
-        print(value)
         if type(value) is not list:
             if key in attrDict:
                 newKey = attrDict[key]
-                obj[newKey] = value 
+                obj.__dict__[newKey] = value 
             else:
-                obj[key] = value
+                obj.__dict__[key] = value
 
     
 

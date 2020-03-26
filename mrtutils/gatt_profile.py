@@ -11,6 +11,7 @@ import os
 import yaml
 import json
 import urllib.request
+from mrtutils.mrtYamlHelper import *
 import xml.etree.ElementTree as ET 
 
 
@@ -51,7 +52,7 @@ def setIfEmpty(obj, field, new):
     if obj.__dict__[field] is None and new is not None:
         obj.__dict__[field] = new.text
 
-class GattCharacteristic:
+class GattCharacteristic(object):
     def __init__(self):
         self.name = ""
         self.uri = ""
@@ -69,28 +70,8 @@ class GattCharacteristic:
         setIfEmpty(self, 'desc',root.find('./InformativeText/Abstract'))
         setIfEmpty(self, 'desc',root.find('./InformativeText/Summary') )
 
-class GattService:
-    def __init__(self):
-
-        #load uri first so we can override attributes as needed 
-        
-        self.name = "unnamed"
-        self.chars = []
+        self.desc = self.desc.replace('\n','').replace('\t','')
     
-    def loadUri(self, uri):
-        url = "https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/" + uri + ".xml"
-        root = getXml(url)
-
-        self.name = root.attrib['name']
-        self.uuid = root.attrib['uuid']
-        self.desc = root.find('./InformativeText/Abstract').text
-
-        for xmlChar in root.findall("./Characteristics/Characteristic"):
-            if xmlChar.find('./Requirement').text == 'Optional':
-                newChar = GattCharacteristic()
-                newChar.loadUri(xmlChar.attrib['type'])
-                self.chars.append(newChar)
-
     def parseYaml(self, node):
         
         if 'uri' in node:
@@ -98,8 +79,51 @@ class GattService:
 
         yamlGetAttributes(node, attrDict, self)
 
-class GattProfile:
-    def __init__(self, file):
+class GattService(object):
+    def __init__(self):
+
+        #load uri first so we can override attributes as needed 
+        
+        self.name = "unnamed"
+        self.chars = []
+        self.desc = None
+    
+    def loadUri(self, uri):
+        url = "https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/" + uri + ".xml"
+        root = getXml(url)
+
+        self.name = root.attrib['name']
+        self.uuid = root.attrib['uuid']
+        setIfEmpty(self, 'desc',root.find('./InformativeText/Abstract'))
+        setIfEmpty(self, 'desc',root.find('./InformativeText/Summary'))
+
+        for xmlChar in root.findall("./Characteristics/Characteristic"):
+            if xmlChar.find('./Requirement').text == 'Mandatory':
+                newChar = GattCharacteristic()
+                newChar.loadUri(xmlChar.attrib['type'])
+                self.chars.append(newChar)
+        
+        self.desc = self.desc.replace('\n','').replace('\t','')
+
+    def parseYaml(self, node):
+        
+        if 'uri' in node:
+            self.loadUri(node['uri'])
+        
+        if 'chars' in node:
+            charNodes = yamlNormalizeNodes( node['chars'], 'name','uri')
+            for charNode in charNodes:
+                newChar = GattCharacteristic()
+                newChar.parseYaml(charNode)
+                self.addChar(newChar)
+
+        yamlGetAttributes(node, attrDict, self)
+    
+    def addChar(self, char):
+        self.chars.append(char)
+
+class GattProfile(object):
+    def __init__(self):
         self.name= "unnamed"
         self.services = []
 
@@ -110,10 +134,10 @@ class GattProfile:
 
         yamlGetAttributes(nodeProfile, attrDict, self)
 
-        serviceNodes = yamlNormalizeNodes( objDevice['registers'], 'name','uri')
+        serviceNodes = yamlNormalizeNodes( nodeProfile['services'], 'name','uri')
         for serviceNode in serviceNodes:
-            newService = GattService(serviceNode)
-            yamlGetAttributes(nodeProfile, attrDict, self)
+            newService = GattService()
+            newService.parseYaml(serviceNode)
             self.addService(newService)
 
     def addService(self, service):
@@ -121,8 +145,13 @@ class GattProfile:
 
 
 
-svc = GattService()
-svc.loadUri('org.bluetooth.service.device_information')
+
+if __name__ == "__main__":
+    prof = GattProfile()
+    prof.parseYaml('templates/gatt_descriptor_template.yml')
+    s = json.dumps(prof.__dict__)
+    print(s)
+
 
 
 
