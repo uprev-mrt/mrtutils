@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+#
+#@file mrt-ble
+#@brief python script to generate code for gatt profile
+#@author Jason Berger
+#@date 03/20/2020
+#
+
+import sys
+import os
+from mako.template import Template
+import yaml
+import argparse
+import pkgutil
+from mrtutils.mrtTemplateHelper import *
+from mrtutils.gatt_profile import GattProfile
+
+
+# Initialize the argument parser
+def init_args():
+    global parser
+    parser = argparse.ArgumentParser("Tool to generate code for ble profile")
+    parser.add_argument('-i', '--input', type=str, help='input file to parse', default="")
+    parser.add_argument('-o', '--output', type=str, help='Output path', default=".")
+    parser.add_argument('-d', '--document', type=str, help='documentation path', default="")
+    parser.add_argument('-t', '--template', type=str, help='path to create template', default="")
+    parser.add_argument('-n', '--nrf', type=str, help='path to create json file for NRF Connect App', default="")
+    
+
+def buildTemplate(object, templateFile, outputFile):
+    exists= False
+    cr = CodeReplacer()
+    newContents =""
+    headerPattern = r"@file (.*?\.)(.*?) \*/"
+    if os.path.isfile(outputFile):
+        exists = True
+        curFile = open(outputFile, "r")
+        text = curFile.read()
+        cr.loadText(text)
+        cr.loadText(text,headerPattern)
+
+    template = Template(pkgutil.get_data('mrtutils',templateFile) )
+    newContents = "\n".join(template.render(obj = object).splitlines())
+    newContents = cr.insertBlocks(newContents)
+    newContents = cr.insertBlocks(newContents,headerPattern)
+    cr.printDrops()
+    text_file = open( outputFile , "w")
+    text_file.write(newContents)
+    text_file.close()
+
+# def buildDeviceSource(device , outputPath, baseName =''):
+
+#     if baseName == '':
+#         baseName = device.name.lower() 
+
+#     buildTemplate(device, 'templates/device_header_template.h', outputPath +"/"+baseName + ".h" )
+#     buildTemplate(device, 'templates/device_source_template.c', outputPath +"/"+baseName + ".c" )
+#     buildTemplate(device, 'templates/device_regs_header.h', outputPath +"/"+baseName + "_regs.h" )
+
+
+def main():
+    global path
+    global parser
+    global args
+
+    init_args()
+    args= parser.parse_args()
+    argCount = len(sys.argv)
+    
+
+    inputFile = args.input
+    path = args.output
+    docPath = args.document
+    templatePath = args.template
+
+    gatt = GattProfile()
+
+    if not templatePath =="":
+        templatePath.replace("yml","") 
+        contents = pkgutil.get_data('mrtutils','templates/ble/gatt_descriptor_template.yml')
+        text_file = open( templatePath + '.yml' , "w")
+        text_file.write(contents.decode("utf-8"))
+        text_file.close()
+        sys.exit()
+
+
+    if inputFile == "":
+        print("No input file specified, use -t to create a template file")
+        sys.exit()
+
+    if os.path.isfile(inputFile):
+
+
+        # if os.path.isfile(inputFile):
+        print("parsing " + inputFile )
+        gatt.parseYaml(inputFile)
+        gatt.hash = 'na'
+        
+
+        print(" Generating Documentation and source for " + gatt.name)
+        #buildDeviceSource(device, path)
+
+        if not docPath == "":
+            buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html" )
+        
+
+
+if __name__ == "__main__":
+    main()
