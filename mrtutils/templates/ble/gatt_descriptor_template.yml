@@ -15,10 +15,10 @@ services: #list multiple services in file to create full profile
       uri: org.bluetooth.service.device_information #User URI of bluetooth sig standard service
       prefix: ds
       chars:
-        - mfg_name: {uri: org.bluetooth.characteristic.manufacturer_name_string , default: Up-Rev}  #list out uris of 'optional' desired chars
-        - serial: {uri: org.bluetooth.characteristic.serial_number_string}
-        - hw_rev: {uri: org.bluetooth.characteristic.hardware_revision_string}
-        - fw_rev: {uri: org.bluetooth.characteristic.firmware_revision_string, desc: Firmware revision} #You can override defaults from Bluetooth SIG (name,desc, perm, etc..)
+        - {uri: org.bluetooth.characteristic.manufacturer_name_string , default: Up-Rev}  #list out uris of 'optional' desired chars
+        - {uri: org.bluetooth.characteristic.serial_number_string}
+        - {uri: org.bluetooth.characteristic.hardware_revision_string}
+        - {uri: org.bluetooth.characteristic.firmware_revision_string, desc: Firmware revision} #You can override defaults from Bluetooth SIG (name,desc, perm, etc..)
   
   #########################################
   #        Battery Service                #

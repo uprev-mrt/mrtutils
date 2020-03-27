@@ -87,7 +87,7 @@ class GattCharacteristic(object):
         self.uri = uri
         self.isStandard = True
 
-        self.name = root.attrib['name']
+        self.name = root.find('./Value/Field').attrib['name']
         self.uuid = int(root.attrib['uuid'], 16)
         sigType = root.find('./Value/Field/Format').text
         if sigType in typeDict:
@@ -100,6 +100,24 @@ class GattCharacteristic(object):
         setIfEmpty(self, 'desc',root.find('./InformativeText/Summary') )
 
         self.desc = self.desc.replace('\n','').replace('\t','')
+    
+    def loadServiceUri(self, uri):
+        url = "https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/" + uri + ".xml"
+        root = getXml(url)
+ 
+        xmlChar = root.find('./Characteristics/Characteristic[@type=\"' + self.uri + '\"]')
+
+        sigPerm = ""
+        if xmlChar.find('./Properties/Read').text in ['Mandatory','Optional']:
+            sigPerm += "R"
+        if xmlChar.find('./Properties/Write').text in ['Mandatory','Optional']:
+            sigPerm += "W"
+        if xmlChar.find('./Properties/Notify').text in ['Mandatory','Optional']:
+            sigPerm += "N"
+        if xmlChar.find('./Properties/Notify').text in ['Mandatory','Optional']:
+            sigPerm += "I"
+        self.perm = sigPerm
+
     
     def parseYaml(self, node):
         
@@ -146,12 +164,14 @@ class GattService(object):
         self.desc = None
         self.isStandard = False
         self.url =""
+        self.uri = None
         self.nextUuid = 0
     
     def loadUri(self, uri):
         self.url = "https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/" + uri + ".xml"
         root = getXml(self.url)
         self.isStandard = True
+        self.uri = uri
 
         self.name = root.attrib['name']
         self.uuid = int(root.attrib['uuid'],16)
@@ -163,17 +183,7 @@ class GattService(object):
             if xmlChar.find('./Requirement').text == 'Mandatory':
                 newChar = GattCharacteristic()
                 newChar.loadUri(xmlChar.attrib['type'])
-
-                sigPerm = ""
-                if xmlChar.find('./Properties/Read').text in ['Mandatory','Optional']:
-                    sigPerm += "R"
-                if xmlChar.find('./Properties/Write').text in ['Mandatory','Optional']:
-                    sigPerm += "W"
-                if xmlChar.find('./Properties/Notify').text in ['Mandatory','Optional']:
-                    sigPerm += "N"
-                if xmlChar.find('./Properties/Notify').text in ['Mandatory','Optional']:
-                    sigPerm += "I"
-                newChar.perm = sigPerm
+                newChar.loadServiceUri(self.uri)
                 self.chars.append(newChar)
         
         self.desc = self.desc.replace('\n','').replace('\t','')
@@ -190,10 +200,13 @@ class GattService(object):
             self.nextUuid = int(uuidSplit[6], 16) + 1
         
         if 'chars' in node:
-            charNodes = yamlNormalizeNodes( node['chars'], 'name','uri')
+            chars = node['chars']
+            charNodes = yamlNormalizeNodes( node['chars'], 'name', 'uri', False)
             for charNode in charNodes:
                 newChar = GattCharacteristic()
                 newChar.parseYaml(charNode)
+                if self.uri is not None:
+                    newChar.loadServiceUri(self.uri)
                 if newChar.uuid is None:
                     newChar.uuid = self.nextUuid
                     self.nextUuid += 1

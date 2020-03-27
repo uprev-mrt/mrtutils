@@ -13,15 +13,15 @@ import yaml
      #3  name                                 = {keyKey: name, valKey: name}
 ## 
 ##
-def yamlNormalizeNode(node, keyKey, valKey):
+def yamlNormalizeNode(node, keyKey, valKey,allowSingle):
     retVal = {}
-     
+
     if type(node) is dict: 
         #if the node is a dict with multiple values, it is a #0, already normalized
         if(len(node) > 1):
             return node
 
-        #otherwise node is either a #1 or #
+        #otherwise node is either a #1 or #2
         #get key/value
         nodeKey = list(node.keys())[0]
         nodeVal = list(node.values())[0]
@@ -30,20 +30,24 @@ def yamlNormalizeNode(node, keyKey, valKey):
             nodeVal[keyKey] = nodeKey
             return nodeVal
         else:
-            retVal[keyKey] = nodeKey
-            retVal[valKey] = nodeVal
-            return retVal
+            if(allowSingle):
+                retVal[keyKey] = nodeKey
+                retVal[valKey] = nodeVal
+                return retVal
+            else:
+                return node
     
     else:
         retVal[keyKey] = node 
         retVal[valKey] = node
         return retVal
+    return node
 
-def yamlNormalizeNodes(nodes, keyKey, valKey ):
+def yamlNormalizeNodes(nodes, keyKey, valKey , allowSingle = True):
 
     retNodes = []
     for node in nodes:
-        newNode = yamlNormalizeNode(node ,keyKey, valKey)
+        newNode = yamlNormalizeNode(node ,keyKey, valKey, allowSingle)
         retNodes.append(newNode)
     
     return retNodes

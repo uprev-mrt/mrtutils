@@ -47,8 +47,10 @@
 <ul>
 %if service.isStandard:
   <li class="note">  SIG descriptor: <b><a href="${service.url}">[${ service.uri}]</a></b></li>
-%endif
+  <li class="note">  service UUID: <b>[${ "%0.4X" %  service.uuid}]</b></li>
+  %else:
   <li class="note">  service UUID: <b>[${ service.uuid}]</b></li>
+%endif
 </ul>
 
 <p class="desc">${service.desc}</p>
