@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>${obj.name} Gatt ICD</title>
+</head>
+<body>
+<div class="content">
+<h1>${obj.name} Gatt ICD</h1>
+<ul>
+  <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device" MrT BLE tool>mrt-ble</a> on ${obj.genTime}</li>
+  <li> CRC: ${obj.hash}</li>
+</ul>
+<hr/>
+<h2>Description: </h2>
+<p>${obj.desc}</p>
+
+<br/>
+<hr class="section">
+<h2 class="right"> Index </h2>
+<hr>
+
+
+%if len(obj.services) > 0:
+<a href="#service_${obj.services[0].name.lower()}"> Services:</a>
+
+<ul>
+  %for service in obj.services:
+  <li><a href="#service_${service.name.lower()}"> ${service.name}</a></li>
+  %endfor
+</ul>
+%endif
+
+
+
+
+
+<hr class="section">
+
+<h2 class="right"> services</h2>
+<hr class="thick">
+
+
+%for service in obj.services:
+<div id="service_${service.name.lower()}" class="service">
+<h3>${service.name} </h3>
+<hr/>
+<ul>
+%if service.isStandard:
+  <li class="note">  SIG descriptor: <b><a href="${service.url}">[${ service.uri}]</a></b></li>
+%endif
+  <li class="note">  service UUID: <b>[${ service.uuid}]</b></li>
+</ul>
+
+<p class="desc">${service.desc}</p>
+<br/>
+%if len(service.chars) > 0:
+<br/>
+<table class="chars">
+  <tr>
+    <th> Characteristic</th>
+    <th> UUID</th>
+    <th> Type</th>
+    <th> Permission</th>
+    <th> Description</th>
+  </tr>
+  %for characteristic in service.chars:
+  <tr>
+    %if characteristic.isStandard:
+    <td width="">
+        <b>${characteristic.name}</b><br/>
+        <a  class="small-note" href="${characteristic.url}">[SIG Standard]</a>
+    </td>
+    %else:
+    <td width=""><b>${characteristic.name}</b></td>
+    %endif
+    <td width="">${ "%0.4X" % characteristic.uuid} </td>
+    <td width="">${characteristic.type} </td>
+    <td width="">${characteristic.perm} </td>
+    <td>${characteristic.desc}\
+      %if characteristic.isEnum:
+      <br/>
+      <ul>
+      %for idx,val in enumerate(characteristic.vals):
+      <li class="val">${ characteristic.valsFormat % idx} : <b>${val.name}</b> - ${val.desc}</li>
+      %endfor
+      </ul>
+      %endif
+      %if characteristic.isMask:
+      <br/>
+      <ul>
+      %for idx,val in enumerate(characteristic.vals):
+      <li class="val">${characteristic.valsFormat % (1 << idx)} : <b>${val.name}</b> - ${val.desc}</li>
+      %endfor
+      </ul>
+      %endif
+    </td>
+  </tr>
+  %endfor
+</table>
+
+%else:
+## zero data chars
+<span class="note"> This service type does not contain any data chars </span><br/>
+%endif
+<br/>
+<hr class="thick">
+</div>
+%endfor
+
+</div>
+</body>
+<style>
+table.fixed { table-layout:auto; }
+table.fixed td { overflow:visible; }
+
+table.chars{
+  table-layout:auto;
+}
+
+body {
+  padding:0;
+}
+
+.content{
+  padding-top: 0;
+  padding-left: 1%;
+  padding-right: 1%;
+  background-color: #fff;
+}
+
+@media print {
+  .service {
+    page-break-inside: avoid;
+    padding-top: 4px;
+  }
+  .content{
+    width: 100%;
+  }
+  body{
+    background-color: #fff;
+  }
+}
+
+@media screen {
+  .content{
+    width: 50%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0;
+    padding-top: 4px;
+    box-shadow: 5px 10px #AAA;
+  }
+
+  body{
+    background-color: #ccc;
+    padding: 0;
+  }
+}
+
+html *{
+  font-size: 1em ;
+   color: #000 ;
+  font-family: Arial ;
+}
+
+hr.section {
+  border-style: solid;
+  border-width: 2px;
+  opacity: 1;
+}
+
+
+hr.thick {
+  border-style: solid;
+  border-width: 1px;
+  border-color: #94b2d3;
+  opacity: 1;
+}
+
+hr {
+  opacity: 0.5;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+td {
+  border: 1px solid #000000;
+  text-align: left;
+  padding: 8px;
+  vertical-align: top;
+}
+
+.desc{
+  font-size: 1.2em;
+}
+
+th {
+  border: 1px solid #000000;
+  text-align: left;
+  padding: 8px;
+  background-color: #94b2d3;
+}
+
+li.val{
+  opacity: 0.6;
+}
+
+h1{
+  font-size: 2.5em;
+}
+
+h2 
+{
+  font-size: 1.8em;
+}
+
+h2.right{
+  text-align: center;
+  font-size: 1.8em;
+}
+
+h3
+{
+  font-size: 1.8em;
+  color: #003366;
+}
+
+h4 
+{
+  font-size: 1.1em;
+  color: #003366;
+}
+
+
+.note{
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.small-note{
+  font-style: italic;
+  opacity: 0.6;
+  font-size: 0.8em;
+}
+
+a{
+  text-decoration:none;
+}
+
+a:link {
+  color: blue;
+}
+
+/* visited link */
+a:visited {
+  color: blue;
+}
+
+table.fixed tr td:last-child{
+    width:1%;
+    white-space:nowrap;
+}
+</style>
+</html>

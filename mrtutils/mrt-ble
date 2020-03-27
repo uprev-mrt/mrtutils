@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 #
-#@file make_protocol.py
-#@brief python script to generate code for PolyPacket
+#@file mrt-ble
+#@brief python script to generate code for gatt profile
 #@author Jason Berger
-#@date 02/19/2019
+#@date 03/20/2020
 #
 
 import sys
@@ -24,6 +24,7 @@ def init_args():
     parser.add_argument('-o', '--output', type=str, help='Output path', default=".")
     parser.add_argument('-d', '--document', type=str, help='documentation path', default="")
     parser.add_argument('-t', '--template', type=str, help='path to create template', default="")
+    parser.add_argument('-n', '--nrf', type=str, help='path to create json file for NRF Connect App', default="")
     
 
 def buildTemplate(object, templateFile, outputFile):
@@ -76,7 +77,10 @@ def main():
 
     if not templatePath =="":
         templatePath.replace("yml","") 
-        buildTemplate(gatt, 'templates/gatt_descriptor_template.yml', templatePath + ".yml") 
+        contents = pkgutil.get_data('mrtutils','templates/ble/gatt_descriptor_template.yml')
+        text_file = open( templatePath + '.yml' , "w")
+        text_file.write(contents.decode("utf-8"))
+        text_file.close()
         sys.exit()
 
 
@@ -84,17 +88,20 @@ def main():
         print("No input file specified, use -t to create a template file")
         sys.exit()
 
+    if os.path.isfile(inputFile):
 
-    # if os.path.isfile(inputFile):
-    print("parsing " + inputFile )
-    gatt.parseYAML(inputFile)
-    
 
-    print(" Generating Documentation and source for " + gatt.name)
-    #buildDeviceSource(device, path)
+        # if os.path.isfile(inputFile):
+        print("parsing " + inputFile )
+        gatt.parseYaml(inputFile)
+        gatt.hash = 'na'
+        
 
-    if not docPath == "":
-        buildTemplate(gatt, 'templates/gatt_icd.md', docPath +"/README.md" )
+        print(" Generating Documentation and source for " + gatt.name)
+        #buildDeviceSource(device, path)
+
+        if not docPath == "":
+            buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html" )
         
 
 
