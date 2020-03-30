@@ -105,8 +105,11 @@
  * @return ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_" + val.name.upper()} ${val.desc}
 %endfor
  */
+% if field.flat:
+#define ${obj.prefix.lower() +"_get_"+field.name.lower()}(dev) regdev_read_field(&(dev)->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${field.getFieldMaskMacro()} )
+%else:
 #define ${obj.prefix.lower() +"_get_"+ reg.name.lower()+"_"+field.name.lower()}(dev) regdev_read_field(&(dev)->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${field.getFieldMaskMacro()} )
-
+%endif
 %endif
 %endfor
 %endif
@@ -128,8 +131,11 @@
  * @option ${obj.prefix.upper() +"_"+reg.name.upper()+"_"+field.name.upper() +"_" + val.name.upper()} ${val.desc}
 %endfor
  */
+% if field.flat:
+#define ${obj.prefix.lower() +"_set_"+ field.name.lower()}(dev, val) regdev_write_field(&(dev)->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${field.getFieldMaskMacro()} , (val) )
+%else:
 #define ${obj.prefix.lower() +"_set_"+ reg.name.lower()+"_"+field.name.lower()}(dev, val) regdev_write_field(&(dev)->mRegDev, &(dev)->${"m" + obj.camelCase(reg.name)}, ${field.getFieldMaskMacro()} , (val) )
-
+%endif
 %endif
 %endfor
 %endif

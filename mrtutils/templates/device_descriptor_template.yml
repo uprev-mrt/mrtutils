@@ -20,14 +20,12 @@ registers:
 
 
 ###########################################################################################################
-#                                   VALUES                                                                #
+#                                   Fields                                                                #
 ###########################################################################################################
 fields:
     - DUMMY:  #create flags and fields in the DUMMY register
-        flags:
           - BIT0: {mask: 0x0001, desc: creates a flag at bit 0 of the DUMMY register}
           - BIT1: {mask: 0x0002, desc: creates a flag at bit 1 of the DUMMY register}
-        fields:
           - REMAINING: 
               mask: 0xFFFC
               desc: creates a 14 bit field using the remaing bits

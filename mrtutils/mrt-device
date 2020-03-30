@@ -76,7 +76,10 @@ def main():
 
     if not templatePath =="":
         templatePath.replace("yml","") 
-        buildTemplate(device, 'templates/device_descriptor_template.yml', templatePath + ".yml") 
+        contents = pkgutil.get_data('mrtutils','templates/device_descriptor_template.yml')
+        text_file = open( templatePath + '.yml' , "w")
+        text_file.write(contents.decode("utf-8"))
+        text_file.close()
         sys.exit()
 
 

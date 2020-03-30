@@ -170,24 +170,24 @@ class RegField:
         self.isFlag = False
         self.bitCount = 0
         self.startBit =0
+        self.flat = False
 
-        self.name = list(node.keys())[0]
-        fieldItem = list(node.values())[0]
-
-        if 'mask' in fieldItem:
-            self.mask = fieldItem['mask']
-        if 'bit' in fieldItem:
-            self.mask = 1 << fieldItem['bit']
-        if 'values' in fieldItem:
-            for valNode in fieldItem['values']:
+        if 'name' in node:
+            self.name = node['name']
+        if 'mask' in node:
+            self.mask = node['mask']
+        if 'bit' in node:
+            self.mask = 1 << node['bit']
+        if 'values' in node:
+            for valNode in node['values']:
                 newVal = FieldVal(valNode)
                 self.addVal(newVal)
-        if 'vals' in fieldItem:
-            for valNode in fieldItem['vals']:
+        if 'vals' in node:
+            for valNode in node['vals']:
                 newVal = FieldVal(valNode)
                 self.addVal(newVal)
-        if 'desc' in fieldItem:
-            self.desc = fieldItem['desc']
+        if 'desc' in node:
+            self.desc = node['desc']
         
         if self.getSize() == 1:
             self.isFlag = True
@@ -292,6 +292,24 @@ class DeviceReg:
 
         self.fieldDict[field.name] = field
         self.fields.append(field)
+    
+    def addDefaultField(self):
+
+        fieldNode = {
+            "name": self.name,
+            "desc": self.desc
+        }
+
+        if self.size == 1:
+            fieldNode['mask'] = 0xFF
+        if self.size == 2: 
+            fieldNode['mask'] = 0xFFFF
+        if self.size == 4: 
+            fieldNode['mask'] = 0xFFFFFFFF
+
+        field = RegField(fieldNode)
+        field.flat = True
+        self.addField(field)
     
     def formatHex(self, val):
         return self.device.formatHex(val, self.size)
@@ -533,13 +551,19 @@ class Device:
         
         if 'fields' in objDevice:
             for propNode in objDevice['fields']:
-                regName = list(propNode.keys())[0]
-                propItem = list(propNode.values())[0]
-                if regName in self.regs:
-                    curReg = self.regs[regName]  
-                    for fieldNode in propItem:
-                        newField = RegField(fieldNode)
-                        curReg.addField(newField)
+                if type(propNode) is dict:
+                    regName = list(propNode.keys())[0]
+                    propItem = list(propNode.values())[0]
+                    if regName in self.regs:
+                        curReg = self.regs[regName]  
+                        fieldNodes = yamlNormalizeNodes(propItem, 'name', 'mask')
+                        for fieldNode in fieldNodes:
+                            newField = RegField(fieldNode)
+                            curReg.addField(newField)
+                else:
+                    regName = propNode
+                    if regName in self.regs:
+                        self.regs[regName].addDefaultField()
         
         if 'configs' in objDevice:
             for configNode in objDevice['configs']:
@@ -550,7 +574,11 @@ class Device:
             for configNode in objDevice['configurations']:
                 configItem = DevConfig(configNode)
                 self.addConfig(configItem)
-               
+
+        #if a register has no fields but has a default value, make it a flat reg/field
+        for key,value in self.regs.items():
+            if len(value.fields) == 0 and value.hasDefault:
+                value.addDefaultField() 
 
         print("Parsed device: " + self.name )
         print( "registers: " + str(len(self.regs)))
