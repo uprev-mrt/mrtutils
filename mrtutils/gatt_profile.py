@@ -98,6 +98,12 @@ class GattCharacteristic(object):
 
         setIfEmpty(self, 'desc',root.find('./InformativeText/Abstract'))
         setIfEmpty(self, 'desc',root.find('./InformativeText/Summary') )
+        setIfEmpty(self, 'desc',root.find('./InformativeText'))
+        setIfEmpty(self, 'desc',root.find('./Value/Field/InformativeText/Abstract'))
+        setIfEmpty(self, 'desc',root.find('./Value/Field/InformativeText/Summary') )
+        setIfEmpty(self, 'desc',root.find('./Value/Field/InformativeText'))
+        if self.desc is None:
+            self.desc = "No Descriptions"
 
         self.desc = self.desc.replace('\n','').replace('\t','')
     
