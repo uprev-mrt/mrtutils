@@ -94,7 +94,7 @@ class GattCharacteristic(object):
         
         val = val.replace('-','')
         arr = [val[i:i+2] for i in range(0, len(val), 2)]
-        ret = ', 0x'.join(arr)
+        ret = ', 0x'.join(arr[::-1])
 
         return "0x"+ ret 
     
@@ -247,7 +247,7 @@ class GattService(object):
         
         val = val.replace('-','')
         arr = [val[i:i+2] for i in range(0, len(val), 2)]
-        ret = ', 0x'.join(arr)
+        ret = ', 0x'.join(arr[::-1])
 
         return "0x"+ ret 
 
