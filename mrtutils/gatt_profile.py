@@ -32,7 +32,10 @@ sizeDict = {
 }
 
 typeDict ={
-    "utf8s" : "string"
+    "utf8s" : "string",
+    "sint16" : "uint16",
+    "sint" : "int",
+    "sint8" : "int8"
 }
 
 attrDict = {
@@ -55,7 +58,7 @@ def getXml(url):
 
 def setIfEmpty(obj, field, new):
     if obj.__dict__[field] is None and new is not None:
-        obj.__dict__[field] = new.text
+        obj.__dict__[field] = new.text.strip()
 
 class GattValue:
     def __init__(self):
@@ -80,14 +83,52 @@ class GattCharacteristic(object):
         self.perm = None
         self.url =""
         self.uuid = None
+        self.uuidType = "e128Bit"
+    
+    def uuidArray(self):
+        val = self.uuid 
+        arr =[]
+        if type(val) != str:
+            val = "%0.4X" % val
+            self.uuidType ="e16Bit"
+        
+        val = val.replace('-','')
+        arr = [val[i:i+2] for i in range(0, len(val), 2)]
+        ret = ', 0x'.join(arr)
+
+        return "0x"+ ret 
+    
+    def size(self):
+        return sizeDict[self.type]
+    
+    def props(self):
+        ret = ""
+
+        props = []
+        if 'r' in self.perm.lower():
+            props.append('MRT_GATT_PROP_READ')
+        if 'w' in self.perm.lower():
+            props.append('MRT_GATT_PROP_WRITE')
+        if 'n' in self.perm.lower():
+            props.append('MRT_GATT_PROP_NOTIFY')
+        if 'i' in self.perm.lower():
+            props.append('MRT_GATT_PROP_INDICATE')
+        
+        if len(props) > 0:
+            return " | ".join(props)
+        else:
+            return "MRT_GATT_PROP_NONE"
+
+
     
     def loadUri(self,uri):
+        print("Pulling " + uri)
         self.url = "https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Characteristics/" + uri + ".xml"
         root = getXml(self.url)
         self.uri = uri
         self.isStandard = True
 
-        self.name = root.find('./Value/Field').attrib['name']
+        self.name = root.find('./Value/Field').attrib['name'].replace(' ', '_')
         self.uuid = int(root.attrib['uuid'], 16)
         sigType = root.find('./Value/Field/Format').text
         if sigType in typeDict:
@@ -172,14 +213,17 @@ class GattService(object):
         self.url =""
         self.uri = None
         self.nextUuid = 0
+        self.uuidType ="e128Bit"
+        self.profile = ''
     
     def loadUri(self, uri):
+        print("Pulling " + uri)
         self.url = "https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/" + uri + ".xml"
         root = getXml(self.url)
         self.isStandard = True
         self.uri = uri
 
-        self.name = root.attrib['name']
+        self.name = root.attrib['name'].replace(' ', '_')
         self.uuid = int(root.attrib['uuid'],16)
         setIfEmpty(self, 'desc',root.find('./InformativeText/Abstract'))
         setIfEmpty(self, 'desc',root.find('./InformativeText/Summary'))
@@ -192,7 +236,20 @@ class GattService(object):
                 newChar.loadServiceUri(self.uri)
                 self.chars.append(newChar)
         
-        self.desc = self.desc.replace('\n','').replace('\t','')
+        self.desc = self.desc.replace('\n','').replace('\t','').strip()
+
+    def uuidArray(self):
+        val = self.uuid 
+        arr =[]
+        if type(val) != str:
+            val = "%0.4X" % val
+            self.uuidType ="e16Bit"
+        
+        val = val.replace('-','')
+        arr = [val[i:i+2] for i in range(0, len(val), 2)]
+        ret = ', 0x'.join(arr)
+
+        return "0x"+ ret 
 
     def parseYaml(self, node):
         
@@ -240,6 +297,7 @@ class GattProfile(object):
             self.addService(newService)
 
     def addService(self, service):
+        service.profile = self
         self.services.append(service)
 
 

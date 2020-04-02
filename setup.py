@@ -18,7 +18,7 @@ setuptools.setup(
      url="http://www.up-rev.com/",
      packages=setuptools.find_packages(),
      package_data={
-     'mrtutils':['templates/*'],
+     'mrtutils':['templates/*']
      },
      install_requires=[
         'markdown',

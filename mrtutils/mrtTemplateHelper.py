@@ -41,6 +41,30 @@ class CodeReplacer:
                 print(" Code block dropped: " + token)
                 print(self.blocks[token])
 
+class TemplateHelper:
+    def camelCase(self, text):
+        out =""
+        cap = True 
+        for char in text:
+            if char != '_':
+                if cap:
+                    out+= char.upper()
+                else:
+                    out+= char.lower()
+                cap = False
+            else:
+                cap = True
+            
+        return out
+    
+    def padAfter(self, text, spacing):
+        ret = text
+        if spacing > 0:
+            spaces = spacing - len(ret)
+            ret = ret + (" " * spaces)
+        return ret 
+
+
 
 
 
