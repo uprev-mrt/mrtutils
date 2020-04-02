@@ -32,30 +32,44 @@ def buildTemplate(object, templateFile, outputFile):
     cr = CodeReplacer()
     newContents =""
     headerPattern = r"@file (.*?\.)(.*?) \*/"
+    handlerPattern = r" (.*?)_handler.*?\n}"
     if os.path.isfile(outputFile):
         exists = True
         curFile = open(outputFile, "r")
         text = curFile.read()
         cr.loadText(text)
         cr.loadText(text,headerPattern)
+        cr.loadText(text,handlerPattern)
 
     template = Template(pkgutil.get_data('mrtutils',templateFile) )
-    newContents = "\n".join(template.render(obj = object).splitlines())
+    newContents = "\n".join(template.render(obj = object, t = TemplateHelper()).splitlines())
     newContents = cr.insertBlocks(newContents)
     newContents = cr.insertBlocks(newContents,headerPattern)
+    newContents = cr.insertBlocks(newContents,handlerPattern)
     cr.printDrops()
     text_file = open( outputFile , "w")
     text_file.write(newContents)
     text_file.close()
 
-# def buildDeviceSource(device , outputPath, baseName =''):
+def buildProfileSource(gatt , outputPath, baseName =''):
 
-#     if baseName == '':
-#         baseName = device.name.lower() 
+    if baseName == '':
+        baseName = gatt.name.lower() 
+    
+    if not os.path.exists(outputPath):
+        os.makedirs(outputPath)
+    
+    if not os.path.exists(outputPath +"/svc"):
+        os.makedirs(outputPath+"/svc")
 
-#     buildTemplate(device, 'templates/device_header_template.h', outputPath +"/"+baseName + ".h" )
-#     buildTemplate(device, 'templates/device_source_template.c', outputPath +"/"+baseName + ".c" )
-#     buildTemplate(device, 'templates/device_regs_header.h', outputPath +"/"+baseName + "_regs.h" )
+    buildTemplate(gatt, 'templates/ble/profile_header.h', outputPath +"/"+gatt.name.lower() + "_profile.h" )
+    buildTemplate(gatt, 'templates/ble/profile_source.c', outputPath +"/"+gatt.name.lower() + "_profile.c" )
+
+    for service in gatt.services:
+        buildTemplate(service, 'templates/ble/service_header.h', outputPath +"/svc/"+service.prefix + "_svc.h" )
+        buildTemplate(service, 'templates/ble/service_source.c', outputPath +"/svc/"+service.prefix + "_svc.c" )
+        buildTemplate(service, 'templates/ble/app_service_source.c', outputPath +"/app_" + service.prefix+"_svc.c" )
+
 
 
 def main():
@@ -98,7 +112,8 @@ def main():
         
 
         print(" Generating Documentation and source for " + gatt.name)
-        #buildDeviceSource(device, path)
+        
+        buildProfileSource(gatt, path)
 
         if not docPath == "":
             buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html" )
