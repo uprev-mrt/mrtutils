@@ -39,7 +39,7 @@ def buildTemplate(object, templateFile, outputFile):
         cr.loadText(text,headerPattern)
 
     template = Template(pkgutil.get_data('mrtutils',templateFile) )
-    newContents = "\n".join(template.render(obj = object).splitlines())
+    newContents = "\n".join(template.render(obj = object, t = TemplateHelper()).splitlines())
     newContents = cr.insertBlocks(newContents)
     newContents = cr.insertBlocks(newContents,headerPattern)
     cr.printDrops()

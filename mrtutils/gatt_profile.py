@@ -200,6 +200,8 @@ class GattCharacteristic(object):
             if len(self.vals) > 32:
                 print( "Error maximum flags per field is 32")
             self.type = strType
+        else:
+            self.type = 'uint8'
 
 class GattService(object):
     def __init__(self):

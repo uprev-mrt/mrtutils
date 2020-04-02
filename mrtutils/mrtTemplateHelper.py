@@ -5,6 +5,38 @@ import os
 from sys import platform
 import re
 
+sizeDict = {
+    "uint8" : 1,
+    "int8" : 1,
+    "char" : 1,
+    "uint16" : 2,
+    "int16" : 2,
+    "uint32" : 4,
+    "int32" : 4,
+    "int64" : 8,
+    "uint64" : 8,
+    "int" : 4,
+    "string" : 16,
+}
+
+cTypeDict = {
+    "uint8" : "uint8_t",
+     "int8" : "int8_t",
+     "char" : "char",
+     "string" : "char",
+     "uint16" : "uint16_t",
+     "int16" : "int16_t",
+     "uint32" : "uint32_t",
+     "int32" : "int32_t",
+     "int64" : "int64_t",
+     "uint64" : "uint64_t",
+     "int" : "int",
+     "float" : "float",
+     "double" : "double",
+     "enum" : "uint8_t",
+     "flag" : "uint8_t"
+ }
+
 class CodeReplacer:
     def __init__(self):
         self.input =""
@@ -42,6 +74,10 @@ class CodeReplacer:
                 print(self.blocks[token])
 
 class TemplateHelper:
+    def __init__(self):
+        self.sizeDict = sizeDict
+        self.cTypeDict = cTypeDict
+
     def camelCase(self, text):
         out =""
         cap = True 

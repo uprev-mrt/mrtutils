@@ -19,7 +19,7 @@ static mrt_status_t ${obj.prefix.lower()}_init(${obj.name.lower()}_t* dev)
 {   
     /* Initialize Register Descriptors */
 % for key,reg in obj.regs.items():
-    REG_INIT( dev->${"m" + obj.camelCase(reg.name)} , ${obj.prefix.upper() +"_REG_"+reg.name.upper()+"_ADDR"} , ${reg.type}, REG_PERM_${reg.perm} , ${reg.formatHex(reg.default)}  );
+    REG_INIT( dev->${"m" + obj.camelCase(reg.name)} , ${obj.prefix.upper() +"_REG_"+reg.name.upper()+"_ADDR"} , ${t.cTypeDict[reg.type]}, REG_PERM_${reg.perm} , ${reg.formatHex(reg.default)}  );
 % endfor
 
 %if 'init' in obj.configs:

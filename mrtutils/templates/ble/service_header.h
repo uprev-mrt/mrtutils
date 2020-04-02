@@ -29,6 +29,12 @@ extern ${obj.prefix}_svc_t ${obj.prefix}_svc;
 /* Initializer----------------------------------------------------------------*/
 void ${obj.prefix}_svc_init(${obj.prefix}_svc_t* ${obj.prefix}_svc);
 
+/**
+ * @brief Called after server is intialized
+ */
+void ${obj.prefix}_svc_post_init(void);
+
+
 /* Getters and Setters--------------------------------------------------------*/
 % for char in obj.chars:
 % if char.perm.lower() != 'w':
@@ -39,6 +45,11 @@ ${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 
 %endif
 %endif
 % endfor
+
+/* Characteristic Event Handlers----------------------------------------------*/
+% for char in obj.chars:
+${"mrt_status_t {0}_{1}_handler(mrt_gatt_evt_t* event);".format(obj.prefix,char.name.lower())}
+%endfor
 
 #ifdef __cplusplus
 }
