@@ -1,0 +1,11 @@
+{
+    "_comment": [
+       "UUIDs from ${obj.name} profile"
+    ],
+    "uuid16bitServiceDefinitions": {},
+    "uuid128bitServiceDefinitions": {${obj.nrfServices('e128But')}},
+    "uuid16bitCharacteristicDefinitions": {},
+    "uuid128bitCharacteristicDefinitions": {${obj.nrfChars('e128Bit')}},
+    "uuid16bitDescriptorDefinitions": {},
+    "uuid128bitDescriptorDefinitions": {}
+ }

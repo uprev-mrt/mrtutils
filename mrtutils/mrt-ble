@@ -24,7 +24,7 @@ def init_args():
     parser.add_argument('-o', '--output', type=str, help='Output path', default=".")
     parser.add_argument('-d', '--document', type=str, help='documentation path', default="")
     parser.add_argument('-t', '--template', type=str, help='path to create template', default="")
-    parser.add_argument('-n', '--nrf', type=str, help='path to create json file for NRF Connect App', default="")
+    parser.add_argument('-n', '--nrf', action='store_true', help='Generates definition file for nrf connect', default=False)
     
 
 def buildTemplate(object, templateFile, outputFile):
@@ -114,6 +114,11 @@ def main():
         print(" Generating Documentation and source for " + gatt.name)
         
         buildProfileSource(gatt, path)
+
+
+        if args.nrf:
+            buildTemplate(gatt, 'templates/ble/nrf_definitions.json', path +"/" + gatt.name+"_definitions.json" )
+
 
         if not docPath == "":
             buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html" )

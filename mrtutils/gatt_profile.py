@@ -56,6 +56,18 @@ def getXml(url):
 
     return root
 
+def uuidStr(val):
+    arr =[]
+    if type(val) != str:
+        val = "%0.4X" % val
+
+    
+    val = val.replace('-','')
+    arr = [val[i:i+2] for i in range(0, len(val), 2)]
+    ret = ''.join(arr[::-1])
+
+    return  ret 
+
 def setIfEmpty(obj, field, new):
     if obj.__dict__[field] is None and new is not None:
         obj.__dict__[field] = new.text.strip()
@@ -100,6 +112,13 @@ class GattCharacteristic(object):
     
     def size(self):
         return sizeDict[self.type]
+    
+    def uuidStr(self):
+        
+        if type(self.uuid) is str:
+            return self.uuid 
+        else:
+            return "%0.4X" % self.uuid
     
     def props(self):
         ret = ""
@@ -240,6 +259,7 @@ class GattService(object):
         
         self.desc = self.desc.replace('\n','').replace('\t','').strip()
 
+
     def uuidArray(self):
         val = self.uuid 
         arr =[]
@@ -255,6 +275,7 @@ class GattService(object):
 
     def parseYaml(self, node):
         
+        uuidSplit = []
         if 'uri' in node:
             self.loadUri(node['uri'])
             self.nextUuid = self.uuid + 1
@@ -273,7 +294,8 @@ class GattService(object):
                 if self.uri is not None:
                     newChar.loadServiceUri(self.uri)
                 if newChar.uuid is None:
-                    newChar.uuid = self.nextUuid
+                    uuidSplit[6] = "%0.4X" % self.nextUuid
+                    newChar.uuid = '-'.join(uuidSplit)
                     self.nextUuid += 1
                 self.addChar(newChar)
     
@@ -285,6 +307,34 @@ class GattProfile(object):
         self.name= "unnamed"
         self.services = []
         self.genTime = datetime.datetime.now().strftime("%m/%d/%y")
+    
+    def nrfServices(self, uuidType):
+
+        serviceItems =[]
+        for service in self.services:
+            if service.uuidType == uuidType:
+                item = '\t\t"{0}" : {{\n\t\t\t"name":"{1}",\n\t\t\t}}'.format(uuidStr(service.uuid), service.name)
+                serviceItems.append(item)
+        
+        ret = ',\n'.join(serviceItems)
+        if ret != "":
+            ret = "\n" + ret 
+        
+        return ret
+    
+    def nrfChars(self,uuidType):
+        charItems =[]
+        for service in self.services:
+            for char in service.chars:
+                if char.uuidType == uuidType:
+                    item = '\t\t"{0}" : {{\n\t\t\t"name":"{1}",\n\t\t\t"format":"{2}"\n\t\t\t}}'.format(uuidStr(char.uuid), char.name, "TEXT" if not (char.type == 'string') else "NO_FORMAT" )
+                    charItems.append(item)
+        
+        ret = ',\n'.join(charItems)
+        if ret != "":
+            ret = "\n" + ret
+        
+        return ret
 
     def parseYaml(self, file):
         data = open(file)

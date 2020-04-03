@@ -75,7 +75,7 @@
     %else:
     <td width=""><b>${characteristic.name}</b></td>
     %endif
-    <td width="">${ "%0.4X" % characteristic.uuid} </td>
+    <td width="">${ characteristic.uuidStr() } </td>
     <td width="">${characteristic.type} </td>
     <td width="">${characteristic.perm} </td>
     <td>${characteristic.desc}\
