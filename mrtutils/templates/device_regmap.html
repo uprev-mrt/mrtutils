@@ -141,13 +141,17 @@ function buildRegMap(tableId, dev)
     let head = document.createElement("th");
     let access = document.createElement("th");
     let regAddr = document.createElement("th");
-    head.textContent = name;
+    let headAnch = document.createElement("a");
+    headAnch.textContent = reg.name
     head.setAttribute("rowspan",rowSpan);
     regAddr.textContent = "x"+reg.addr.toString(16).padStart(4,"0")
     regAddr.setAttribute("rowspan", rowSpan);
     access.textContent =reg.perm;
     access.setAttribute("rowspan",rowSpan);
+    headAnch.setAttribute("data-tt",'');
+    headAnch.setAttribute("data-tt-lbl", reg.name +"\n\n" +reg.desc );
 
+    head.appendChild(headAnch);
     row.appendChild(head);
     row.appendChild(regAddr);
     row.appendChild(access);

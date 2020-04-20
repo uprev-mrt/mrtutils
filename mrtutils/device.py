@@ -287,7 +287,7 @@ class DeviceReg:
     def __init__(self,name):
         self.name = name
         self.addr = 0
-        self.type ="uint8_t"
+        self.type ="uint8"
         self.perm = "RW"
         self.desc = ""
         self.default = 0
@@ -551,7 +551,7 @@ class Device:
                 if 'addr' in regItem:
                     newReg.addr = regItem['addr'] #int(regItem['addr'],0) 
                 if 'type' in regItem:
-                    newReg.type = regItem['type']
+                    newReg.type = regItem['type'].replace("_t","")
                     newReg.size = sizeDict[newReg.type.replace("_t","")]
                 if 'size' in regItem:
                     newReg.size = regItem['size']

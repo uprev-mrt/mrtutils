@@ -116,7 +116,7 @@ class GattCharacteristic(object):
     def uuidStr(self):
         
         if type(self.uuid) is str:
-            return self.uuid 
+            return self.uuid.split('-')[6]
         else:
             return "%0.4X" % self.uuid
     
@@ -246,6 +246,7 @@ class GattService(object):
 
         self.name = root.attrib['name'].replace(' ', '_')
         self.uuid = int(root.attrib['uuid'],16)
+        self.uuidType = 'e16Bit'
         setIfEmpty(self, 'desc',root.find('./InformativeText/Abstract'))
         setIfEmpty(self, 'desc',root.find('./InformativeText/Summary'))
 
@@ -293,10 +294,14 @@ class GattService(object):
                 newChar.parseYaml(charNode)
                 if self.uri is not None:
                     newChar.loadServiceUri(self.uri)
-                if newChar.uuid is None:
+                if newChar.uuid is None:                        #if no uuid is set, increment previous
                     uuidSplit[6] = "%0.4X" % self.nextUuid
                     newChar.uuid = '-'.join(uuidSplit)
                     self.nextUuid += 1
+                if type(newChar.uuid) != str and self.uri is None:   #if it is a  16 bit uuid without a uri, it incremements from the next uuid of the service
+                    uuidSplit[6] = "%0.4X" % newChar.uuid
+                    self.nextUuid = newChar.uuid + 1
+                    newChar.uuid = '-'.join(uuidSplit)
                 self.addChar(newChar)
     
     def addChar(self, char):
@@ -327,7 +332,7 @@ class GattProfile(object):
         for service in self.services:
             for char in service.chars:
                 if char.uuidType == uuidType:
-                    item = '\t\t"{0}" : {{\n\t\t\t"name":"{1}",\n\t\t\t"format":"{2}"\n\t\t\t}}'.format(uuidStr(char.uuid), char.name, "TEXT" if not (char.type == 'string') else "NO_FORMAT" )
+                    item = '\t\t"{0}" : {{\n\t\t\t"name":"{1}",\n\t\t\t"format":"{2}"\n\t\t\t}}'.format(uuidStr(char.uuid), char.name, "TEXT" if (char.type == 'string') else "NO_FORMAT" )
                     charItems.append(item)
         
         ret = ',\n'.join(charItems)
