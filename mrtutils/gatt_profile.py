@@ -31,6 +31,20 @@ sizeDict = {
     "utfs8": 16
 }
 
+svcIconDict = {
+    "Device" : "fa-desktop",
+    "Battery" : "fa-battery-three-quarters",
+    "Environmental" : "fa-leaf"
+}
+
+charIconDict = {
+    "Level" : "fa-battery-half",
+    "Firmware_Revision" : "fa-code",
+    "Temperature" : "fa-thermometer-empty",
+    "Humidity" : "fa-tint",
+}
+
+
 typeDict ={
     "utf8s" : "string",
     "sint16" : "uint16",
@@ -56,17 +70,29 @@ def getXml(url):
 
     return root
 
-def uuidStr(val):
+def insert_dash(string, index):
+    return string[:index] + '-' + string[index:]
+
+def uuidStr(val , short = False):
     arr =[]
     if type(val) != str:
-        val = "%0.4X" % val
+        val = "0000%0.4X-0000-1000-8000-00805f9b34fb" % val
+        ret = val
+    else:  
+        val = val.replace('-','')
+        arr = [val[i:i+2] for i in range(0, len(val), 2)]
+        ret = ''.join(arr)
 
+        if len(ret) > 4:
+            ret = insert_dash(ret, 8)
+            ret = insert_dash(ret, 13)
+            ret = insert_dash(ret, 18)
+            ret = insert_dash(ret, 23)
     
-    val = val.replace('-','')
-    arr = [val[i:i+2] for i in range(0, len(val), 2)]
-    ret = ''.join(arr[::-1])
+    if short:
+        ret = ret[4:8]
 
-    return  ret 
+    return  ret.lower() 
 
 def setIfEmpty(obj, field, new):
     if obj.__dict__[field] is None and new is not None:
@@ -80,6 +106,12 @@ class GattValue:
     
     def parseYaml(self, node):
         yamlGetAttributes(node, attrDict, self)
+
+    def getDict(self):
+
+        json_dict = { "name": self.name, "val": self.value }
+
+        return json_dict
 
 class GattCharacteristic(object):
     def __init__(self):
@@ -96,6 +128,7 @@ class GattCharacteristic(object):
         self.url =""
         self.uuid = None
         self.uuidType = "e128Bit"
+        self.icon = ''
     
     def uuidArray(self):
         val = self.uuid 
@@ -184,6 +217,9 @@ class GattCharacteristic(object):
             sigPerm += "I"
         self.perm = sigPerm
 
+        if self.name in svcIconDict:
+                self.icon = charIconDict[self.name]
+
     
     def parseYaml(self, node):
         
@@ -221,6 +257,16 @@ class GattCharacteristic(object):
             self.type = strType
         else:
             self.type = 'uint8'
+    
+    def getDict(self):
+        val_arr = []
+
+        for val in self.vals:
+            val_arr.append(val.getDict())
+
+        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "size": self.size(), "value": "...", "uuid": uuidStr(self.uuid), "short_uuid": uuidStr(self.uuid, True), "url": self.url, "type": self.type, "icon" : self.icon, "uuid_type": self.uuidType,  "perm": self.perm, "desc": self.desc.rstrip()  , "vals": val_arr}
+
+        return json_dict
 
 class GattService(object):
     def __init__(self):
@@ -236,6 +282,7 @@ class GattService(object):
         self.nextUuid = 0
         self.uuidType ="e128Bit"
         self.profile = ''
+        self.icon = ''
     
     def loadUri(self, uri):
         print("Pulling " + uri)
@@ -281,6 +328,8 @@ class GattService(object):
             self.loadUri(node['uri'])
             self.nextUuid = self.uuid + 1
             yamlGetAttributes(node, attrDict, self)
+            if self.name in svcIconDict:
+                self.icon = svcIconDict[self.name]
         else:
             yamlGetAttributes(node, attrDict, self)
             uuidSplit = self.uuid.split('-')
@@ -295,17 +344,28 @@ class GattService(object):
                 if self.uri is not None:
                     newChar.loadServiceUri(self.uri)
                 if newChar.uuid is None:                        #if no uuid is set, increment previous
-                    uuidSplit[6] = "%0.4X" % self.nextUuid
+                    uuidSplit[1] = "%0.4X" % self.nextUuid
                     newChar.uuid = '-'.join(uuidSplit)
                     self.nextUuid += 1
                 if type(newChar.uuid) != str and self.uri is None:   #if it is a  16 bit uuid without a uri, it incremements from the next uuid of the service
-                    uuidSplit[6] = "%0.4X" % newChar.uuid
+                    uuidSplit[1] = "%0.4X" % newChar.uuid
                     self.nextUuid = newChar.uuid + 1
                     newChar.uuid = '-'.join(uuidSplit)
                 self.addChar(newChar)
     
     def addChar(self, char):
         self.chars.append(char)
+
+    def getDict(self):
+        char_arr = []
+
+        for char in self.chars:
+            char_arr.append(char.getDict())
+        
+        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "uuid": uuidStr(self.uuid),  "short_uuid": uuidStr(self.uuid, True), "uuid_type": self.uuidType, "desc": self.desc, "icon" : self.icon, "url": self.url, "characteristics": char_arr}
+
+        return json_dict
+             
 
 class GattProfile(object):
     def __init__(self):
@@ -356,6 +416,16 @@ class GattProfile(object):
     def addService(self, service):
         service.profile = self
         self.services.append(service)
+    
+    def getDict(self):
+        svc_arr = []
+
+        for svc in self.services:
+            svc_arr.append(svc.getDict())
+        
+        json_dict = { "name": self.name,  "services": svc_arr}
+        return json_dict
+             
 
 
 
