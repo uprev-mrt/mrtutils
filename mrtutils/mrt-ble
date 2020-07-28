@@ -10,6 +10,7 @@ import sys
 import os
 from mako.template import Template
 import yaml
+import json
 import argparse
 import pkgutil
 from mrtutils.mrtTemplateHelper import *
@@ -115,6 +116,9 @@ def main():
         
         buildProfileSource(gatt, path)
 
+   
+        gatt.json = json.dumps(gatt.getDict(), indent=2)
+        #print(s)
 
         if args.nrf:
             buildTemplate(gatt, 'templates/ble/nrf_definitions.json', path +"/" + gatt.name+"_definitions.json" )
@@ -122,6 +126,7 @@ def main():
 
         if not docPath == "":
             buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html" )
+            buildTemplate(gatt, 'templates/ble/smart_icd.html', docPath +"/" + gatt.name+"_live_icd.html" )
         
 
 

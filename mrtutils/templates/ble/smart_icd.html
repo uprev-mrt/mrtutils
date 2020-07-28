@@ -2,26 +2,29 @@
 <html lang="en">
     <head>
          <!-- Bootstrap CSS -->
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/slate/bootstrap.min.css"  crossorigin="anonymous">
 
         <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/js/all.min.js"></script>
 
         <title>Vue Test</title>
     </head>
-    <body class="dark">
-
+    <body class="">
         <h1>EasyRider Gatt ICD</h1>
-        <ul>
-        <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device" MrT BLE tool>mrt-ble</a> on 07/27/20</li>
-        </ul>
+        <div class="d-flex justify-content-between align-items-center">
+
+            <ul>
+                <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device" MrT BLE tool>mrt-ble</a> on 07/27/20</li>
+            </ul>
+            <button class="btn btn-sm btn-info" id="read" onclick="connect()">Connect with BLE device</button>
+        </div>
+        
         <p>Gatt profile smart suspension system</p>
 
     
-        <button id="read" onclick="connect()">Connect with BLE device</button>
     
         <div id="app">
-            <div class="col-md-10">
+            <div class="col-md-12">
 
                 <div id="accordion" role="tablist" aria-multiselectable="true">
                     <service-item v-for="service in services" v-bind:service="service" v-bind:key="service.uuid"></service-item>
@@ -30,133 +33,295 @@
         </div>
         
         
-          <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-        <script src="ble.js"></script>
+            <!-- <script src="ble.js"></script> -->
         <script >
 
             Vue.component('char-item',{
                 props: ['char'],
+                methods: {
+                    writeChar : function(char)
+                    {
+                        var buffer = new ArrayBuffer(char.size);
+                        var data = new DataView(buffer);
+
+                        switch(char.type)
+                        {
+                            case "uint8" : 
+                                data.setUint8(0, char.req_value);
+                            break;
+                            case "int8" : 
+                                data.setInt8(0, chr.req_value);
+                            break;
+                            case "char" : 
+                                data.setUint8(0, char.req_value);
+                            break;
+                            case "uint16" : 
+                                data.setUint16(0, char.req_value);
+                            break;
+                            case "int16" : 
+                                data.setInt16(0, char.req_value);
+                            break;
+                            case "uint32" : 
+                                data.setUint32(0, char.req_value);
+                            break;
+                            case "int32" : 
+                                data.setInt32(0, char.req_value);
+                            break;
+                            case "int64" : 
+                                data.setBigInt64(0, char.req_value);
+                            break;
+                            case "uint64" : 
+                                data.setBigUint64(0, char.req_value);
+                            break;
+                            case "string":
+                                break;
+                            default:
+                                break;
+                        }
+
+                        char.chr_handle.writeValue(data.buffer);
+                        char.chr_handle.readValue();
+
+                    },
+                    readChar : function(char)
+                    {
+                       char.chr_handle.readValue();
+
+                    }
+                },
                 template: `
-                    <div class="col-md-10 char-card">
-                        <div class="card   mb-12 box-shadow"> 
+                    <div class="col-md-3  ">
+                        <div class="card mb-12 box-shadow char-card"> 
                             <div class="card-header " > 
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span>
-                                        <strong style="font-size: 1.4em">{{char.name}}</strong>
-                                        <small class="text-muted">{{char.type}}</small>
+                                        <i class="fa " v-if="char.icon != ''" :class="char.icon" aria-hidden="true"></i>
+                                        <strong style="font-size: 1.6em">{{char.name}}</strong>
+                                        <span >[{{char.type}}]</span>
                                     </span>
-                                    <small class="text-muted">{{char.uuid}}</small>
+                                    <a :href="char.url" v-if="char.uuid_type=='e16Bit'"> 0x{{char.short_uuid}}</a>
+                                    <small :href="char.url" v-if="char.uuid_type!='e16Bit'"> 0x{{char.short_uuid}}</small>
                                 </div>
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md-4">
-                                        <p >The value of this characteristic is a UTF-8 string representing the name of the manufacturer of the device. </p>
+                                    <div class="col-md-12">
+                                        <p >{{char.desc}} </p>
                                     </div>
-                                    <div class="col-md-8">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                            
-                                            <input type="text" v-if="char.type == 'string'"  v-model="char.value" value="">
-                                            <input type="number" v-if="char.type.includes('int')"  v-model="char.value" value="">
-                                            <select v-if="char.type == 'enum'"  v-model="char.value" value="">
-                                                <option v-for="val in char.vals" v-bind:value="val.val"> {{val.name}}
-                                            </select>
+                                </div>
+                                <div class="row"> 
 
-                                            <h2> {{char.value}}</h2>
-                                            </div>
-                                            
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <small class="text-muted">0 mins</small>
-                                                <div class="btn-group">
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!char.perm.includes('W')">Write</button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!char.perm.includes('R')">Read</button>
-                                                </div>
-                                            </div>
+                                    <div class="col-md-6">
+                                        <div v-if="char.perm.includes('W')">
+                                            <input type="text" v-if="char.type == 'string'"  v-model="char.req_value" value="">
+                                            <input type="number" v-if="char.type.includes('int')"  v-model="char.req_value" value="">
+                                            <select v-if="char.type == 'enum'"  v-model="char.req_value" value="">
+                                                <option v-for="val in char.vals" v-bind:value="val.val"> {{val.name}} </option>
+                                            </select>
+                                        </div>
                                     </div>
+                                    <div class="col-md-6">
+                                            <h2> {{char.value}}</h2>
+                                    </div>
+                                </div>
+                                <div class="row"> 
+                                    &nbsp;
+                                </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">{{char.value}}</small>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="writeChar(char)" v-if="char.perm.includes('W')">Write</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="readChar(char)" v-if="char.perm.includes('R')">Read</button>
+                                            </div>
+                                        </div>
                                 </div>
                             </div>
                         </div>
                     </div>`
             })
 
-            Vue.component('char-item-row',{
-                props: ['char'],
-                template: `
-                <tr>
-                <td width="">
-                    <b>{{char.name}}</b><br/>
-                    <a  class="small-note" href="https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Characteristics/org.bluetooth.characteristic.manufacturer_name_string.xml">[SIG Standard]</a>
-                </td>
-                <td width="">{{char.uuid}} </td>
-                <td width="">{{char.type}} </td>
-                <td width="">{{char.perm}} </td>
-                <td>The value of this characteristic is a UTF-8 string representing the name of the manufacturer of the device.    </td>
-                </tr>`
-            })
-
             Vue.component('service-item',{
                 props: ['service'],
                 template: `
                         <div class="card  box-shadow" > 
-                            <div class="card-header" :id="service.id+'_header'">
+                            <div class="card-header  " :id="service.id+'_header'">
                                 <div class="d-flex justify-content-between align-items-left">
-                                <h4>
-                                    <i class="fa " v-if="service.icon != ''" :class="service.icon" aria-hidden="true"></i>
-                                    <span> {{service.name}} </span>
-                                </h4>
-                                <a class="collapsed d-block" data-toggle="collapse" data-parent="#accordion" :href="'#'+service.id+'_body'" aria-expanded="false" :aria-controls="service.id+'_body'">
-                                    <i class="fa fa-chevron-circle-down" aria-hidden="true"></i>
-                                </a>
+                                    <h4>
+                                        <i class="fa " v-if="service.icon != ''" :class="service.icon" aria-hidden="true"></i>
+                                        <span> {{service.name}} </span>
+                                    </h4>
+                                    <span >
+                                        <a :href="service.url" v-if="service.uuid_type=='e16Bit'"> 0x{{service.short_uuid}}</a>
+                                        <span :href="service.url" v-if="service.uuid_type!='e16Bit'"> {{service.uuid}}</span>
+                                        <a class="collapsed d-block" data-toggle="collapse" data-parent="#accordion" :href="'#'+service.id+'_body'" aria-expanded="false" :aria-controls="service.id+'_body'">
+                                            <i class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></i>
+                                        </a>
+                                    </span>
                                 </div>
                             </div>
                             <div :id="service.id+'_body'" class="collapse show" role="tabpanel" :aria-labelledby="service.id+'_header'">
-                                <div class="card-body">
+                                <div class="card-body ">
                                         <div class="row">
-                                            <char-item v-for="char in service.characteristics" v-bind:char="char" v-bind:key="char.uuid"></char-item>
+                                            <char-item v-for="char in service.characteristics" v-bind:char="char" :service_uuid="service.uuid" v-bind:key="char.uuid"></char-item>
                                         </div>
-
-                                    <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                                    <div class="d-flex justify-content-between align-items-left">
-                                        <div class="btn-group">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
-                                        </div>
-                                        <small class="text-muted">9 mins</small>
-                                    </div>
                                 </div>
                             </div>
                         </div>`
             })
-
+            
+            var bluetoothDevice;
+            var gattServer;
+            var profile = ${obj.json};
             var app = new Vue({
                 el: '#app',
-                data: {
-                    services: [
-                        {name: 'Device Service', id: 'device_service', icon: 'fa-id-card', uuid: '0x180F', characteristics: [
-                            {name:"name", type: 'string', uuid: 0x180A, perm: "WN", value: "Test Name", read: false}  ,  
-                            {name:"number", type: 'int', uuid: 0x180A, perm: "RWN", value: "4567", read: true}  ,  
-                            {name:"enum", type: 'enum', uuid: 0x180b, perm: "RWN", value: "1", read: true, vals: [
-                                    {name: "test0", val: 0},
-                                    {name: "test1", val: 1},
-                                    {name: "test2", val: 2},
-                                    {name: "test3", val: 3}
-                                ]}  
-                            ]},
-                        {name: 'Battery Service', id: 'battery_service', icon: 'fa-battery-half', uuid: '0x181F', characteristics: [
-                            {name:"name", type: 'string', uuid: 0x181A, perm: "WN", value: "Test Name", read: false}  ,  
-                            {name:"name", type: 'string', uuid: 0x181b, perm: "WN", value: "Test Name", read: true}  ,  
-                            {name:"name", type: 'string', uuid: 0x181c, perm: "RWN", value: "Test Name", read: true}  ,  
-                            {name:"name", type: 'string', uuid: 0x181d, perm: "RWN", value: "Test Name", read: true}  ,  
-                            {name:"name", type: 'string', uuid: 0x181e, perm: "RWN", value: "Test Name", read: true}   , 
-                            {name:"name", type: 'string', uuid: 0x181A, perm: "RWN", value: "Test Name", read: true}  ,  
-                            {name:"name", type: 'string', uuid: 0x181b, perm: "RWN", value: "Test Name", read: true}  
-                            ]},
-                    ]
-                }
+                data: profile 
             })
+
+
+    function findCharacteristicByUuid(uuid)
+    {
+        let ret = null;
+        profile.services.forEach(svc => {
+            svc.characteristics.forEach( chr => {
+                if(chr.uuid.toLowerCase() == uuid)
+                {
+                        ret = chr; 
+                        return chr;
+                }
+            }) ;
+        });
+      
+        return ret;
+    }
+
+
+    function updateValue(uuid, value)
+    {
+
+        var chr = findCharacteristicByUuid(uuid);
+        if(chr != null)
+        {
+            if(chr.type == "string")
+            {
+                let decoder = new TextDecoder('utf-8');
+                chr.value = decoder.decode(value);
+            }
+            else
+            {
+                switch(chr.type)
+                {
+                    case "uint8" : 
+                        chr.value = value.getUint8();
+                        break;
+                    case "int8" : 
+                        chr.value = value.getInt8();
+                        break;
+                    case "char" : 
+                        chr.value = value.getUint8();
+                        break;
+                    case "uint16" : 
+                        chr.value = value.getUint16();
+                        break;
+                    case "int16" : 
+                        chr.value = value.getInt16();
+                        break;
+                    case "uint32" : 
+                        chr.value = value.getUint32();
+                        break;
+                    case "int32" : 
+                        chr.value = value.getInt32();
+                        break;
+                    case "int64" : 
+                        chr.value = value.getBigInt64();
+                        break;
+                    case "uint64" : 
+                        chr.value = value.getBigUint64();
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        else
+        {
+            console.log("Failed to find UUID");
+        }
+    }
+
+    function handleCharacteristicValueChanged(event) {
+        updateValue(event.target.uuid, event.target.value);
+    }
+
+    function connect() 
+    {
+        if (navigator.bluetooth) 
+        {
+            console.log('Requesting Bluetooth device...');
+
+            navigator.bluetooth.requestDevice({
+            "acceptAllDevices": true
+            })
+            .then(device => {
+                bluetoothDevice = device;
+            console.log(device);
+            console.log('> Name:      ' + device.name);
+            console.log('> Id:        ' + device.id);
+            console.log('> Connected: ' + device.gatt.connected);
+            return device.gatt.connect();
+            })
+            .then(server => {
+                gattServer = server;
+                console.log('Getting Service...');
+                console.log(server);
+
+
+                return server.getPrimaryServices();
+            })
+            .then(services => {
+                console.log('Getting Characteristics...');
+                console.log(services);
+
+                for( i=0; i < services.length; i++)
+                {
+                    services[i].getCharacteristics()
+                    .then( characteristics => {
+                        console.log(characteristics);
+
+                        for( a=0; a< characteristics.length; a++)
+                        {
+
+                            let chr = findCharacteristicByUuid(characteristics[a].uuid);
+                            if(chr != null)
+                            {
+                                chr.chr_handle = characteristics[a];
+                                chr.enabled = true;
+                            }
+                            characteristics[a].addEventListener('characteristicvaluechanged',
+                                    handleCharacteristicValueChanged);
+                            characteristics[a].startNotifications();
+                            characteristics[a].readValue();
+                            
+                            
+                        }
+                    })
+                }
+                
+            })
+            .catch(error => {
+            console.log("D'oh! " + error);
+            });
+        }
+        else 
+        {
+            console.log('Web Bluetooth API is not available in this browser!')
+        }
+    }
+
+            
         </script>
         <style>
             html, body {
@@ -165,8 +330,7 @@
                 }
             
             .char-card {
-                margin-top: 1%;
-                margin-left: 1%;
+                margin-top: 2%;
             }
 
 
@@ -198,6 +362,13 @@
 
                 table.chars{
                 table-layout:auto;
+                }
+
+                .card-header .fa {
+                transition: .3s transform ease-in-out;
+                }
+                .card-header .collapsed .fa {
+                transform: rotate(90deg);
                 }
 
 
