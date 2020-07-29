@@ -9,6 +9,7 @@
 import sys
 import os
 import yaml
+import re
 import json
 import datetime
 import urllib.request
@@ -129,6 +130,9 @@ class GattCharacteristic(object):
         self.uuid = None
         self.uuidType = "e128Bit"
         self.icon = ''
+        self.coef = 0
+        self.unit = ''
+        self.arrayLen = 1
     
     def uuidArray(self):
         val = self.uuid 
@@ -144,7 +148,7 @@ class GattCharacteristic(object):
         return "0x"+ ret 
     
     def size(self):
-        return sizeDict[self.type]
+        return sizeDict[self.type] * self.arrayLen
     
     def uuidStr(self):
         
@@ -233,6 +237,12 @@ class GattCharacteristic(object):
 
         if self.type in ['enum','enums']:
             self.isEnum = True
+        
+        m = re.search('\*([0-9]*)', self.type)
+        if(m):
+            if(m.group(1) != ''):
+                self.arrayLen = int(m.group(1))
+            self.type = self.type[0:m.start()]
 
         if 'vals' in node:
             valNodes = yamlNormalizeNodes( node['vals'], 'name','desc')
@@ -264,7 +274,7 @@ class GattCharacteristic(object):
         for val in self.vals:
             val_arr.append(val.getDict())
 
-        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "size": self.size(), "value": "...", "uuid": uuidStr(self.uuid), "short_uuid": uuidStr(self.uuid, True), "url": self.url, "type": self.type, "icon" : self.icon, "uuid_type": self.uuidType,  "perm": self.perm, "desc": self.desc.rstrip()  , "vals": val_arr}
+        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "size": sizeDict[self.type], "arrayLen": self.arrayLen, "value": "0", "uuid": uuidStr(self.uuid), "short_uuid": uuidStr(self.uuid, True), "url": self.url, "type": self.type, "unit": self.unit, "coef":self.coef, "icon" : self.icon, "uuid_type": self.uuidType,  "perm": self.perm, "desc": self.desc.rstrip()  , "vals": val_arr}
 
         return json_dict
 

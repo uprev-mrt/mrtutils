@@ -7,27 +7,41 @@
         <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/js/all.min.js"></script>
 
-        <title>Vue Test</title>
+        <title>${obj.name} BLE</title>
     </head>
     <body class="">
-        <h1>EasyRider Gatt ICD</h1>
-        <div class="d-flex justify-content-between align-items-center">
-
-            <ul>
-                <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device" MrT BLE tool>mrt-ble</a> on 07/27/20</li>
-            </ul>
-            <button class="btn btn-sm btn-info" id="read" onclick="connect()">Connect with BLE device</button>
-        </div>
-        
-        <p>Gatt profile smart suspension system</p>
-
-    
-    
         <div id="app">
+            <h1>${obj.name} Gatt ICD</h1>
+            <div class="d-flex justify-content-between align-items-center">
+
+                <ul>
+                    <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device" MrT BLE tool>mrt-ble</a> on 07/27/20</li>
+                </ul>
+                <div>
+                    <!-- Rounded switch -->
+                    <label class="switch">
+                        <input type="checkbox" v-model="showAll">
+                        <span class="slider round"></span>
+                    </label>
+                    <label>
+                        Show All &nbsp;&nbsp;
+                    </label>
+
+                    <button class="btn btn-sm btn-info" v-if="!connected" :key="!bluetoothDevice.gatt.connected" id="connect" v-on:click="bleConnect(showAll)">Connect with BLE device</button>
+                    <button class="btn btn-sm btn-error" v-if="connected" :key="bluetoothDevice.gatt.connected" onclick="bleDisconnect()">Disconnect</button>
+
+                </div>
+            </div>
+            
+            <p>Gatt profile smart suspension system</p>
+
+    
+    
+        
             <div class="col-md-12">
 
                 <div id="accordion" role="tablist" aria-multiselectable="true">
-                    <service-item v-for="service in services" v-bind:service="service" v-bind:key="service.uuid"></service-item>
+                    <service-item v-for="service in profile.services" v-bind:service="service" v-bind:key="service.uuid"></service-item>
                 </div>
             </div>
         </div>
@@ -48,34 +62,41 @@
                         var buffer = new ArrayBuffer(char.size);
                         var data = new DataView(buffer);
 
+                        var rawValue = char.req_value;
+
+                        if(char.hasOwnProperty('coef'))
+                        {
+                            rawValue = rawValue / char.coef;
+                        }
+
                         switch(char.type)
                         {
                             case "uint8" : 
-                                data.setUint8(0, char.req_value);
+                                data.setUint8(0, rawValue);
                             break;
                             case "int8" : 
-                                data.setInt8(0, chr.req_value);
+                                data.setInt8(0, chr.rawValue);
                             break;
                             case "char" : 
-                                data.setUint8(0, char.req_value);
+                                data.setUint8(0, rawValue);
                             break;
                             case "uint16" : 
-                                data.setUint16(0, char.req_value);
+                                data.setUint16(0, rawValue);
                             break;
                             case "int16" : 
-                                data.setInt16(0, char.req_value);
+                                data.setInt16(0, rawValue);
                             break;
                             case "uint32" : 
-                                data.setUint32(0, char.req_value);
+                                data.setUint32(0, rawValue);
                             break;
                             case "int32" : 
-                                data.setInt32(0, char.req_value);
+                                data.setInt32(0, rawValue);
                             break;
                             case "int64" : 
-                                data.setBigInt64(0, char.req_value);
+                                data.setBigInt64(0, rawValue);
                             break;
                             case "uint64" : 
-                                data.setBigUint64(0, char.req_value);
+                                data.setBigUint64(0, rawValue);
                             break;
                             case "string":
                                 break;
@@ -83,28 +104,41 @@
                                 break;
                         }
 
-                        char.chr_handle.writeValue(data.buffer);
-                        char.chr_handle.readValue();
+                        char.chr_handle.writeValue(data.buffer)
+                        .then(function(){char.chr_handle.readValue();});
+
 
                     },
                     readChar : function(char)
                     {
                        char.chr_handle.readValue();
 
+                    },
+                    enableNotifications : function(char)
+                    {
+
+                       char.notificationsEnabled = true;
+                       char.chr_handle.startNotifications();
+
+                    },
+                    pauseNotifications : function(char)
+                    {
+                        char.notificationsEnabled = false;
+                       char.chr_handle.stopNotifications();
                     }
                 },
                 template: `
                     <div class="col-md-3  ">
                         <div class="card mb-12 box-shadow char-card"> 
-                            <div class="card-header " > 
+                            <div class="card-header "  v-bind:class="{enabled: char.enabled}"> 
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span>
+                                    <span >
                                         <i class="fa " v-if="char.icon != ''" :class="char.icon" aria-hidden="true"></i>
                                         <strong style="font-size: 1.6em">{{char.name}}</strong>
                                         <span >[{{char.type}}]</span>
                                     </span>
-                                    <a :href="char.url" v-if="char.uuid_type=='e16Bit'"> 0x{{char.short_uuid}}</a>
-                                    <small :href="char.url" v-if="char.uuid_type!='e16Bit'"> 0x{{char.short_uuid}}</small>
+                                    <a :href="char.url" v-if="char.uuid_type=='e16Bit'" v-bind:class="{enabled: char.enabled}"> 0x{{char.short_uuid}}</a>
+                                    <span :href="char.url" v-if="char.uuid_type!='e16Bit'"> 0x{{char.short_uuid}}</span>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -125,17 +159,20 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                            <h2> {{char.value}}</h2>
+                                        <span style="font-size: 3em; align: right"> {{char.value}}</span><span class="text-muted">{{char.unit}}</span>
                                     </div>
                                 </div>
                                 <div class="row"> 
                                     &nbsp;
                                 </div>
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <small class="text-muted">{{char.value}}</small>
+                                            <small class="text-muted">{{char.lastWrite}}</small>
                                             <div class="btn-group">
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="writeChar(char)" v-if="char.perm.includes('W')">Write</button>
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="readChar(char)" v-if="char.perm.includes('R')">Read</button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="enableNotifications(char)" v-if="char.perm.includes('N') && (!char.notificationsEnabled)"><i class="fa fa-play"  aria-hidden="true"></i></button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="pauseNotifications(char)" v-if="char.perm.includes('N') && char.notificationsEnabled"><i class="fa fa-pause"  aria-hidden="true"></i></button>
+                                                
                                             </div>
                                         </div>
                                 </div>
@@ -150,7 +187,7 @@
                         <div class="card  box-shadow" > 
                             <div class="card-header  " :id="service.id+'_header'">
                                 <div class="d-flex justify-content-between align-items-left">
-                                    <h4>
+                                    <h4 >
                                         <i class="fa " v-if="service.icon != ''" :class="service.icon" aria-hidden="true"></i>
                                         <span> {{service.name}} </span>
                                     </h4>
@@ -173,12 +210,22 @@
                         </div>`
             })
             
-            var bluetoothDevice;
+            var bluetoothDevice = {gatt:{connected:false}};
             var gattServer;
             var profile = ${obj.json};
             var app = new Vue({
                 el: '#app',
-                data: profile 
+                data: {
+                 profile:  profile,
+                 bluetoothDevice: bluetoothDevice,
+                 showAll: false
+                },
+                methods:{
+                    bleConnect: function(showAll)
+                    {
+                        connect(showAll);
+                    }
+                }
             })
 
 
@@ -212,38 +259,46 @@
             }
             else
             {
+                var newValue =0;
                 switch(chr.type)
                 {
                     case "uint8" : 
-                        chr.value = value.getUint8();
+                        newValue = value.getUint8();
                         break;
                     case "int8" : 
-                        chr.value = value.getInt8();
+                        newValue = value.getInt8();
                         break;
                     case "char" : 
-                        chr.value = value.getUint8();
+                        newValue = value.getUint8();
                         break;
                     case "uint16" : 
-                        chr.value = value.getUint16();
+                        newValue = value.getUint16();
                         break;
                     case "int16" : 
-                        chr.value = value.getInt16();
+                        newValue = value.getInt16();
                         break;
                     case "uint32" : 
-                        chr.value = value.getUint32();
+                        newValue = value.getUint32();
                         break;
                     case "int32" : 
-                        chr.value = value.getInt32();
+                        newValue= value.getInt32();
                         break;
                     case "int64" : 
-                        chr.value = value.getBigInt64();
+                        newValue = value.getBigInt64();
                         break;
                     case "uint64" : 
-                        chr.value = value.getBigUint64();
+                        newValue = value.getBigUint64();
                         break;
                     default:
                         break;
                 }
+
+                if(chr.hasOwnProperty('coef'))
+                {
+                    newValue= newValue * chr.coef;
+                }
+
+                chr.value = newValue.toFixed(2);
             }
         }
         else
@@ -252,19 +307,35 @@
         }
     }
 
+
     function handleCharacteristicValueChanged(event) {
         updateValue(event.target.uuid, event.target.value);
     }
 
-    function connect() 
+    function connect(showAll) 
     {
+
+        var filters = [];
+        var args= {}
+
+        if(!showAll)
+        {
+            profile.services.forEach(svc => {
+                filters.push(svc.uuid);
+            });
+
+            args = {filters: [{services: filters}]};
+        }
+        else 
+        {
+            args = {"acceptAllDevices": showAll};
+        }
+
         if (navigator.bluetooth) 
         {
-            console.log('Requesting Bluetooth device...');
+            console.log('Requesting Bluetooth device0');
 
-            navigator.bluetooth.requestDevice({
-            "acceptAllDevices": true
-            })
+            navigator.bluetooth.requestDevice(args)
             .then(device => {
                 bluetoothDevice = device;
             console.log(device);
@@ -275,21 +346,20 @@
             })
             .then(server => {
                 gattServer = server;
-                console.log('Getting Service...');
-                console.log(server);
+
 
 
                 return server.getPrimaryServices();
             })
             .then(services => {
-                console.log('Getting Characteristics...');
-                console.log(services);
 
                 for( i=0; i < services.length; i++)
                 {
+
+
                     services[i].getCharacteristics()
                     .then( characteristics => {
-                        console.log(characteristics);
+                        //console.log(characteristics);
 
                         for( a=0; a< characteristics.length; a++)
                         {
@@ -299,10 +369,12 @@
                             {
                                 chr.chr_handle = characteristics[a];
                                 chr.enabled = true;
+                                chr.notificationsEnabled = true;
                             }
                             characteristics[a].addEventListener('characteristicvaluechanged',
                                     handleCharacteristicValueChanged);
                             characteristics[a].startNotifications();
+                        
                             characteristics[a].readValue();
                             
                             
@@ -370,6 +442,72 @@
                 .card-header .collapsed .fa {
                 transform: rotate(90deg);
                 }
+
+                .enabled{
+                    color: #62c462;
+                }
+
+                .switch {
+                    position: relative;
+                    display: inline-block;
+                    width: 40px;
+                    height: 24px;
+                    }
+
+                    /* Hide default HTML checkbox */
+                    .switch input {
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                    }
+
+                    /* The slider */
+                    .slider {
+                    position: absolute;
+                    cursor: pointer;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-color: #ccc;
+                    -webkit-transition: .4s;
+                    transition: .4s;
+                    }
+
+                    .slider:before {
+                    position: absolute;
+                    content: "";
+                    height: 20px;
+                    width: 20px;
+                    left: 2px;
+                    bottom: 2px;
+                    background-color: white;
+                    -webkit-transition: .4s;
+                    transition: .4s;
+                    }
+
+                    input:checked + .slider {
+                    background-color: #2196F3;
+                    }
+
+                    input:focus + .slider {
+                    box-shadow: 0 0 1px #2196F3;
+                    }
+
+                    input:checked + .slider:before {
+                    -webkit-transform: translateX(16px);
+                    -ms-transform: translateX(16px);
+                    transform: translateX(16px);
+                    }
+
+                    /* Rounded sliders */
+                    .slider.round {
+                    border-radius: 30px;
+                    }
+
+                    .slider.round:before {
+                    border-radius: 50%;
+                    }
 
 
         </style>
