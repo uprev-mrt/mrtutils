@@ -1,21 +1,21 @@
 <!doctype html>
 <html lang="en">
     <head>
-         <!-- Bootstrap CSS -->
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/slate/bootstrap.min.css"  crossorigin="anonymous">
+        <!-- Bootstrap CSS -->
+       <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/slate/bootstrap.min.css"  crossorigin="anonymous">
 
-        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/js/all.min.js"></script>
+       <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+       <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/js/all.min.js"></script>
 
-        <title>${obj.name} BLE</title>
-    </head>
-    <body class="">
-        <div id="app">
-            <h1>${obj.name} Gatt ICD</h1>
-            <div class="d-flex justify-content-between align-items-center">
+       <title>${obj.name} BLE</title>
+   </head>
+   <body class="">
+       <div id="app">
+           <h1>${obj.name} Gatt ICD</h1>
+           <div class="d-flex justify-content-between align-items-center">
 
-                <ul>
-                    <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device" MrT BLE tool>mrt-ble</a> on 07/27/20</li>
+               <ul>
+                   <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device" MrT BLE tool>mrt-ble</a> on ${obj.genTime}</li>
                 </ul>
                 <div>
                     <!-- Rounded switch -->
@@ -27,13 +27,12 @@
                         Show All &nbsp;&nbsp;
                     </label>
 
-                    <button class="btn btn-sm btn-info" v-if="!connected" :key="!bluetoothDevice.gatt.connected" id="connect" v-on:click="bleConnect(showAll)">Connect with BLE device</button>
-                    <button class="btn btn-sm btn-error" v-if="connected" :key="bluetoothDevice.gatt.connected" onclick="bleDisconnect()">Disconnect</button>
-
+                    <button class="btn btn-sm btn-info"  v-if="!bluetoothDevice.gatt.connected" id="connect" v-on:click="bleConnect(showAll)">Connect with BLE device</button>
+                    <button class="btn btn-sm btn-error" v-if="bluetoothDevice.gatt.connected" onclick="bleDisconnect()">Di 
                 </div>
             </div>
             
-            <p>Gatt profile smart suspension system</p>
+            <p>${obj.desc}</p>
 
     
     
@@ -54,54 +53,62 @@
             <!-- <script src="ble.js"></script> -->
         <script >
 
-            Vue.component('char-item',{
+Vue.component('char-item',{
                 props: ['char'],
                 methods: {
                     writeChar : function(char)
                     {
-                        var buffer = new ArrayBuffer(char.size);
+                        var buffer = new ArrayBuffer(char.size * char.arrayLen);
                         var data = new DataView(buffer);
 
-                        var rawValue = char.req_value;
 
-                        if(char.hasOwnProperty('coef'))
-                        {
-                            rawValue = rawValue / char.coef;
-                        }
 
-                        switch(char.type)
+                        var offset = 0;
+                        var rawValue = 0;
+                        for( i=0; i < char.arrayLen; i++ )
                         {
-                            case "uint8" : 
-                                data.setUint8(0, rawValue);
-                            break;
-                            case "int8" : 
-                                data.setInt8(0, chr.rawValue);
-                            break;
-                            case "char" : 
-                                data.setUint8(0, rawValue);
-                            break;
-                            case "uint16" : 
-                                data.setUint16(0, rawValue);
-                            break;
-                            case "int16" : 
-                                data.setInt16(0, rawValue);
-                            break;
-                            case "uint32" : 
-                                data.setUint32(0, rawValue);
-                            break;
-                            case "int32" : 
-                                data.setInt32(0, rawValue);
-                            break;
-                            case "int64" : 
-                                data.setBigInt64(0, rawValue);
-                            break;
-                            case "uint64" : 
-                                data.setBigUint64(0, rawValue);
-                            break;
-                            case "string":
+
+                            rawValue = char.reqValues[i] * char.coef;
+
+ 
+                            offset = i* char.size;
+
+                            switch(char.type)
+                            {
+                                case "enum":
+                                case "uint8" : 
+                                case "mask" :
+                                    data.setUint8(offset, rawValue);
                                 break;
-                            default:
+                                case "int8" : 
+                                    data.setInt8(offset, chr.rawValue);
                                 break;
+                                case "char" : 
+                                    data.setUint8(offset, rawValue);
+                                break;
+                                case "uint16" : 
+                                    data.setUint16(offset, rawValue);
+                                break;
+                                case "int16" : 
+                                    data.setInt16(offset, rawValue);
+                                break;
+                                case "uint32" : 
+                                    data.setUint32(offset, rawValue);
+                                break;
+                                case "int32" : 
+                                    data.setInt32(offset, rawValue);
+                                break;
+                                case "int64" : 
+                                    data.setBigInt64(offset, rawValue);
+                                break;
+                                case "uint64" : 
+                                    data.setBigUint64(offset, rawValue);
+                                break;
+                                case "string":
+                                    break;
+                                default:
+                                    break;
+                            }
                         }
 
                         char.chr_handle.writeValue(data.buffer)
@@ -114,21 +121,35 @@
                        char.chr_handle.readValue();
 
                     },
-                    enableNotifications : function(char)
+                    updateMask: function(char, event)
                     {
-
-                       char.notificationsEnabled = true;
-                       char.chr_handle.startNotifications();
-
+                        if(event.target.checked)
+                        {
+                            char.reqValues[0] = char.reqValues[0] | event.target.value;
+                        }
+                        else 
+                        {
+                            char.reqValues[0] = char.reqValues[0] & ~event.target.value;
+                        }
                     },
-                    pauseNotifications : function(char)
+                    toggleNotifications : function(char)
                     {
-                        char.notificationsEnabled = false;
-                       char.chr_handle.stopNotifications();
+                        if(char.notificationsEnabled)
+                        {
+                            char.notificationsEnabled = false;
+                            char.chr_handle.stopNotifications();
+                        }
+                        else{
+                            char.notificationsEnabled = true;
+                            char.chr_handle.startNotifications();
+                        }
+
+                        this.$forceUpdate();
+
                     }
                 },
                 template: `
-                    <div class="col-md-3  ">
+                     <div  class="col-md-3" >
                         <div class="card mb-12 box-shadow char-card"> 
                             <div class="card-header "  v-bind:class="{enabled: char.enabled}"> 
                                 <div class="d-flex justify-content-between align-items-center">
@@ -149,30 +170,46 @@
                                 </div>
                                 <div class="row"> 
 
-                                    <div class="col-md-6">
-                                        <div v-if="char.perm.includes('W')">
-                                            <input type="text" v-if="char.type == 'string'"  v-model="char.req_value" value="">
-                                            <input type="number" v-if="char.type.includes('int')"  v-model="char.req_value" value="">
-                                            <select v-if="char.type == 'enum'"  v-model="char.req_value" value="">
-                                                <option v-for="val in char.vals" v-bind:value="val.val"> {{val.name}} </option>
-                                            </select>
-                                        </div>
+                                    <div class="col-md-12" style="text-align:right"  v-if="char.type!='mask'">
+                                        <span v-if="char.arrayLen==1" style="font-size: 3em; align: right"> {{char.values[0]}}</span>
+                                        <span v-if="char.arrayLen>1 && char.values[0]" style="font-size: 3em; align: right"> {{char.values}}</span>
+                                        <span class="text-muted">{{char.unit}}</span>
                                     </div>
-                                    <div class="col-md-6">
-                                        <span style="font-size: 3em; align: right"> {{char.value}}</span><span class="text-muted">{{char.unit}}</span>
+
+                                    <div class="col-md-12"  v-if="char.type=='mask'" style="font-size: 1.3em;">
+                                        <ul style="list-style-type:none;">
+                                            <li v-for="val in char.vals">
+                                                <label class="switch">
+                                                    <input type="checkbox" :value="val.val" @change="updateMask(char,$event)" >
+                                                    <span class="slider round"></span>
+                                                </label>
+                                                <label :class=" char.values[0] & val.val? 'enabled' : ''">
+                                                    {{val.name}} 
+                                                </label>
+                                            </li>
+                                        </ul>
                                     </div>
+                                       
+    
                                 </div>
                                 <div class="row"> 
                                     &nbsp;
                                 </div>
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <small class="text-muted">{{char.lastWrite}}</small>
+                                            <small v-if="char.lastWrite[0]" class="text-muted">{{char.lastWrite}}</small>
+
+                                            <div  v-if="char.perm.includes('W')" >
+                                                <input type="text" v-if="char.type == 'string'"  v-model="char.reqValues[0]" value="">
+                                                <input type="number"  v-if="char.type.includes('int')" v-for="(val,index) in char.reqValues"  v-model="char.reqValues[index]" value="">
+                                                <select v-if="char.type == 'enum'"  v-model="char.reqValues[0]" value="">
+                                                    <option v-for="val in char.vals" v-bind:value="val.val"> {{val.name}} </option>
+                                                </select>
+                                            </div>
+                                            &nbsp;
                                             <div class="btn-group">
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="writeChar(char)" v-if="char.perm.includes('W')">Write</button>
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="readChar(char)" v-if="char.perm.includes('R')">Read</button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="enableNotifications(char)" v-if="char.perm.includes('N') && (!char.notificationsEnabled)"><i class="fa fa-play"  aria-hidden="true"></i></button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="pauseNotifications(char)" v-if="char.perm.includes('N') && char.notificationsEnabled"><i class="fa fa-pause"  aria-hidden="true"></i></button>
-                                                
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="toggleNotifications(char)" v-if="char.perm.includes('N')"><i :class="[char.notificationsEnabled ? 'fa-pause' : 'fa-play', 'fa']"  aria-hidden="true"></i></button>                                                
                                             </div>
                                         </div>
                                 </div>
@@ -213,12 +250,24 @@
             var bluetoothDevice = {gatt:{connected:false}};
             var gattServer;
             var profile = ${obj.json};
+
+
+
+            profile.services.forEach(svc => {
+            svc.characteristics.forEach( chr => {
+
+                    chr.values = Array(chr.arrayLen);
+                    chr.reqValues = Array(chr.arrayLen);
+                    chr.lastWrite = Array(chr.arrayLen);
+                });
+            });
+
             var app = new Vue({
                 el: '#app',
                 data: {
                  profile:  profile,
                  bluetoothDevice: bluetoothDevice,
-                 showAll: false
+                 showAll: true
                 },
                 methods:{
                     bleConnect: function(showAll)
@@ -252,59 +301,76 @@
         var chr = findCharacteristicByUuid(uuid);
         if(chr != null)
         {
+            var arr = Array(chr.arrayLen);
+            var newValue =0;
             if(chr.type == "string")
             {
                 let decoder = new TextDecoder('utf-8');
-                chr.value = decoder.decode(value);
+                arr[0] = decoder.decode(value);
+                chr.values = arr;
             }
             else
             {
-                var newValue =0;
-                switch(chr.type)
+
+                
+                var offset =0;
+                for( i=0; i < chr.arrayLen; i++)
                 {
-                    case "uint8" : 
-                        newValue = value.getUint8();
-                        break;
-                    case "int8" : 
-                        newValue = value.getInt8();
-                        break;
-                    case "char" : 
-                        newValue = value.getUint8();
-                        break;
-                    case "uint16" : 
-                        newValue = value.getUint16();
-                        break;
-                    case "int16" : 
-                        newValue = value.getInt16();
-                        break;
-                    case "uint32" : 
-                        newValue = value.getUint32();
-                        break;
-                    case "int32" : 
-                        newValue= value.getInt32();
-                        break;
-                    case "int64" : 
-                        newValue = value.getBigInt64();
-                        break;
-                    case "uint64" : 
-                        newValue = value.getBigUint64();
-                        break;
-                    default:
-                        break;
+                    offset = chr.size * i;
+                    switch(chr.type)
+                    {
+                        case "uint8" : 
+                        case "enum":
+                        case "mask":
+                            newValue = value.getUint8(offset);
+                            break;
+                        case "int8" : 
+                            newValue = value.getInt8(offset);
+                            break;
+                        case "char" : 
+                            newValue = value.getUint8(offset);
+                            break;
+                        case "uint16" : 
+                            newValue = value.getUint16(offset);
+                            break;
+                        case "int16" : 
+                            newValue = value.getInt16(offset);
+                            break;
+                        case "uint32" : 
+                            newValue = value.getUint32(offset);
+                            break;
+                        case "int32" : 
+                            newValue= value.getInt32(offset);
+                            break;
+                        case "int64" : 
+                            newValue = value.getBigInt64(offset);
+                            break;
+                        case "uint64" : 
+                            newValue = value.getBigUint64(offset);
+                            break;
+                        default:
+                            break;
+                    }
+    
+ 
+                    newValue= newValue / chr.coef;
+                    
+                    arr[i] = newValue; 
+                    if(chr.type == 'enum' && chr.vals.length > newValue)
+                    {
+                        arr[i] = chr.vals[newValue].name;
+                    }
                 }
 
-                if(chr.hasOwnProperty('coef'))
-                {
-                    newValue= newValue * chr.coef;
-                }
-
-                chr.value = newValue.toFixed(2);
+                chr.values = arr;
             }
+
         }
         else
         {
             console.log("Failed to find UUID");
         }
+    
     }
 
 
@@ -324,7 +390,7 @@
                 filters.push(svc.uuid);
             });
 
-            args = {filters: [{services: filters}]};
+            args = { optionalServices: filters, filters: [{services: filters}]};
         }
         else 
         {
@@ -359,7 +425,7 @@
 
                     services[i].getCharacteristics()
                     .then( characteristics => {
-                        //console.log(characteristics);
+                        console.log(characteristics);
 
                         for( a=0; a< characteristics.length; a++)
                         {
@@ -369,11 +435,11 @@
                             {
                                 chr.chr_handle = characteristics[a];
                                 chr.enabled = true;
-                                chr.notificationsEnabled = true;
+                                //chr.notificationsEnabled = true;
+                                //characteristics[a].startNotifications();
                             }
                             characteristics[a].addEventListener('characteristicvaluechanged',
                                     handleCharacteristicValueChanged);
-                            characteristics[a].startNotifications();
                         
                             characteristics[a].readValue();
                             

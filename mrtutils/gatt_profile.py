@@ -130,9 +130,10 @@ class GattCharacteristic(object):
         self.uuid = None
         self.uuidType = "e128Bit"
         self.icon = ''
-        self.coef = 0
+        self.coef = 1
         self.unit = ''
         self.arrayLen = 1
+        self.nextVal = 0
     
     def uuidArray(self):
         val = self.uuid 
@@ -252,9 +253,9 @@ class GattCharacteristic(object):
                 self.addVal(newVal)
     
     def addVal(self, val):
-        self.vals.append(val)
 
         if self.isMask:
+            val.value = 1 << self.nextVal
             strType = 'uint8'
             if len(self.vals) > 8:
                 self.valsFormat = "0x%0.4X"
@@ -266,15 +267,26 @@ class GattCharacteristic(object):
                 print( "Error maximum flags per field is 32")
             self.type = strType
         else:
+            val.value = self.nextVal 
             self.type = 'uint8'
+        
+        self.nextVal = self.nextVal +1
+        self.vals.append(val)
     
     def getDict(self):
-        val_arr = []
+        val_arr = [] #array of gattValues for enums/masks
 
         for val in self.vals:
             val_arr.append(val.getDict())
 
-        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "size": sizeDict[self.type], "arrayLen": self.arrayLen, "value": "0", "uuid": uuidStr(self.uuid), "short_uuid": uuidStr(self.uuid, True), "url": self.url, "type": self.type, "unit": self.unit, "coef":self.coef, "icon" : self.icon, "uuid_type": self.uuidType,  "perm": self.perm, "desc": self.desc.rstrip()  , "vals": val_arr}
+
+        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "size": sizeDict[self.type], "arrayLen": self.arrayLen, "uuid": uuidStr(self.uuid), "short_uuid": uuidStr(self.uuid, True), "url": self.url, "type": self.type, "unit": self.unit, "coef":self.coef, "icon" : self.icon, "uuid_type": self.uuidType,  "perm": self.perm, "desc": self.desc.rstrip()  , "vals": val_arr}
+
+        if(self.isEnum):
+            json_dict['type'] = 'enum'
+
+        if(self.isMask):
+            json_dict['type'] = 'mask'
 
         return json_dict
 
@@ -343,7 +355,7 @@ class GattService(object):
         else:
             yamlGetAttributes(node, attrDict, self)
             uuidSplit = self.uuid.split('-')
-            self.nextUuid = int(uuidSplit[6], 16) + 1
+            self.nextUuid = int(uuidSplit[1], 16) + 1
         
         if 'chars' in node:
             chars = node['chars']
