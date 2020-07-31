@@ -384,17 +384,18 @@ Vue.component('char-item',{
         var filters = [];
         var args= {}
 
-        if(!showAll)
-        {
-            profile.services.forEach(svc => {
+        profile.services.forEach(svc => {
                 filters.push(svc.uuid);
             });
+
+        if(!showAll)
+        {
 
             args = { optionalServices: filters, filters: [{services: filters}]};
         }
         else 
         {
-            args = {"acceptAllDevices": showAll};
+            args = {"acceptAllDevices": showAll, optionalServices: filters};
         }
 
         if (navigator.bluetooth) 
