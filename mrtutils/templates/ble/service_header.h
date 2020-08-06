@@ -13,6 +13,22 @@ extern "C"
 /* Includes ------------------------------------------------------------------*/
 #include "Utilities/Interfaces/GattServer/gatt_server.h"
 
+/* Exported Macros -----------------------------------------------------------*/
+/* Types */
+% for char in obj.chars:
+    ${t.padAfter("#define {0}_{1}_t".format(obj.prefix,char.name.lower()) , 45)}${t.cTypeDict[char.type]}
+% endfor
+
+% for char in obj.chars:
+    % if len(char.vals) > 0:
+/* ${char.name} Values */
+        % for val in char.vals:
+    #define ${t.padAfter(obj.prefix +"_"+char.name + "_"+val.name , 45).upper()} ${"0x{:04x}".format(val.value)}   // ${val.desc}
+        % endfor
+
+    %endif
+% endfor
+
 /* Exported types ------------------------------------------------------------*/
 typedef struct{
     mrt_gatt_svc_t mSvc;
@@ -36,6 +52,8 @@ void ${obj.prefix}_svc_post_init(void);
 
 
 /* Getters and Setters--------------------------------------------------------*/
+
+/* */
 % for char in obj.chars:
 % if char.perm.lower() != 'w':
 %if char.type == 'string':
@@ -45,6 +63,25 @@ ${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 
 %endif
 %endif
 % endfor
+
+/**
+ * @brief get cached data for characteristics
+ */
+% for char in obj.chars:
+%if (char.type == 'string') or (char.arrayLen > 1):
+${"{0}* {1}_get_{2}();".format(t.cTypeDict[char.type], obj.prefix,char.name.lower())}
+%else:
+${"{0} {1}_get_{2}();".format(t.cTypeDict[char.type], obj.prefix,char.name.lower())}
+%endif
+% endfor
+
+/**
+ * @brief check if cache is valid
+ */
+% for char in obj.chars:
+${t.padAfter("#define {0}_{1}_cache_valid()".format(obj.prefix,char.name.lower()) , 65)}${"({0}_svc.m{1}.mCache.mLen != 0)".format(obj.prefix,  t.camelCase(char.name))}
+% endfor
+
 
 /* Characteristic Event Handlers----------------------------------------------*/
 % for char in obj.chars:

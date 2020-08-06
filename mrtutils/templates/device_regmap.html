@@ -80,6 +80,7 @@
     {
       field.name = name;
       resp.field = field;
+      field.remaining = field.size;
       resp.len = field.size;
       resp.cont = false;
       return resp;
@@ -88,7 +89,7 @@
     {
       field.name = name;
       resp.field = field;
-      resp.len = field.size - (bit - end);
+      resp.len = field.remaining;
       resp.cont = true;
       return resp;
     }
@@ -171,7 +172,7 @@ function buildRegMap(tableId, dev)
 
         if(resp.field != null)
         {
-          
+          resp.field.remaining = resp.field.remaining - resp.len;
           cell.classList.add("bit");
           cell.setAttribute("id", reg.name + "_bit_"+ (bit -1).toString());
           let fieldName = resp.field.name;

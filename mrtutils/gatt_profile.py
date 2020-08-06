@@ -154,7 +154,7 @@ class GattCharacteristic(object):
     def uuidStr(self):
         
         if type(self.uuid) is str:
-            return self.uuid.split('-')[6]
+            return self.uuid.split('-')[1]
         else:
             return "%0.4X" % self.uuid
     
@@ -280,7 +280,7 @@ class GattCharacteristic(object):
             val_arr.append(val.getDict())
 
 
-        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "size": sizeDict[self.type], "arrayLen": self.arrayLen, "uuid": uuidStr(self.uuid), "short_uuid": uuidStr(self.uuid, True), "url": self.url, "type": self.type, "unit": self.unit, "coef":self.coef, "icon" : self.icon, "uuid_type": self.uuidType,  "perm": self.perm, "desc": self.desc.rstrip()  , "vals": val_arr}
+        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "size": sizeDict[self.type], "arrayLen": self.arrayLen, "uuid": uuidStr(self.uuid), "short_uuid": uuidStr(self.uuid, True), "uri":self.uri ,"url": self.url, "type": self.type, "unit": self.unit, "coef":self.coef, "icon" : self.icon, "uuid_type": self.uuidType,  "perm": self.perm, "desc": self.desc.rstrip()  , "vals": val_arr}
 
         if(self.isEnum):
             json_dict['type'] = 'enum'
@@ -384,7 +384,7 @@ class GattService(object):
         for char in self.chars:
             char_arr.append(char.getDict())
         
-        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "uuid": uuidStr(self.uuid),  "short_uuid": uuidStr(self.uuid, True), "uuid_type": self.uuidType, "desc": self.desc, "icon" : self.icon, "url": self.url, "characteristics": char_arr}
+        json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "uuid": uuidStr(self.uuid),  "short_uuid": uuidStr(self.uuid, True), "uuid_type": self.uuidType, "desc": self.desc, "icon" : self.icon, "uri": self.uri, "url": self.url, "characteristics": char_arr}
 
         return json_dict
              

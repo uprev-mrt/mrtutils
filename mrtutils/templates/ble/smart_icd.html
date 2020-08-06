@@ -16,6 +16,9 @@
 
                <ul>
                    <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device" MrT BLE tool>mrt-ble</a> on ${obj.genTime}</li>
+                   <li> Services: {{profile.services.length}}</li>
+                   <li> Characteristics: {{char_count}}</li>
+                   <li> Attributes: {{attrib_count}}</li>
                 </ul>
                 <div>
                     <!-- Rounded switch -->
@@ -78,31 +81,31 @@ Vue.component('char-item',{
                                 case "enum":
                                 case "uint8" : 
                                 case "mask" :
-                                    data.setUint8(offset, rawValue);
+                                    data.setUint8(offset, rawValue, true);
                                 break;
                                 case "int8" : 
-                                    data.setInt8(offset, chr.rawValue);
+                                    data.setInt8(offset, chr.rawValue,true);
                                 break;
                                 case "char" : 
-                                    data.setUint8(offset, rawValue);
+                                    data.setUint8(offset, rawValue,true);
                                 break;
                                 case "uint16" : 
-                                    data.setUint16(offset, rawValue);
+                                    data.setUint16(offset, rawValue,true);
                                 break;
                                 case "int16" : 
-                                    data.setInt16(offset, rawValue);
+                                    data.setInt16(offset, rawValue,true);
                                 break;
                                 case "uint32" : 
-                                    data.setUint32(offset, rawValue);
+                                    data.setUint32(offset, rawValue,true);
                                 break;
                                 case "int32" : 
-                                    data.setInt32(offset, rawValue);
+                                    data.setInt32(offset, rawValue,true);
                                 break;
                                 case "int64" : 
-                                    data.setBigInt64(offset, rawValue);
+                                    data.setBigInt64(offset, rawValue,true);
                                 break;
                                 case "uint64" : 
-                                    data.setBigUint64(offset, rawValue);
+                                    data.setBigUint64(offset, rawValue,true);
                                 break;
                                 case "string":
                                     break;
@@ -112,7 +115,13 @@ Vue.component('char-item',{
                         }
 
                         char.chr_handle.writeValue(data.buffer)
-                        .then(function(){char.chr_handle.readValue();});
+                        .then(function(){
+                          console.log(" WROTE " + char.reqValues + " TO " +char.uuid);
+                          char.chr_handle.readValue();
+                        })
+                        .catch(error => {
+                          console.log("Error: " + error.message );
+                        })
 
 
                     },
@@ -156,10 +165,10 @@ Vue.component('char-item',{
                                     <span >
                                         <i class="fa " v-if="char.icon != ''" :class="char.icon" aria-hidden="true"></i>
                                         <strong style="font-size: 1.6em">{{char.name}}</strong>
-                                        <span >[{{char.type}}]</span>
+                                        <span>{{char.type}}</span><span v-if="char.arrayLen>1">[{{char.arrayLen}}]</span>
                                     </span>
-                                    <a :href="char.url" v-if="char.uuid_type=='e16Bit'" v-bind:class="{enabled: char.enabled}"> 0x{{char.short_uuid}}</a>
-                                    <span :href="char.url" v-if="char.uuid_type!='e16Bit'"> 0x{{char.short_uuid}}</span>
+                                    <a :href="char.url" target="_blank" v-if="char.uuid_type=='e16Bit'" v-bind:class="{enabled: char.enabled}"> 0x{{char.short_uuid}}</a>
+                                    <span v-if="char.uuid_type!='e16Bit'"> 0x{{char.short_uuid}}</span>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -170,12 +179,14 @@ Vue.component('char-item',{
                                 </div>
                                 <div class="row"> 
 
+                                    <!--  NORMAL VIEW -->
                                     <div class="col-md-12" style="text-align:right"  v-if="char.type!='mask'">
                                         <span v-if="char.arrayLen==1" style="font-size: 3em; align: right"> {{char.values[0]}}</span>
                                         <span v-if="char.arrayLen>1 && char.values[0]" style="font-size: 3em; align: right"> {{char.values}}</span>
                                         <span class="text-muted">{{char.unit}}</span>
                                     </div>
 
+                                    <!--  MASK VIEW -->
                                     <div class="col-md-12"  v-if="char.type=='mask'" style="font-size: 1.3em;">
                                         <ul style="list-style-type:none;">
                                             <li v-for="val in char.vals">
@@ -183,6 +194,8 @@ Vue.component('char-item',{
                                                     <input type="checkbox" :value="val.val" @change="updateMask(char,$event)" >
                                                     <span class="slider round"></span>
                                                 </label>
+                                                &nbsp;
+                                                <span :class=" char.values[0] & val.val? 'bg-success dot' : 'bg-secondary dot'"></span>
                                                 <label :class=" char.values[0] & val.val? 'enabled' : ''">
                                                     {{val.name}} 
                                                 </label>
@@ -222,22 +235,19 @@ Vue.component('char-item',{
                 props: ['service'],
                 template: `
                         <div class="card  box-shadow" > 
-                            <div class="card-header  " :id="service.id+'_header'">
+                            <div class="card-header collapsed d-block " :id="service.id+'_header'"  data-toggle="collapse" data-parent="#accordion" :href="'#'+service.id+'_body'" aria-expanded="false" :aria-controls="service.id+'_body'">
                                 <div class="d-flex justify-content-between align-items-left">
-                                    <h4 >
+                                    <h4 v-bind:class="{enabled: service.enabled}">
                                         <i class="fa " v-if="service.icon != ''" :class="service.icon" aria-hidden="true"></i>
                                         <span> {{service.name}} </span>
                                     </h4>
                                     <span >
-                                        <a :href="service.url" v-if="service.uuid_type=='e16Bit'"> 0x{{service.short_uuid}}</a>
-                                        <span :href="service.url" v-if="service.uuid_type!='e16Bit'"> {{service.uuid}}</span>
-                                        <a class="collapsed d-block" data-toggle="collapse" data-parent="#accordion" :href="'#'+service.id+'_body'" aria-expanded="false" :aria-controls="service.id+'_body'">
-                                            <i class="fa fa-lg fa-chevron-circle-down" aria-hidden="true"></i>
-                                        </a>
+                                        <a :href="service.url" target="_blank" v-if="service.uuid_type=='e16Bit'">0x{{service.short_uuid}}</a>
+                                        <span  v-if="service.uuid_type!='e16Bit'"> {{service.uuid}}</span>
                                     </span>
                                 </div>
                             </div>
-                            <div :id="service.id+'_body'" class="collapse show" role="tabpanel" :aria-labelledby="service.id+'_header'">
+                            <div :id="service.id+'_body'" class="collapse " role="tabpanel" :aria-labelledby="service.id+'_header'">
                                 <div class="card-body ">
                                         <div class="row">
                                             <char-item v-for="char in service.characteristics" v-bind:char="char" :service_uuid="service.uuid" v-bind:key="char.uuid"></char-item>
@@ -249,25 +259,43 @@ Vue.component('char-item',{
             
             var bluetoothDevice = {gatt:{connected:false}};
             var gattServer;
+            var char_lut = {};
+            var svc_lut = {};
+            var char_count =0;
+            var attrib_count =0;
             var profile = ${obj.json};
 
 
 
             profile.services.forEach(svc => {
-            svc.characteristics.forEach( chr => {
-
+                attrib_count++;
+                svc_lut[svc.uuid] = svc;
+                svc.characteristics.forEach( chr => {
+                    char_lut[chr.uuid] = chr;
+                    char_count++;
+                    attrib_count+=2;
+                    svc.enabled = false;
+                    if(chr.perm.toLowerCase().includes('n'))
+                    {
+                        attrib_count+=2;
+                    }
                     chr.values = Array(chr.arrayLen);
                     chr.reqValues = Array(chr.arrayLen);
                     chr.lastWrite = Array(chr.arrayLen);
+                    chr.enabled = false;
+                    chr.notificationsEnabled = false;
                 });
             });
+
 
             var app = new Vue({
                 el: '#app',
                 data: {
                  profile:  profile,
                  bluetoothDevice: bluetoothDevice,
-                 showAll: true
+                 showAll: true,
+                 char_count: char_count,
+                 attrib_count: attrib_count
                 },
                 methods:{
                     bleConnect: function(showAll)
@@ -280,18 +308,22 @@ Vue.component('char-item',{
 
     function findCharacteristicByUuid(uuid)
     {
-        let ret = null;
-        profile.services.forEach(svc => {
-            svc.characteristics.forEach( chr => {
-                if(chr.uuid.toLowerCase() == uuid)
-                {
-                        ret = chr; 
-                        return chr;
-                }
-            }) ;
-        });
+        if(char_lut.hasOwnProperty(uuid))
+        {
+          return char_lut[uuid];
+        }
       
-        return ret;
+        return null;
+    }
+
+    function findServiceByUuid(uuid)
+    {
+        if(svc_lut.hasOwnProperty(uuid))
+        {
+          return svc_lut[uuid];
+        }
+      
+        return null;
     }
 
 
@@ -322,31 +354,31 @@ Vue.component('char-item',{
                         case "uint8" : 
                         case "enum":
                         case "mask":
-                            newValue = value.getUint8(offset);
+                            newValue = value.getUint8(offset,true);
                             break;
                         case "int8" : 
-                            newValue = value.getInt8(offset);
+                            newValue = value.getInt8(offset,true);
                             break;
                         case "char" : 
-                            newValue = value.getUint8(offset);
+                            newValue = value.getUint8(offset,true);
                             break;
                         case "uint16" : 
-                            newValue = value.getUint16(offset);
+                            newValue = value.getUint16(offset,true);
                             break;
                         case "int16" : 
-                            newValue = value.getInt16(offset);
+                            newValue = value.getInt16(offset,true);
                             break;
                         case "uint32" : 
-                            newValue = value.getUint32(offset);
+                            newValue = value.getUint32(offset,true);
                             break;
                         case "int32" : 
-                            newValue= value.getInt32(offset);
+                            newValue= value.getInt32(offset,true);
                             break;
                         case "int64" : 
-                            newValue = value.getBigInt64(offset);
+                            newValue = value.getBigInt64(offset,true);
                             break;
                         case "uint64" : 
-                            newValue = value.getBigUint64(offset);
+                            newValue = value.getBigUint64(offset,true);
                             break;
                         default:
                             break;
@@ -377,6 +409,25 @@ Vue.component('char-item',{
     function handleCharacteristicValueChanged(event) {
         updateValue(event.target.uuid, event.target.value);
     }
+
+    
+    function onDisconnected(event) {
+    // Object event.target is Bluetooth Device getting disconnected.
+    profile.services.forEach(svc => {
+        svc.enabled = false;
+        svc.characteristics.forEach( chr => {
+
+                chr.values = Array(chr.arrayLen);
+                chr.reqValues = Array(chr.arrayLen);
+                chr.lastWrite = Array(chr.arrayLen);
+                chr.enabled = false;
+            });
+        });
+        alert("Bluetooth Device Disconnected");
+        console.log('> Bluetooth Device disconnected');
+        
+    }
+
 
     function connect(showAll) 
     {
@@ -409,20 +460,26 @@ Vue.component('char-item',{
             console.log('> Name:      ' + device.name);
             console.log('> Id:        ' + device.id);
             console.log('> Connected: ' + device.gatt.connected);
+            bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
             return device.gatt.connect();
             })
             .then(server => {
                 gattServer = server;
 
 
-
+                console.log('> Connected: ' + true);
                 return server.getPrimaryServices();
             })
             .then(services => {
 
                 for( i=0; i < services.length; i++)
                 {
-
+                    let svc = findServiceByUuid(services[i].uuid);
+                    if(svc != null)
+                    {
+                        svc.enabled = true;
+                    }
 
                     services[i].getCharacteristics()
                     .then( characteristics => {
@@ -451,11 +508,13 @@ Vue.component('char-item',{
                 
             })
             .catch(error => {
-            console.log("D'oh! " + error);
+                console.log("Error " + error);
+                alert("Error: " + error);
             });
         }
         else 
         {
+            alert('Web Bluetooth API is not available in this browser!');
             console.log('Web Bluetooth API is not available in this browser!')
         }
     }
@@ -503,6 +562,11 @@ Vue.component('char-item',{
                 table-layout:auto;
                 }
 
+                .card-header{
+                padding: 0.3rem 1.2rem ;
+                }
+
+
                 .card-header .fa {
                 transition: .3s transform ease-in-out;
                 }
@@ -517,8 +581,8 @@ Vue.component('char-item',{
                 .switch {
                     position: relative;
                     display: inline-block;
-                    width: 40px;
-                    height: 24px;
+                    width: 30px;
+                    height: 18px;
                     }
 
                     /* Hide default HTML checkbox */
@@ -544,8 +608,8 @@ Vue.component('char-item',{
                     .slider:before {
                     position: absolute;
                     content: "";
-                    height: 20px;
-                    width: 20px;
+                    height: 14px;
+                    width: 14px;
                     left: 2px;
                     bottom: 2px;
                     background-color: white;
@@ -562,9 +626,9 @@ Vue.component('char-item',{
                     }
 
                     input:checked + .slider:before {
-                    -webkit-transform: translateX(16px);
-                    -ms-transform: translateX(16px);
-                    transform: translateX(16px);
+                    -webkit-transform: translateX(12px);
+                    -ms-transform: translateX(12px);
+                    transform: translateX(12px);
                     }
 
                     /* Rounded sliders */
@@ -574,6 +638,13 @@ Vue.component('char-item',{
 
                     .slider.round:before {
                     border-radius: 50%;
+                    }
+
+                    .dot {
+                    height: 16px;
+                    width: 16px;
+                    border-radius: 50%;
+                    display: inline-block;
                     }
 
 

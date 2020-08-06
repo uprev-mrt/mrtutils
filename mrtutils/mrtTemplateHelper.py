@@ -44,7 +44,7 @@ class CodeReplacer:
         self.blocksUsed = {}
         
     
-    def loadText(self, text, regex=r"\*user-block-(.*?)-start\*(.*?)\*user-block-\1-end\*"):
+    def loadText(self, text, regex=r"\*user-block-(.*?)-start(.*?)\*user-block-\1-end\*"):
         rx = re.compile(regex,re.DOTALL)
 
         for match in rx.finditer(text):
@@ -52,9 +52,15 @@ class CodeReplacer:
             block = match.group()
             self.blocks[token] = block
             self.blocksUsed[token] = False
+            # print("**************************************************")
+            # print( "token: "+token)
+            # print("**************************************************")
+            # print(block)
+            # print("**************************************************")
+            
 
 
-    def insertBlocks(self, text, regex=r"\*user-block-(.*?)-start\*(.*?)\*?user-block-\1-end\*"):
+    def insertBlocks(self, text, regex=r"\*user-block-(.*?)-start(.*?)\*?user-block-\1-end\*"):
         rx = re.compile(regex,re.DOTALL)
         
         for match in rx.finditer(text):
@@ -70,7 +76,7 @@ class CodeReplacer:
         
         for token, used in self.blocksUsed.items():
             if not used:
-                print(" Code block dropped: " + token)
+                print(" ******************************** Code block dropped:" + token+ " *************************************" )
                 print(self.blocks[token])
 
 class TemplateHelper:

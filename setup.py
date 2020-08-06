@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='mrtutils',
-     version='0.1.55',
+     version='0.1.75',
      author="Jason Berger",
      author_email="JBerger@up-rev.com",
      description="Utilities for MrT",
@@ -24,7 +24,8 @@ setuptools.setup(
         'markdown',
         'mako',
         'pyyaml',
-        'polypacket'
+        'polypacket',
+        'update_notipy'
      ],
      classifiers=[
          "Programming Language :: Python :: 3",

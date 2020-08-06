@@ -15,6 +15,7 @@ import argparse
 import pkgutil
 from mrtutils.mrtTemplateHelper import *
 from mrtutils.gatt_profile import GattProfile
+from mrtutils.updates import *
 
 
 # Initialize the argument parser
@@ -28,13 +29,13 @@ def init_args():
     parser.add_argument('-n', '--nrf', action='store_true', help='Generates definition file for nrf connect', default=False)
     
 
-def buildTemplate(object, templateFile, outputFile):
+def buildTemplate(object, templateFile, outputFile, userBlocks = True):
     exists= False
     cr = CodeReplacer()
     newContents =""
-    headerPattern = r"@file (.*?\.)(.*?) \*/"
+    headerPattern = r"@file (.*?)\n(.*?)\*/"
     handlerPattern = r" (.*?)_handler.*?\n}"
-    if os.path.isfile(outputFile):
+    if os.path.isfile(outputFile) and userBlocks:
         exists = True
         curFile = open(outputFile, "r")
         text = curFile.read()
@@ -44,10 +45,11 @@ def buildTemplate(object, templateFile, outputFile):
 
     template = Template(pkgutil.get_data('mrtutils',templateFile) )
     newContents = "\n".join(template.render(obj = object, t = TemplateHelper()).splitlines())
-    newContents = cr.insertBlocks(newContents)
-    newContents = cr.insertBlocks(newContents,headerPattern)
-    newContents = cr.insertBlocks(newContents,handlerPattern)
-    cr.printDrops()
+    if(userBlocks):
+        newContents = cr.insertBlocks(newContents)
+        newContents = cr.insertBlocks(newContents,headerPattern)
+        newContents = cr.insertBlocks(newContents,handlerPattern)
+        cr.printDrops()
     text_file = open( outputFile , "w")
     text_file.write(newContents)
     text_file.close()
@@ -67,8 +69,9 @@ def buildProfileSource(gatt , outputPath, baseName =''):
     buildTemplate(gatt, 'templates/ble/profile_source.c', outputPath +"/"+gatt.name.lower() + "_profile.c" )
 
     for service in gatt.services:
-        buildTemplate(service, 'templates/ble/service_header.h', outputPath +"/svc/"+service.prefix + "_svc.h" )
-        buildTemplate(service, 'templates/ble/service_source.c', outputPath +"/svc/"+service.prefix + "_svc.c" )
+        print("***" + service.name + "****")
+        buildTemplate(service, 'templates/ble/service_header.h', outputPath +"/svc/"+service.prefix + "_svc.h", False  )
+        buildTemplate(service, 'templates/ble/service_source.c', outputPath +"/svc/"+service.prefix + "_svc.c", False )
         buildTemplate(service, 'templates/ble/app_service_source.c', outputPath +"/app_" + service.prefix+"_svc.c" )
 
 
@@ -77,6 +80,8 @@ def main():
     global path
     global parser
     global args
+
+    updateCheck()
 
     init_args()
     args= parser.parse_args()
@@ -125,8 +130,8 @@ def main():
 
 
         if not docPath == "":
-            buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html" )
-            buildTemplate(gatt, 'templates/ble/smart_icd.html', docPath +"/" + gatt.name+"_live_icd.html" )
+            buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html", False )
+            buildTemplate(gatt, 'templates/ble/smart_icd.html', docPath +"/" + gatt.name+"_live_icd.html", False )
         
 
 

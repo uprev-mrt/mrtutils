@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QFont
 import os.path
+from mrtutils.updates import *
 
 
 sys.argv.append("--disable-web-security")
@@ -111,6 +112,8 @@ def main():
     global tree
     global remoteRepo
     global localRepo
+
+    updateCheck()
 
     window = QWidget()
     window.setGeometry(0, 0, 1000, 640)
