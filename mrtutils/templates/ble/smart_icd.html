@@ -158,13 +158,13 @@ Vue.component('char-item',{
                     }
                 },
                 template: `
-                     <div  class="col-md-3" >
+                <div  class="col-4 col-xl-3" >
                         <div class="card mb-12 box-shadow char-card"> 
-                            <div class="card-header "  v-bind:class="{enabled: char.enabled}"> 
+                            <div class="card-header "  v-bind:class="{enabled: char.enabled}" style="overflow: hidden"> 
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span >
                                         <i class="fa " v-if="char.icon != ''" :class="char.icon" aria-hidden="true"></i>
-                                        <strong style="font-size: 1.6em">{{char.name}}</strong>
+                                        <strong style="font-size: 1.6rem">{{char.name}}</strong>
                                         <span>{{char.type}}</span><span v-if="char.arrayLen>1">[{{char.arrayLen}}]</span>
                                     </span>
                                     <a :href="char.url" target="_blank" v-if="char.uuid_type=='e16Bit'" v-bind:class="{enabled: char.enabled}"> 0x{{char.short_uuid}}</a>
@@ -181,13 +181,13 @@ Vue.component('char-item',{
 
                                     <!--  NORMAL VIEW -->
                                     <div class="col-md-12" style="text-align:right"  v-if="char.type!='mask'">
-                                        <span v-if="char.arrayLen==1" style="font-size: 3em; align: right"> {{char.values[0]}}</span>
-                                        <span v-if="char.arrayLen>1 && char.values[0]" style="font-size: 3em; align: right"> {{char.values}}</span>
+                                        <span v-if="char.arrayLen==1" style=" align: right"> {{char.values[0]}}</span>
+                                        <span v-if="char.arrayLen>1 && char.values[0]" style=" align: right"> {{char.values}}</span>
                                         <span class="text-muted">{{char.unit}}</span>
                                     </div>
 
                                     <!--  MASK VIEW -->
-                                    <div class="col-md-12"  v-if="char.type=='mask'" style="font-size: 1.3em;">
+                                    <div class="col-md-12"  v-if="char.type=='mask'" >
                                         <ul style="list-style-type:none;">
                                             <li v-for="val in char.vals">
                                                 <label class="switch">
@@ -212,8 +212,8 @@ Vue.component('char-item',{
                                             <small v-if="char.lastWrite[0]" class="text-muted">{{char.lastWrite}}</small>
 
                                             <div  v-if="char.perm.includes('W')" >
-                                                <input type="text" v-if="char.type == 'string'"  v-model="char.reqValues[0]" value="">
-                                                <input type="number"  v-if="char.type.includes('int')" v-for="(val,index) in char.reqValues"  v-model="char.reqValues[index]" value="">
+                                                <input type="text"   style="width:50%" v-if="char.type == 'string'"  v-model="char.reqValues[0]" value="">
+                                                <input type="number" style="width:60%"   v-if="char.type.includes('int')" v-for="(val,index) in char.reqValues"  v-model="char.reqValues[index]" value="">
                                                 <select v-if="char.type == 'enum'"  v-model="char.reqValues[0]" value="">
                                                     <option v-for="val in char.vals" v-bind:value="val.val"> {{val.name}} </option>
                                                 </select>
