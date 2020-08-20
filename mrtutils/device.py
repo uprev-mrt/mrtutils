@@ -549,13 +549,6 @@ class Device:
             regs = yamlNormalizeNodes( objDevice['registers'], 'reg_name','addr')
             for regItem in regs:
                 newReg = DeviceReg(regItem['reg_name'])
-
-                if 'addr' in regItem:
-                    newReg.addr = regItem['addr'] #int(regItem['addr'],0) 
-                else:
-                    newReg.addr = self.nextStart + 1
-
-                self.nextAddr = newReg.addr
                 
                 if 'type' in regItem:
                     newReg.type = regItem['type'].replace("_t","")
@@ -571,6 +564,14 @@ class Device:
                 if 'default' in regItem:
                     newReg.default = regItem['default']
                     newReg.hasDefault = True
+                
+                
+                if 'addr' in regItem:
+                    newReg.addr = regItem['addr'] #int(regItem['addr'],0) 
+                else:
+                    newReg.addr = self.nextAddr +  newReg.size
+
+                self.nextAddr = newReg.addr
 
                 self.storageSize += newReg.size
                 self.addReg(newReg)      

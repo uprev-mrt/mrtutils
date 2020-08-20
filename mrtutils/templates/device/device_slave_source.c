@@ -8,41 +8,31 @@
 
 #include "${obj.name.lower()}_slave.h"
 
-${obj.name.lower()}_slave_t REGS = {
-    .mData = {
-% for key,reg in obj.regs.items():
-    .${"m" + obj.camelCase(reg.name)} = ${reg.default},
-% endfor        
-    },
-    .mRegs = {
-% for key,reg in obj.regs.items():
-    { .mFlags = SLAVE_REG_PERM_${reg.perm}} , .mSize = ${reg.size}},
-% endfor   
-    },
-    .mCurrentReg = 0,
-    .mCRIO =0 ,
-    .mCursor = 0,
-    .mAddrBytes = 0,
-    .mState = SLAVE_STATE_ADDRESS,
-    .mFlags = 0,
-};
+${obj.name.lower()}_slave_t REGS; 
 
-uint8_t* DATA = (uint8_t*)REGS.mData;
+uint8_t* DATA = (uint8_t*)&REGS.mData;
 
 
 static void go_to_register(addr_t addr)
-{
+{   
+    addr_t i;
     REGS.mCurrentReg = 0;
-    REGS.mCRIO = 0;
     REGS.mCursor =  addr; 
 
-    for(int i = 0; i < ${obj.name.upper()}_REG_COUNT; i++)
+    for( i = 0; i < ${obj.name.upper()}_REG_COUNT; i++)
     {
-        if( addr < REGS.mRegs[i+1])
+        if( addr < REGS.mRegs[i+1].mAddr)
         {
             REGS.mCurrentReg = &REGS.mRegs[i];     //Set current reg
         }
     }
+}
+
+static void slave_reg_init(slave_reg_t* reg, addr_t addr, addr_t size, uint8_t flags)
+{
+    reg->mAddr = addr;
+    reg->mSize = size;
+    reg->mFlags = flags;
 }
 
 /**
@@ -51,7 +41,18 @@ static void go_to_register(addr_t addr)
  */
 void ${obj.prefix.lower()}_slave_init( )
 {
+ % for key,reg in obj.regs.items():
+    slave_reg_init(&REGS.mRegs[${loop.index}],${reg.addr},${reg.size}, SLAVE_REG_PERM_${reg.perm} ); //${key}
+    % if reg.hasDefault:
+    REGS.mData.${"m" + obj.camelCase(reg.name)} = ${reg.getDefaultMacro(58)}; 
+    % endif
+% endfor    
 
+    REGS.mCurrentReg = 0;
+    REGS.mCursor = 0;
+    REGS.mAddrBytes = 0;
+    REGS.mState = SLAVE_STATE_ADDRESS;
+    REGS.mFlags = 0;
 }
 
 /**
@@ -65,20 +66,21 @@ void ${obj.prefix.lower()}_slave_put( uint8_t data )
     {
         case SLAVE_STATE_ADDRESS:
             REGS.mAddress = (REGS.mAddress << 8) | data;
-            if(++REGS.mAddrBytes == ${obj.name.upper()}_REG_ADDR_SIZE)
+            REGS.mAddrBytes++;
+            if(REGS.mAddrBytes == ${obj.name.upper()}_REG_ADDR_SIZE)
             {
                 go_to_register(REGS.mAddress);
                 REGS.mState = SLAVE_STATE_DATA;
             }
             break;
         case SLAVE_STATE_DATA:
-            if(REGS.mCurrentReg.mFlags & SLAVE_REG_PERM_W)
+            if(REGS.mCurrentReg->mFlags & SLAVE_REG_PERM_W)
             {
                 DATA[REGS.mCursor] = data;
                 REGS.mCurrentReg->mFlags |= SLAVE_REG_ACESS_W;
                 REGS.mFlags |= SLAVE_REG_ACESS_W;
                 REGS.mCursor++;
-                if(REGS.mCursor == REGS.mCurrentReg.mStart + REGS.mCurrentReg.mSize)
+                if(REGS.mCursor == REGS.mCurrentReg->mAddr + REGS.mCurrentReg->mSize)
                 {
                     REGS.mCurrentReg += sizeof(slave_reg_t);
                 }
@@ -91,7 +93,7 @@ void ${obj.prefix.lower()}_slave_put( uint8_t data )
 
 uint8_t ${obj.prefix.lower()}_slave_get(void)
 {
-     if(REGS.mCurrentReg.mFlags & SLAVE_REG_PERM_R)
+     if(REGS.mCurrentReg->mFlags & SLAVE_REG_PERM_R)
      {
         REGS.mCurrentReg->mFlags |= SLAVE_REG_ACESS_R;   //Mark as Read
         REGS.mFlags |= SLAVE_REG_ACESS_R;

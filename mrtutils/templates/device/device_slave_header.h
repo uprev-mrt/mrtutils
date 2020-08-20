@@ -12,6 +12,7 @@ extern "C"
 {
 #endif
 
+#include <stdint.h>
 #include "${obj.name.lower()}_regs.h"
 /*user-block-top-start*/
 /*user-block-top-end*/
@@ -33,17 +34,15 @@ extern "C"
 
 typedef uint8_t addr_t;
 
-#define SLAVE_REG_INIT(reg,addr,size, flags) \
-(reg) = (mrt_reg_t){          \
-  .mAddr = addr,              \
-  .mSize = size,      \
-  .mFlags = flags,        \
-}          
+
+
+#pragma pack(push)
+#pragma pack(1)
 
 typedef struct{
     uint8_t mFlags;
     uint8_t mSize;
-    addr_t mStart;
+    addr_t mAddr;
 } slave_reg_t;
 
 
@@ -58,14 +57,16 @@ typedef struct{
     } mData;    
     slave_reg_t mRegs[${obj.name.upper()}_REG_COUNT];
     slave_reg_t* mCurrentReg;
-    uint8_t mCursor;   //Register cursor
-    uint8_t mAddrBytes;
-    addr_t mAddress;
-    uint8_t mState;
-    uint8_t mFlags;
+    uint8_t mCursor;        //Register cursor
+    uint8_t mAddrBytes;     //Number of address bytes received so far
+    addr_t mAddress;        //Current address
+    uint8_t mState;         //state of register server
+    uint8_t mFlags;         //flags for handling
 /*user-block-struct-start*/
 /*user-block-struct-end*/
 }${obj.name.lower()}_slave_t;
+
+#pragma pack(pop)
 
 /**
  * @brief initializes ${obj.name} slave registers
