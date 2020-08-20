@@ -410,6 +410,8 @@ class Device:
         self.largestReg = 1
         self.configs = {}
         self.defaults = {}
+        self.nextAddr = 0
+        self.storageSize = 0
 
     def addReg(self, reg):
         reg.device = self
@@ -550,6 +552,11 @@ class Device:
 
                 if 'addr' in regItem:
                     newReg.addr = regItem['addr'] #int(regItem['addr'],0) 
+                else:
+                    newReg.addr = self.nextStart + 1
+
+                self.nextAddr = newReg.addr
+                
                 if 'type' in regItem:
                     newReg.type = regItem['type'].replace("_t","")
                     newReg.size = sizeDict[newReg.type.replace("_t","")]
@@ -565,6 +572,7 @@ class Device:
                     newReg.default = regItem['default']
                     newReg.hasDefault = True
 
+                self.storageSize += newReg.size
                 self.addReg(newReg)      
         
         if 'fields' in objDevice:
