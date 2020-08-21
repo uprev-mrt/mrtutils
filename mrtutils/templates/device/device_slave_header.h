@@ -92,6 +92,12 @@ void ${obj.prefix.lower()}_slave_put( uint8_t data );
  */
 uint8_t ${obj.prefix.lower()}_slave_get(void);
 
+/**
+ * @brief ends transaction and resets state
+ * 
+ */
+void ${obj.prefix.lower()}_slave_end_transaction(void);
+
 
 
 

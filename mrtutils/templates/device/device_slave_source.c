@@ -99,8 +99,14 @@ uint8_t ${obj.prefix.lower()}_slave_get(void)
         REGS.mFlags |= SLAVE_REG_ACESS_R;
         return DATA[REGS.mCursor++];                   //Return data
      }
-
+    
      return 0;
+}
+
+void ${obj.prefix.lower()}_slave_end_transaction(void)
+{
+    REGS.mState = SLAVE_STATE_ADDRESS;
+    REGS.mAddrBytes = 0;
 }
 
 

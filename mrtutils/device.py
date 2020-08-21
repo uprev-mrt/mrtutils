@@ -569,9 +569,9 @@ class Device:
                 if 'addr' in regItem:
                     newReg.addr = regItem['addr'] #int(regItem['addr'],0) 
                 else:
-                    newReg.addr = self.nextAddr +  newReg.size
+                    newReg.addr = self.nextAddr
 
-                self.nextAddr = newReg.addr
+                self.nextAddr = newReg.addr +  newReg.size
 
                 self.storageSize += newReg.size
                 self.addReg(newReg)      
