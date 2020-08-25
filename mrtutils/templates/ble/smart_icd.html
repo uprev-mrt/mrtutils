@@ -257,7 +257,7 @@ Vue.component('char-item',{
                                 <div class="row">
                                     <!--  NORMAL VIEW -->
                                     <div class="col-md-12"  >
-                                        <textarea rows="10" cols="75" readonly> {{char.values[0]}} </textarea>
+                                        <textarea class="console" rows="10" cols="75" readonly> {{char.values[0]}} </textarea>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -265,7 +265,7 @@ Vue.component('char-item',{
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div v-if="char.perm.includes('W')">
-                                        <input type="text" size="60" v-on:keyup.enter="writeChar(char)" v-model="char.reqValues[0]" value="" />                                  
+                                        <input class="console" type="text" size="60" v-on:keyup.enter="writeChar(char)" v-model="char.reqValues[0]" value="" />                                  
                                     </div>
                                     &nbsp;
                                     <div class="btn-group">
@@ -699,6 +699,11 @@ Vue.component('char-item',{
                     width: 16px;
                     border-radius: 50%;
                     display: inline-block;
+                    }
+
+                    .console{
+                      background-color: #1b1919;
+                      color: #62c462;
                     }
 
 
