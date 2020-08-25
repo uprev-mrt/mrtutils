@@ -15,7 +15,6 @@ extern "C"
 #include "svc/${svc.prefix}_svc.h"
 %endfor
 
-
 /*user-block-top-start*/
 /*user-block-top-end*/
 
@@ -23,6 +22,9 @@ extern "C"
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 void ${obj.name.lower()}_profile_init(void);
+
+/*user-block-functions-start*/
+/*user-block-functions-end*/
 
 #ifdef __cplusplus
 }

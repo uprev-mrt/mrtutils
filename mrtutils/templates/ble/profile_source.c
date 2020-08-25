@@ -7,6 +7,9 @@
 
 #include "${obj.name.lower()}_profile.h"
 
+/*user-block-top-start*/
+/*user-block-top-end*/
+
 
 void ${obj.name.lower()}_profile_init(void)
 {
@@ -20,4 +23,7 @@ void ${obj.name.lower()}_profile_init(void)
     ${svc.prefix}_svc_post_init_handler();
     %endfor
 }
+
+/*user-block-functions-start*/
+/*user-block-functions-end*/
 

@@ -28,8 +28,8 @@ sizeDict = {
     "int64" : 8,
     "uint64" : 8,
     "int" : 4,
-    "string" : 16,
-    "utfs8": 16
+    "string" : 20,
+    "utfs8": 20
 }
 
 svcIconDict = {
@@ -134,6 +134,7 @@ class GattCharacteristic(object):
         self.unit = ''
         self.arrayLen = 1
         self.nextVal = 0
+        self.style = ''
     
     def uuidArray(self):
         val = self.uuid 
@@ -287,6 +288,9 @@ class GattCharacteristic(object):
 
         if(self.isMask):
             json_dict['type'] = 'mask'
+
+        if(self.style != ''):
+            json_dict['style'] = self.style
 
         return json_dict
 
