@@ -184,8 +184,8 @@ Vue.component('char-item',{
 
                                     <!--  NORMAL VIEW -->
                                     <div class="col-md-12" style="text-align:right"  v-if="char.type!='mask'">
-                                        <span v-if="char.arrayLen==1" style=" align: right"> {{char.values[0]}}</span>
-                                        <span v-if="char.arrayLen>1 && char.values[0]" style=" align: right"> {{char.values}}</span>
+                                        <span v-if="char.arrayLen==1" style=" align: right; font-size: 2.5em"> {{char.values[0]}}</span>
+                                        <span v-if="char.arrayLen>1 " style=" align: right;font-size: 2.5em"> {{char.values}}</span>
                                         <span class="text-muted">{{char.unit}}</span>
                                     </div>
 
@@ -257,7 +257,7 @@ Vue.component('char-item',{
                                 <div class="row">
                                     <!--  NORMAL VIEW -->
                                     <div class="col-md-12"  >
-                                        <textarea class="console" rows="10" cols="75" readonly> {{char.values[0]}} </textarea>
+                                        <textarea class="console" rows="10" cols="75" readonly>{{char.values[0]}}</textarea>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -339,7 +339,7 @@ Vue.component('char-item',{
                 data: {
                  profile:  profile,
                  bluetoothDevice: bluetoothDevice,
-                 showAll: true,
+                 showAll: false,
                  char_count: char_count,
                  attrib_count: attrib_count
                 },
@@ -386,7 +386,16 @@ Vue.component('char-item',{
                 let decoder = new TextDecoder('utf-8');
                 if(chr.hasOwnProperty('style') && chr.style == 'console')
                 {
-                  arr[0] += decoder.decode(value);
+                  newValue = decoder.decode(value);
+                  console.log(newValue);
+                  if(typeof(chr.values[0]) != "undefined")
+                  {
+                    arr[0] = chr.values[0] + newValue;
+                  }
+                  else
+                  {
+                    arr[0] = newValue;
+                  }
                   chr.values = arr;
                 }
                 else 
@@ -487,20 +496,22 @@ Vue.component('char-item',{
     {
 
         var filters = [];
+        var optional = []
         var args= {}
 
+        filters.push(profile.services[0].uuid);
         profile.services.forEach(svc => {
-                filters.push(svc.uuid);
+                optional.push(svc.uuid);
             });
 
         if(!showAll)
         {
 
-            args = { optionalServices: filters, filters: [{services: filters}]};
+            args = { optionalServices: optional, filters: [{services: filters}]};
         }
         else 
         {
-            args = {"acceptAllDevices": showAll, optionalServices: filters};
+            args = {"acceptAllDevices": showAll, optionalServices: optional};
         }
 
         if (navigator.bluetooth) 

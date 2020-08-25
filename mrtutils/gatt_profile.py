@@ -28,8 +28,8 @@ sizeDict = {
     "int64" : 8,
     "uint64" : 8,
     "int" : 4,
-    "string" : 20,
-    "utfs8": 20
+    "string" : 16,
+    "utfs8": 16
 }
 
 svcIconDict = {
