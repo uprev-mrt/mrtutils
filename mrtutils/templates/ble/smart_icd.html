@@ -117,7 +117,10 @@ Vue.component('char-item',{
                         char.chr_handle.writeValue(data.buffer)
                         .then(function(){
                           console.log(" WROTE " + char.reqValues + " TO " +char.uuid);
-                          char.chr_handle.readValue();
+                          if((!char.hasOwnProperty('style')) || char.style == '')
+                          {
+                            char.chr_handle.readValue();
+                          }
                         })
                         .catch(error => {
                           console.log("Error: " + error.message );
@@ -158,7 +161,7 @@ Vue.component('char-item',{
                     }
                 },
                 template: `
-                <div  class="col-4 col-xl-3" >
+                <div  class="col-4 col-xl-3" v-if="(!char.hasOwnProperty('style')) || char.style == ''">
                         <div class="card mb-12 box-shadow char-card"> 
                             <div class="card-header "  v-bind:class="{enabled: char.enabled}" style="overflow: hidden"> 
                                 <div class="d-flex justify-content-between align-items-center">
@@ -225,6 +228,49 @@ Vue.component('char-item',{
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="toggleNotifications(char)" v-if="char.perm.includes('N')"><i :class="[char.notificationsEnabled ? 'fa-pause' : 'fa-play', 'fa']"  aria-hidden="true"></i></button>                                                
                                             </div>
                                         </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--- CONSOLE STYLE-->
+                    <div class="col-8 col-xl-5" v-else-if="char.hasOwnProperty('style') && char.style == 'console'">
+                        <div class="card mb-12 box-shadow char-card">
+                            <div class="card-header" v-bind:class="{enabled: char.enabled}" style="overflow: hidden;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <i class="fa" v-if="char.icon != ''" :class="char.icon" aria-hidden="true"></i>
+                                        <strong style="font-size: 1.6rem;">{{char.name}}</strong>
+                                        <span>{{char.type}}</span><span v-if="char.arrayLen>1">[{{char.arrayLen}}]</span>
+                                    </span>
+                                    <a :href="char.url" target="_blank" v-if="char.uuid_type=='e16Bit'"
+                                        v-bind:class="{enabled: char.enabled}">
+                                        0x{{char.short_uuid}}</a>
+                                    <span v-if="char.uuid_type!='e16Bit'"> 0x{{char.short_uuid}}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <p>{{char.desc}}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <!--  NORMAL VIEW -->
+                                    <div class="col-md-12"  >
+                                        <textarea rows="10" cols="75" readonly> {{char.values[0]}} </textarea>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    &nbsp;
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div v-if="char.perm.includes('W')">
+                                        <input type="text" size="60" v-on:keyup.enter="writeChar(char)" v-model="char.reqValues[0]" value="" />                                  
+                                    </div>
+                                    &nbsp;
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="writeChar(char)" v-if="char.perm.includes('W')"> Send </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -338,8 +384,16 @@ Vue.component('char-item',{
             if(chr.type == "string")
             {
                 let decoder = new TextDecoder('utf-8');
-                arr[0] = decoder.decode(value);
-                chr.values = arr;
+                if(chr.hasOwnProperty('style') && chr.style == 'console')
+                {
+                  arr[0] += decoder.decode(value);
+                  chr.values = arr;
+                }
+                else 
+                {
+                  arr[0] = decoder.decode(value);
+                  chr.values = arr;
+                }
             }
             else
             {
@@ -493,8 +547,8 @@ Vue.component('char-item',{
                             {
                                 chr.chr_handle = characteristics[a];
                                 chr.enabled = true;
-                                //chr.notificationsEnabled = true;
-                                //characteristics[a].startNotifications();
+                                chr.notificationsEnabled = true;
+                                characteristics[a].startNotifications();
                             }
                             characteristics[a].addEventListener('characteristicvaluechanged',
                                     handleCharacteristicValueChanged);

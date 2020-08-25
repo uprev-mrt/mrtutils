@@ -10,6 +10,7 @@
 #define ${obj.name.upper()}_I2C_ADDRESS ${ obj.formatHex(obj.i2c_addr, 1)}
 % endif
 #define ${obj.name.upper()}_REG_ADDR_SIZE ${ obj.addrSize}
+#define ${obj.name.upper()}_REG_COUNT ${len(obj.regs)}
 
 
 /*******************************************************************************
