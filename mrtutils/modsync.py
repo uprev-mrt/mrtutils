@@ -24,6 +24,7 @@ import subprocess
 import markdown
 from threading import Thread
 from urllib.request import urlopen
+import yaml
 
 def getGitFileText(url, file):
     txt=""
@@ -37,20 +38,20 @@ def getGitFileText(url, file):
 
 def getBitbucketFile(account, repo, file):
     txt=""
-    # try:
-    response = urlopen("https://bitbucket.org/" + account + "/" + repo + "/raw/master/" + file)
-    html_content = response.read()
-    encoding = response.headers.get_content_charset('utf-8')
-    txt = html_content.decode(encoding)
-    # except:
-    #     print("bitbucket.org/" + account + "/" + repo + "/raw/master/" + file + "  not found")
+    try:
+        response = urlopen("https://bitbucket.org/" + account + "/" + repo + "/raw/master/" + file)
+        html_content = response.read()
+        encoding = response.headers.get_content_charset('utf-8')
+        txt = html_content.decode(encoding)
+    except:
+        print("bitbucket.org/" + account + "/" + repo + "/raw/master/" + file + "  not found")
     
     return txt
 
 class Submodule:
     def __init__(self, path, url):
         self.url = url
-
+        self.mrtprops = {} 
         self.git_url = url
         self.path = path
         self.nodes = path.split('/')
@@ -63,9 +64,11 @@ class Submodule:
 
     def checkFor(self,mods):
         global relativePath
+        self.exists = False
         for mod in mods:
             if(self.name == mod.name):
                 self.exists = True
+
 
     def getReadMe(self):
         if self.url.find("bitbucket"):
@@ -75,6 +78,29 @@ class Submodule:
 
         if(self.readme == ""):
             self.readme = "# No README.md is available for this module"
+
+    def getYamlInfo(self):
+
+        yamlText = ""
+
+        try:
+            if self.url.find("bitbucket"):
+                yamlText = getBitbucketFile('uprev',self.repo_name, 'mrt.yml')
+            else:
+                yamlText = getGitFileText('ssh://' + self.url.replace(':','/'), 'mrt.yml')
+
+            if not yamlText == "":
+                self.mrtprops = yaml.load(yamlText)
+        except:
+            print("couldnt load yaml")
+    
+    def getProp(self,key):
+        if key in self.mrtprops:
+            return self.mrtprops[key]
+        else:
+            return None
+
+
 
 
     def gatherRequirements(self):
@@ -120,36 +146,88 @@ class RepoDirectory:
             else:
                 self.mods[mod.name] = mod
 
+    # def addModToTree(self, mod):
+    #     nodes = mod.path.split('/')
+    #     lvl = 0
+    #     dir = self 
+    #     for node in nodes:
+    #         if node in dir.dirs:
+
     def printout(self,lvl):
         start =""
         for i in range(lvl):
-            start = start+"   "
-            sys.stdout.write("---")
+            start = start+"  "
+            sys.stdout.write("──")
 
         sys.stdout.write(self.name + "\n")
 
         for mod in self.mods.values():
-            sys.stdout.write(start + "+" +mod.name +"\n")
+            if mod == list(self.mods)[-1]:
+                sys.stdout.write(start + "└─%─" +mod.name +"\n\n")
+            else:
+                sys.stdout.write(start + "├──" +mod.name +"\n")
 
         for dir in self.dirs.values():
             dir.printout(lvl+1)
 
+    def getKConfigString(self, lvl, title = "Config"):
+        fileTxt = ""
+        if lvl == 0:
+            fileTxt += "mainmenu  \"{0}\"\n".format(title)
+        else:
+            fileTxt += "menu \"{0}\"\n".format(self.name)
+
+        
+        for dir in self.dirs.values():
+            fileTxt+= dir.getKConfigString(lvl+1)
+
+        for mod in self.mods.values():
+            fileTxt += "config ENABLE_{0}\n".format(mod.name.upper())
+            fileTxt += "\tbool \"{0}\"\n".format(mod.name)
+
+            
+            if mod.exists:
+                fileTxt += "\tdefault y\n"
+            else:
+                fileTxt += "\tdefault n\n"
+            
+            for req in mod.requirements:
+                fileTxt+="\tselect ENABLE_{0}".format(req.upper())
+
+            if not mod.getProp("description") == None:
+                fileTxt +="\thelp\n\t\t{0}\n".format(mod.getProp("description"))
+
+            fileTxt += "\n"
+
+        if not lvl == 0:
+            fileTxt += "endmenu\n\n"
+        return fileTxt
+
 
 class Repo:
-    def __init__(self, path):
+    def __init__(self, path, remote = False):
         self.url = path
         self.path = path
         self.mods =[]
-        self.isRemote = True
+        self.isRemote = remote
         self.dir = RepoDirectory("root",0)
         self.isBitbucket = False
         nodes = self.url.split('/')
         self.account = nodes[-2]
         self.name = nodes[-1].replace(".git","")
+        if "bitbucket" in path:
+            self.isBitbucket = True
 
     def setRelativePath(self,path):
         self.relativePath = path
-        self.isRemote = False;
+    
+    def crossCheckMods(self,repo):
+        for mod in self.mods:
+            mod.checkFor(repo.mods)
+
+    def getYamlProps(self):
+        for mod in self.mods:
+            mod.getYamlInfo()
 
     def getSubModules(self):
         data = ""
@@ -174,6 +252,9 @@ class Repo:
                 modules = regex.findall(data)
                 for mod in modules:
                     self.mods.append(Submodule(mod[1], mod[2]))
+        
+        for mod in self.mods:
+            self.dir.add(mod, 0)
 
     def getReadMe(self):
         if self.isRemote:
@@ -187,6 +268,13 @@ class Repo:
 
         return data
 
+    def findMod(self, name):
+        for mod in self.mods: 
+            if mod.name.lower() == name.lower():
+                return mod 
+        
+        return None
+
     def fetchReadmes(self):
         print ("Fetching README.md from modules")
         for mod in self.mods:
@@ -195,7 +283,7 @@ class Repo:
     def addSubModule(self,mod):
         prev_path = os.getcwd()
         os.chdir(self.path)
-        print("Adding " + mod.git_url)
+        print("Adding Submodule: " + mod.git_url)
         subprocess.check_output(['git','submodule','add', '-f',mod.git_url,  self.relativePath + mod.path] )
         os.chdir(prev_path)
         mod.exists = True
@@ -203,6 +291,9 @@ class Repo:
     def removeSubModule(self,mod):
         prev_path = os.getcwd()
         os.chdir(self.path)
+        print("Removing Submodule: " + mod.git_url)
         subprocess.check_output(['git','rm', '-f', self.relativePath + mod.path ])
         os.chdir(prev_path)
         mod.exists = False
+
+

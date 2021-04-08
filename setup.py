@@ -8,12 +8,12 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='mrtutils',
-     version='0.1.81',
+     version='0.1.84',
      author="Jason Berger",
      author_email="JBerger@up-rev.com",
      description="Utilities for MrT",
      long_description=long_description,
-     scripts=['mrtutils/mrt-config','mrtutils/mrt-device', 'mrtutils/mrt-ble'],
+     scripts=['mrtutils/mrt-config','mrtutils/mrt-device', 'mrtutils/mrt-ble', 'mrtutils/mrt-config-gui'],
      long_description_content_type="text/markdown",
      url="http://www.up-rev.com/",
      packages=setuptools.find_packages(),
@@ -25,7 +25,8 @@ setuptools.setup(
         'mako',
         'pyyaml',
         'polypacket',
-        'update_notipy'
+        'update_notipy',
+        'kconfiglib'
      ],
      classifiers=[
          "Programming Language :: Python :: 3",

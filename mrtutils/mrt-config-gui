@@ -1,0 +1,179 @@
+#!/usr/bin/python3
+
+import ctypes
+
+
+import sys
+import os
+from sys import platform
+import os.path
+from mrtutils.modsync import *
+
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import QFont
+import os.path
+from mrtutils.updates import *
+
+
+sys.argv.append("--disable-web-security")
+app     = QApplication (sys.argv)
+markdownView = QTextEdit() #QWebEngineView()
+tree    = QTreeWidget()
+
+
+remoteUrl = "git@bitbucket.org/uprev/uprev-mrt.git"
+remoteRepo = Repo(remoteUrl)
+remoteRepo.isBitbucket = True
+localRepo = Repo(os.getcwd())
+
+def show_readme(text):
+    markdownView.setText(markdown.markdown(text))
+
+
+
+def buttonPress():
+    global remoteRepo
+    global localRepo
+    for mod in remoteRepo.mods:
+        if(mod.node.checkState(0) > 0) and not (mod.exists):
+            localRepo.addSubModule(mod)
+
+        if(mod.node.checkState(0) == 0) and (mod.exists): #for now, do not remove subs
+            localRepo.removeSubModule(mod)
+
+
+    msg = QMessageBox()
+    msg.setText("Done importing submodules!")
+    msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Close)
+    retval = msg.exec_()
+    if(retval == QMessageBox.Close):
+        QCoreApplication.quit()
+
+
+def itemSelected():
+    getSelected = tree.selectedItems()
+    if getSelected:
+        if(getSelected[0].mod.readme == "x"):
+            getSelected[0].mod.getReadMe()
+        show_readme(getSelected[0].mod.readme)
+
+def addModToTree(parent, mod):
+    child = QTreeWidgetItem(parent)
+    child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
+    child.setText(0, mod.name)
+    child.mod = mod
+    if mod.exists:
+        child.setCheckState(0, Qt.Checked)
+        parent.setExpanded(True)
+    else:
+        child.setCheckState(0, Qt.Unchecked)
+    mod.node = child
+
+def addDirToTree(parent, dir):
+    newnode = QTreeWidgetItem(parent)
+    newnode.setText(0,dir.name)
+
+    if not dir.isMod:
+        font = QFont()
+        if dir.lvl  < 2:
+            font.setPointSize(12)
+        else: 
+            font.setPointSize(9)
+        font.setWeight(QFont.Bold)
+        newnode.setFont(0,font)
+        
+
+    newnode.setFlags(newnode.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
+    newnode.setExpanded(True)
+    newnode.mod = dir.mod
+
+
+    if(dir.isMod):
+        dir.mod.node = newnode
+    else:
+        newnode.mod.readme = dir.name + " group"
+
+    for subdir in dir.dirs.values():
+        addDirToTree(newnode, subdir)
+
+    for mod in dir.mods.values():
+        addModToTree(newnode, mod)
+
+def fetchReadmes():
+    global remoteRepo
+    remoteRepo.fetchReadmes()
+
+
+
+def main():
+    global markdownView
+    global app
+    global tree
+    global remoteRepo
+    global localRepo
+
+    updateCheck()
+
+    window = QWidget()
+    window.setGeometry(0, 0, 1000, 640)
+    editPath = QLineEdit()
+    btnBrowse = QPushButton("Import Submodules")
+    btnBrowse.clicked.connect(buttonPress)
+    window.setWindowTitle("Mr T module tool")
+    layout = QGridLayout(window)
+    readme = remoteRepo.getReadMe()
+
+    tree.selectionModel().selectionChanged.connect(itemSelected)
+    markdownView.setFontPointSize(20)
+    show_readme(readme)
+
+    layout.addWidget(tree,0,0,1,1)
+    layout.addWidget(markdownView, 0,1,1,1)
+    layout.addWidget(btnBrowse,1,0,1,2)
+    layout.setColumnStretch(0, 1)
+    layout.setColumnStretch(1, 3)
+    layout.setRowStretch(0, 5)
+    layout.setRowStretch(1, 1)
+    headerItem  = QTreeWidgetItem()
+    item    = QTreeWidgetItem()
+
+
+    relativePath = "MrT"
+
+    if len(sys.argv) > 1:
+        relativePath = sys.argv[1]
+
+    relativePath +="/"
+
+    #check for git repo
+    if not os.path.exists("/.git"):
+        subprocess.check_output(['git','init'] )
+
+    localRepo.setRelativePath(relativePath)
+
+    remoteRepo.getSubModules()
+    localRepo.getSubModules()
+
+
+    #see which ones already exist
+    for mod in remoteRepo.mods:
+        mod.checkFor(localRepo.mods)
+
+
+    for mod in remoteRepo.mods:
+        remoteRepo.dir.add(mod,0)
+
+    addDirToTree(tree, remoteRepo.dir)
+
+    #remoteRepo.dir.printout(0) #used for debugging submods
+
+    t = Thread(target=fetchReadmes)
+    t.start()
+
+    window.show()
+
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()

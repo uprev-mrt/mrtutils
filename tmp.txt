@@ -1,0 +1,187 @@
+mainmenu  "Config"
+menu "Modules"
+menu "Platforms"
+config BOOL
+	bool "Common"
+	default n
+
+config BOOL
+	bool "STM32"
+	default n
+
+config BOOL
+	bool "Atmel"
+	default n
+
+config BOOL
+	bool "ESP32"
+	default n
+
+config BOOL
+	bool "Linux"
+	default n
+
+endmenu
+
+menu "Utilities"
+menu "GFX"
+config BOOL
+	bool "MonoGfx"
+	default n
+
+config BOOL
+	bool "ColorGfx"
+	default n
+
+endmenu
+
+menu "Audio"
+config BOOL
+	bool "xCoder"
+	default n
+
+config BOOL
+	bool "TestData"
+	default n
+
+endmenu
+
+menu "Interfaces"
+config BOOL
+	bool "GattServer"
+	default n
+
+endmenu
+
+config BOOL
+	bool "Fifo"
+	default n
+
+config BOOL
+	bool "PolyPacket"
+	default n
+
+config BOOL
+	bool "JSON"
+	default n
+
+config BOOL
+	bool "COBS"
+	default n
+
+config BOOL
+	bool "ByteFifo"
+	default n
+
+endmenu
+
+menu "Devices"
+menu "Displays"
+config BOOL
+	bool "ErcMonoLcd"
+	default n
+
+config BOOL
+	bool "TriColorE-Ink"
+	default n
+
+config BOOL
+	bool "SSD1306"
+	default n
+
+endmenu
+
+menu "Sensors"
+config BOOL
+	bool "LSM6D"
+	default n
+
+config BOOL
+	bool "HTS221"
+	default n
+
+config BOOL
+	bool "SHT31"
+	default n
+
+config BOOL
+	bool "LIS2DH12"
+	default n
+
+config BOOL
+	bool "VL53L0x"
+	default n
+
+endmenu
+
+menu "FPGA"
+config BOOL
+	bool "Spartan6"
+	default n
+
+endmenu
+
+menu "Memory"
+config BOOL
+	bool "SpiFlash"
+	default n
+
+config BOOL
+	bool "Eeprom"
+	default n
+
+endmenu
+
+menu "Power"
+config BOOL
+	bool "BQ28Z"
+	default n
+
+config BOOL
+	bool "STC3117"
+	default n
+
+endmenu
+
+menu "RF"
+config BOOL
+	bool "Nrf24"
+	default n
+
+endmenu
+
+menu "Audio"
+config BOOL
+	bool "WM8731"
+	default n
+
+endmenu
+
+menu "MotorDrivers"
+config BOOL
+	bool "STSPIN220"
+	default n
+
+endmenu
+
+menu "IO"
+config BOOL
+	bool "STM8-Expander"
+	default n
+
+endmenu
+
+config BOOL
+	bool "RegDevice"
+	default n
+
+endmenu
+
+endmenu
+
+config BOOL
+	bool "Test"
+	default n
+
+endmenu
+

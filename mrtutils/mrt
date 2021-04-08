@@ -1,0 +1,62 @@
+#!/usr/bin/python3
+
+import os
+import argparse
+from mrtutils.modsync import *
+from mrtutils.updates import *
+
+args = None
+parser = None
+
+remoteUrl = "git@bitbucket.org/uprev/uprev-mrt.git"
+remoteRepo = Repo(remoteUrl)
+remoteRepo.isBitbucket = True
+localRepo = Repo(os.getcwd())
+
+
+
+def f_list():
+    global remoteRepo
+    remoteRepo.getSubModules()
+    remoteRepo.dir.printout(0)
+
+    print("listing!")
+
+#mrt add <module name> 
+#mrt config 
+#mrt ls 
+# Initialize the argument parser
+def init_args():
+    global parser
+    parser = argparse.ArgumentParser("Tool to generate code for ble profile")
+    parser.add_argument('command', type=str, help='command', default="")
+    parser.add_argument('-d', '--document', type=str, help='documentation path', default="")
+
+
+switcher = {
+    'list': f_list
+}
+
+def f_invalid():
+    global args
+    print(args.command + " is not a valid command")
+
+
+def main():
+    global parser
+    global args
+    global remoteRepo
+    global localRepo
+
+    init_args()
+    args= parser.parse_args()
+    print("test")
+    command = args.command
+
+    func = switcher.get(command, lambda: f_invalid )
+    func()
+
+
+
+if __name__ == "__main__":
+    main()
