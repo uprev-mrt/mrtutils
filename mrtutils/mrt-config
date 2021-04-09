@@ -22,6 +22,8 @@ parser = None
 mods_to_add = []
 mods_to_remove = []
 
+temp_config_file = ""
+
 os.environ["MENUCONFIG_STYLE"] = "default separator=fg:black,bg:blue,bold frame=fg:black,bg:red,bold"
 
 
@@ -61,10 +63,26 @@ class MrtKConfig(Kconfig):
                         mods_to_remove.append(newMod)
         
         return True
+    
+    def load_config(self, filename=None, replace=True, verbose=None):
+        global temp_config_file
+        msg = " configuration '{}'".format(temp_config_file)
+
+        try:
+            self._load_config(temp_config_file, replace)
+        except UnicodeDecodeError as e:
+            _decoding_error(e, filename)
+        finally:
+            self._warn_assign_no_prompt = True
+
+        self.missing_syms = [] 
+
+        return "Loaded Submodules"
 
 def main():
-    global _kconf
+    global temp_config_file
     kconf_file = tempfile.NamedTemporaryFile(mode = "w")
+    conf_file = tempfile.NamedTemporaryFile(mode = "w")
     remoteRepo.getSubModules()
     localRepo.getSubModules()
 
@@ -83,13 +101,19 @@ def main():
 
     remoteRepo.crossCheckMods(localRepo)
     fileText = remoteRepo.dir.dirs['Modules'].getKConfigString(0)
+    conf_file_txt = remoteRepo.getConfigString()
+
     kconf_file.write(fileText)
+    conf_file.write(conf_file_txt)
+    conf_file.seek(0,0)
     kconf_file.seek(0,0)
     kconf = MrtKConfig(kconf_file.name)
+    temp_config_file = conf_file.name
 
-    kconf_file.close()
     
     menuconfig(kconf)
+    kconf_file.close()
+    conf_file.close()
 
     for mod in mods_to_add:
         localRepo.addSubModule(mod)

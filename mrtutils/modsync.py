@@ -295,5 +295,18 @@ class Repo:
         subprocess.check_output(['git','rm', '-f', self.relativePath + mod.path ])
         os.chdir(prev_path)
         mod.exists = False
+    
+    def getKConfigString(self):
+        return self.dir.getKConfigString(0)
+
+    def getConfigString(self):
+        text = ""
+        for mod in self.mods:
+            if mod.exists:
+                text += "CONFIG_ENABLE_{0}=y\n".format(mod.name.upper())
+            else:
+                text += "CONFIG_ENABLE_{0}=n\n".format(mod.name.upper())
+        return text
+
 
 
