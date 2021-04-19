@@ -14,8 +14,8 @@ from kconfiglib import Kconfig, \
 
 from menuconfig import menuconfig
 
-remoteRepo = None 
-localRepo = None
+remoteRepo = None #Repo("git@bitbucket.org/uprev/uprev-mrt.git", remote= True) 
+localRepo = None #Repo(os.getcwd())
 
 
 args = None
@@ -49,8 +49,11 @@ os.environ["MENUCONFIG_STYLE"] = "default separator=fg:black,bg:blue,bold frame=
 class MrtKConfig(Kconfig):
     global remoteRepo
     global localRepo
+    global mods_to_add
+    global mods_to_remove
 
     def write_config(self, filename):
+        print("TESTING")
         for sym in self.defined_syms:
             if sym.str_value == 'y':
                 newMod = remoteRepo.findMod(sym.name.replace("ENABLE_",""))
@@ -84,12 +87,16 @@ class MrtKConfig(Kconfig):
 def init_args():
     global parser
     parser = argparse.ArgumentParser("Tool to import submodules from MrT registry")
-    parser.add_argument('localRoot', type=str, help='Local Root of MrT modules', default="MrT")
+    parser.add_argument('localRoot', type=str, nargs='?', help='Local Root of MrT modules', default="MrT")
     parser.add_argument('-r', '--remote', type=str, help='remote repo to sync from', default="git@bitbucket.org/uprev/uprev-mrt.git")
 
 
 def main():
     global temp_config_file
+    global remoteRepo
+    global localRepo
+    global mods_to_add
+    global mods_to_remove
 
     init_args()
     args= parser.parse_args()
@@ -98,6 +105,7 @@ def main():
     conf_file = tempfile.NamedTemporaryFile(mode = "w")
 
     remoteRepo = Repo(args.remote, remote = True)
+
     if 'bitbucket' in args.remote:
         remoteRepo.isBitbucket = True
     localRepo = Repo(os.getcwd())
