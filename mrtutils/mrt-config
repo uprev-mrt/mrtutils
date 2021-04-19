@@ -1,8 +1,9 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 
 import sys
 import os
 from mrtutils.modsync import *
+import argparse
 import tempfile
 
 from kconfiglib import Kconfig, \
@@ -13,10 +14,10 @@ from kconfiglib import Kconfig, \
 
 from menuconfig import menuconfig
 
-remoteUrl = "git@bitbucket.org/uprev/uprev-mrt.git"
-remoteRepo = Repo(remoteUrl, remote = True)
-remoteRepo.isBitbucket = True
-localRepo = Repo(os.getcwd())
+remoteRepo = None 
+localRepo = None
+
+
 args = None
 parser = None
 mods_to_add = []
@@ -79,20 +80,32 @@ class MrtKConfig(Kconfig):
 
         return "Loaded Submodules"
 
+# Initialize the argument parser
+def init_args():
+    global parser
+    parser = argparse.ArgumentParser("Tool to import submodules from MrT registry")
+    parser.add_argument('localRoot', type=str, help='Local Root of MrT modules', default="MrT")
+    parser.add_argument('-r', '--remote', type=str, help='remote repo to sync from', default="git@bitbucket.org/uprev/uprev-mrt.git")
+
+
 def main():
     global temp_config_file
+
+    init_args()
+    args= parser.parse_args()
+
     kconf_file = tempfile.NamedTemporaryFile(mode = "w")
     conf_file = tempfile.NamedTemporaryFile(mode = "w")
+
+    remoteRepo = Repo(args.remote, remote = True)
+    if 'bitbucket' in args.remote:
+        remoteRepo.isBitbucket = True
+    localRepo = Repo(os.getcwd())
+
     remoteRepo.getSubModules()
     localRepo.getSubModules()
 
-
-    relativePath = "MrT"
-
-    if len(sys.argv) > 1:
-        relativePath = sys.argv[1]
-
-    localRepo.setRelativePath(relativePath+"/")
+    localRepo.setRelativePath(args.localRoot+"/")
 
     #check for git repo
     if not os.path.exists("/.git"):

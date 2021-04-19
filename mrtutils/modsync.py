@@ -257,6 +257,8 @@ class Repo:
             self.dir.add(mod, 0)
 
     def getReadMe(self):
+
+        data = ""
         if self.isRemote:
             if(self.isBitbucket):
                 nodes = self.url.split('/')
