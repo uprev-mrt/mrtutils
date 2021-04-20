@@ -238,7 +238,7 @@ class RepoDirectory:
                 fileTxt += "\tdefault n\n"
             
             for req in mod.requirements:
-                fileTxt+="\tselect ENABLE_{0}".format(req.upper())
+                fileTxt+="\tselect ENABLE_{0}\n".format(req.upper())
 
             if not mod.getProp("description") == None:
                 fileTxt +="\thelp\n\t\t{0}\n".format(mod.getProp("description"))

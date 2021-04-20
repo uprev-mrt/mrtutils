@@ -8,7 +8,7 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
      name='mrtutils',
-     version='0.1.90',
+     version='0.1.91',
      author="Jason Berger",
      author_email="JBerger@up-rev.com",
      description="Utilities for MrT",
