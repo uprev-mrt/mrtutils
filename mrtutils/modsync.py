@@ -60,6 +60,8 @@ class Submodule:
         self.requirements = []
         self.readme="x"
         self.repo_name = url.split('/')[-1].replace(".git","")
+        self.yaml = {}  
+        self.repo = None
 
 
     def checkFor(self,mods):
@@ -79,20 +81,64 @@ class Submodule:
         if(self.readme == ""):
             self.readme = "# No README.md is available for this module"
 
-    def getYamlInfo(self):
+    def loadYaml(self, yamlObj):
+
+        if 'requires' in yamlObj:
+            for req in yamlObj['requires']:
+                if req == 'Platform':
+                    self.requirements.append('Common')
+                else:
+                    self.requirements.append(req)
+
+
+    def getYaml(self):
 
         yamlText = ""
+        ret = {}
+        yamlObj = {}
 
+        ret['url'] = self.url
+        ret['path'] = self.path 
+        ret['name'] = self.name
+
+        if os.path.isfile(self.path+"/README.rst"):
+            ret['doc'] = self.path+"/README.md"
+        
+        elif os.path.isfile(self.path+"/README.md"):
+            ret['doc'] = self.path+"/README.md"
+
+
+
+        if self.repo.isRemote:
+            try:
+                if self.url.find("bitbucket"):
+                    yamlText = getBitbucketFile('uprev',self.repo_name, 'mrt.yml')
+                else:
+                    yamlText = getGitFileText('ssh://' + self.url.replace(':','/'), 'mrt.yml')
+
+            except:
+                print("couldnt load yaml")
+        else:
+            try:
+                f = open(self.path + '/mrt.yml', 'r')
+                yamlText = f.read()
+            except:
+                print("No mrt.yml for " + self.name)
+        
         try:
-            if self.url.find("bitbucket"):
-                yamlText = getBitbucketFile('uprev',self.repo_name, 'mrt.yml')
-            else:
-                yamlText = getGitFileText('ssh://' + self.url.replace(':','/'), 'mrt.yml')
-
-            if not yamlText == "":
-                self.mrtprops = yaml.load(yamlText)
+            yamlText = yamlText.replace('\t',' ')
+            yamlObj = yaml.load(yamlText,  Loader=yaml.FullLoader)
         except:
-            print("couldnt load yaml")
+            print("Parsing error: " +self.name )
+
+        if not yamlObj is None:
+            for key, value in yamlObj.items():
+                if not key == 'name':
+                    ret[key] = value
+
+        
+        return ret
+
     
     def getProp(self,key):
         if key in self.mrtprops:
@@ -197,10 +243,12 @@ class RepoDirectory:
             if not mod.getProp("description") == None:
                 fileTxt +="\thelp\n\t\t{0}\n".format(mod.getProp("description"))
 
+
             fileTxt += "\n"
 
         if not lvl == 0:
             fileTxt += "endmenu\n\n"
+        
         return fileTxt
 
 
@@ -212,6 +260,7 @@ class Repo:
         self.isRemote = remote
         self.dir = RepoDirectory("root",0)
         self.isBitbucket = False
+        self.rootYaml = {}
         nodes = self.url.split('/')
         self.account = nodes[-2]
         self.name = nodes[-1].replace(".git","")
@@ -224,13 +273,51 @@ class Repo:
     def crossCheckMods(self,repo):
         for mod in self.mods:
             mod.checkFor(repo.mods)
+    
+    def getRootYaml(self):
+        
+        yamlText = ""
+        yamlObj = {}
+        
+        if self.isRemote:
+            try:
+                if self.url.find("bitbucket"):
+                    yamlText = getBitbucketFile('uprev',self.name, 'mrt.yml')
+                else:
+                    yamlText = getGitFileText('ssh://' + self.url.replace(':','/'), 'mrt.yml')
 
-    def getYamlProps(self):
+            except:
+                print("couldnt load yaml")
+        else:
+            try:
+                f = open(self.path + '/mrt.yml', 'r')
+                yamlText = f.read()
+            except:
+                print("No mrt.yml for " + self.name)
+        
+        try:
+            yamlText = yamlText.replace('\t',' ')
+            yamlObj = yaml.load(yamlText,  Loader=yaml.FullLoader)
+        except:
+            print("Parsing error: " +self.name )
+        
+        return yamlObj
+        
+
+
+    def gatherModuleYamls(self):
+        dict_yaml = {}
         for mod in self.mods:
-            mod.getYamlInfo()
+            dict_yaml[mod.name] = mod.getYaml()
+        
+        return dict_yaml
+        
 
     def getSubModules(self):
         data = ""
+
+        self.rootYaml = self.getRootYaml()
+
         if self.isRemote:
             if(self.isBitbucket):
                 data = getBitbucketFile(self.account, self.name, '.gitmodules').replace('\r', '').replace('\n', '').replace('\t', '')
@@ -254,7 +341,12 @@ class Repo:
                     self.mods.append(Submodule(mod[1], mod[2]))
         
         for mod in self.mods:
+            mod.repo = self
+            if not self.rootYaml is None:
+                if mod.name in self.rootYaml:
+                    mod.loadYaml(self.rootYaml[mod.name])
             self.dir.add(mod, 0)
+        
 
     def getReadMe(self):
 

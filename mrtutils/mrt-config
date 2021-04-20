@@ -88,6 +88,7 @@ def init_args():
     global parser
     parser = argparse.ArgumentParser("Tool to import submodules from MrT registry")
     parser.add_argument('localRoot', type=str, nargs='?', help='Local Root of MrT modules', default="MrT")
+    parser.add_argument('-g', '--gather', action='store_true', help='Gathers the mrt.yml files and creates a single structure', default= False)
     parser.add_argument('-r', '--remote', type=str, help='remote repo to sync from', default="git@bitbucket.org/uprev/uprev-mrt.git")
 
 
@@ -119,6 +120,12 @@ def main():
     if not os.path.exists("/.git"):
         subprocess.check_output(['git','init'] )
 
+    if args.gather:
+        with open( localRepo.relativePath + 'mrt.yaml', 'w') as file:
+            info = localRepo.gatherModuleYamls()
+            doc = yaml.dump(info, file)
+        
+        exit(0)
 
     remoteRepo.crossCheckMods(localRepo)
     fileText = remoteRepo.dir.dirs['Modules'].getKConfigString(0)
