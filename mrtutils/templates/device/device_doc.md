@@ -1,5 +1,6 @@
 
-<h1>${obj.name} Device</h1>
+# ${obj.name} Device
+
 <ul>
   <li> Generated with <a href="https://github.com/uprev-mrt/mrtutils/wiki/mrt-device">MrT Device Utility</a> </li>
   <li> Bus:  ${obj.bus}</li>
