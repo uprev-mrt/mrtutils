@@ -17,6 +17,8 @@ import ctypes
 
 import sys
 import os
+import glob 
+import shutil
 from sys import platform
 import os.path
 import re
@@ -215,6 +217,46 @@ class RepoDirectory:
 
         for dir in self.dirs.values():
             dir.printout(lvl+1)
+
+    def copyDocStruct(self, lvl, root ):
+
+        if lvl == 0:
+            path = root
+        else:
+            path = root+"/"+self.name
+
+
+        os.makedirs(path,exist_ok=True)
+
+        indexText = self.name+"\n"
+        for c in self.name:
+            indexText+= "="
+        indexText+= "\n"
+        indexText+= ".. toctree::\n"
+        indexText+= "\t:caption: " + self.name+"\n"
+        indexText+= "\t:titlesonly:\n"
+        indexText+= "\n"
+
+        for dir in self.dirs.values():
+            indexText+= "\t"+dir.name +"/index\n"
+            dir.copyDocStruct(lvl+1,path)
+        
+        for mod in self.mods.values():
+            os.makedirs(path+"/"+mod.name,exist_ok=True)
+
+            for file in glob.glob(mod.path+"/*.rst"):
+                fileName = shutil.copy(file, path+"/"+mod.name+"/")  
+
+            for file in glob.glob(mod.path+"/*.md"):
+                fileName = shutil.copy(file, path+"/"+mod.name+"/")  
+
+            indexText+= "\t"+mod.name +"/README\n"
+
+
+        f = open(path+"/index.rst", 'w')
+        f.write(indexText)
+        f.close()
+
 
     def getKConfigString(self, lvl, title = "Config"):
         fileTxt = ""

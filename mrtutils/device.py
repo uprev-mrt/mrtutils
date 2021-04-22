@@ -11,6 +11,7 @@ import os
 import yaml
 import json
 from mrtutils.mrtYamlHelper import *
+from mrtutils.mrtTemplateHelper import *
 
 
 sizeDict = {
@@ -279,8 +280,8 @@ class RegField:
         json_dict = { "mask": self.mask, "size": self.bitCount, "offset": self.offset, "desc": self.desc, "vals": val_arr}
 
         return json_dict
-        
-
+    
+    
         
 
 class DeviceReg:
@@ -384,6 +385,58 @@ class DeviceReg:
             ret = ret + (" " * spaces)
         return ret
 
+        
+
+    def getRstTable(self):
+        
+        t = TemplateHelper()
+        cols = self.size * 8 
+        bits = cols -1
+        cellWidth = 3
+        fieldBitMap = {}
+
+        if len(self.fields) == 0:
+            cellWidth = len(self.name)
+
+        for field in self.fields:
+            fieldBitMap[field.startBit] = field
+            if len(field.name) > cellWidth:
+                cellWidth = len(field.name)
+        
+        lines = ["+------------","|Bit         ", "+============", "| **Field**  ","+------------"]
+
+        for i in range(bits,-1,-1):
+            lines[0] += '+' + ("-"* cellWidth)
+            lines[1] += '|' + t.padAfter(str(i),cellWidth) 
+            lines[2] += '+' + ("="* cellWidth)
+
+            if i in fieldBitMap:
+                lines[3] += "|"+ t.padAfter(fieldBitMap[i].name, cellWidth) 
+                lines[4] += '+' + ("-"* cellWidth)
+            else: 
+                if i == bits:
+                    if len(self.fields) == 0:
+                        lines[3] += '|' + t.padAfter(self.name,cellWidth)
+                    else:
+                        lines[3] += '|' + (" "* cellWidth)
+                    lines[4] += '+' + ("-"* cellWidth)
+                else:
+                    lines[3] += ' ' + (" "* cellWidth)
+                    lines[4] += '-' + ("-"* cellWidth)
+        
+        lines[0]+="+"
+        lines[1]+="|"
+        lines[2]+="+"
+        lines[3]+="|"
+        lines[4]+="+"
+
+        return '\n'.join(lines)
+
+
+
+
+        
+
     def getDict(self):
         field_dict = {}
 
@@ -392,6 +445,8 @@ class DeviceReg:
 
         json_dict = {"name": self.name, "addr": self.addr, "type": self.type, "size": self.size * 8, "perm": self.perm.upper(), "default":self.default, "hasDefault":self.hasDefault, "desc": self.desc, "fields": field_dict}
         return json_dict
+    
+
 
 
 class Device:
