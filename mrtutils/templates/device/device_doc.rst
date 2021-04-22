@@ -37,7 +37,7 @@ Register Map
 
 =================     ================     ================     ================     ================     ================
 Name                    Address             Type                  Access              Default               Description
------------------     ----------------     ----------------     ----------------     ----------------     ----------------
+=================     ================     ================     ================     ================     ================
 %for key,reg in obj.regs.items():
 ${t.padAfter(reg.name+"_", 23)}${t.padAfter(reg.printAddr(),21)}${t.padAfter(reg.type,21)}${t.padAfter(reg.perm.upper(),21)}${t.padAfter(reg.formatHex(reg.default),21)}${t.padAfter(reg.desc,21)}
 %endfor
@@ -55,11 +55,13 @@ Registers
 
 %for key,reg in obj.regs.items():
 
+----------
+
 .. _${reg.name}:
 
 ${reg.name}
 %for c in reg.name:
-=\
+-\
 %endfor
 
 
@@ -69,56 +71,40 @@ ${reg.name}
     %endif
 
 ${reg.desc}
+
 .. *user-block-${reg.name.lower()}-start*
 
 .. *user-block-${reg.name.lower()}-end*
 
-<table class="fields" width="80%">
-  <tr>
-    <th class="smallCell">bit</th>
-    %for i in range(reg.size * 8):
-    <th> ${(reg.size*8) -(i+1)}</th>
-    %endfor
-  </tr>
-  <tr>
-    <th class="smallCell">Field</th>
-   ${reg.printFieldMap()}
-  </tr>
-  %if reg.hasDefault:
-  <tr>
-    <th class="smallCell">Default</th>
-    %for i in range(reg.size * 8):
-    %if reg.default & (1 << ((reg.size * 8) -(i+1))):
-      <td class="one" >1</td>
-    %else:
-      <td class="zero" >0</td>
-    %endif
-    %endfor
-   </tr>
-   %endif
-</table>
+${reg.getRstTable()}
 
 %if reg.hasFlags:
-<h2> Flags:</h2>
+Flags
+~~~~~
+
 %for field in reg.fields:
 %if field.isFlag:
-<b>${field.name}:</b> ${field.desc}<br>
+:${field.name}: ${field.desc}
 %endif
 %endfor
 %endif
 
 %if reg.hasFields:
-<h2> Fields:</h2>
+Fields
+~~~~~~
 %for field in reg.fields:
 %if not field.isFlag:
 
-<b>${field.name}:</b> ${field.desc}
+:${field.name}: ${field.desc}
 %if len(field.vals) > 0:
-<table>
+
+=====================     ================     ================================================================
+Name                       Value               Descriptions
+=====================     ================     ================================================================
 %for val in field.vals:
-<tr><td> ${val.name} </td><td> ${val.formatVal()} </td><td>  ${val.desc}</td></tr>
+${t.padAfter(val.name,27)} ${t.padAfter(val.formatVal(),21) }   ${val.desc}
 %endfor
-</table>
+=====================     ================     ================================================================
 
 %endif
 
