@@ -13,7 +13,7 @@ setuptools.setup(
      author_email="JBerger@up-rev.com",
      description="Utilities for MrT",
      long_description=long_description,
-     scripts=['mrtutils/mrt-config','mrtutils/mrt-device', 'mrtutils/mrt-ble', 'mrtutils/mrt-config-gui','mrtutils/mrt-doc'],
+     scripts=['mrtutils/mrt-config','mrtutils/mrt-device', 'mrtutils/mrt-ble', 'mrtutils/mrt-config-gui','mrtutils/mrt-doc', 'mrtutils/mrt-ver'],
      long_description_content_type="text/x-rst",
      url="http://www.up-rev.com/",
      packages=setuptools.find_packages(),
@@ -26,7 +26,8 @@ setuptools.setup(
         'pyyaml',
         'polypacket',
         'update_notipy',
-        'kconfiglib'
+        'kconfiglib',
+        'gitpython'
      ],
      classifiers=[
          "Programming Language :: Python :: 3",
