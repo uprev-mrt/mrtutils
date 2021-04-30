@@ -3,6 +3,9 @@
 import sys
 import os
 import argparse
+from mako.template import Template
+from mrtutils.mrtTemplateHelper import *
+from mrt
 import git
 import re
 
@@ -37,6 +40,9 @@ class VersionStruct:
         self.build = build
         self.branch = "none"
         self.hash = ""
+
+    def loadFile(self, path):
+        ##TODO parse version.h file
     
     def loadRepo(self,repo):
 
@@ -70,7 +76,7 @@ class VersionStruct:
 def init_args():
     global parser
     parser = argparse.ArgumentParser("Tool to generate version file")
-    parser.add_argument('-o', '--output', type=str, help='Output path', default=".")
+    parser.add_argument('versionFile', type=str, nargs='?', help='version header file', default="version.h")
     parser.add_argument('-m', '--major', type=str, help='Major version', default="0")
     parser.add_argument('-n', '--minor', type=str, help='Minor version', default="0")
     parser.add_argument('-p', '--patch', type=str, help='Patch', default="0")

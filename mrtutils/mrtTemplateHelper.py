@@ -84,6 +84,24 @@ class TemplateHelper:
         self.sizeDict = sizeDict
         self.cTypeDict = cTypeDict
 
+    def buildTemplate(object, templateFile, outputFile, replacePattern = r"@file (.*?\.)(.*?) \*/"):
+        exists= False
+        cr = CodeReplacer()
+        newContents =""
+        if os.path.isfile(outputFile):
+            exists = True
+            curFile = open(outputFile, "r")
+            text = curFile.read()
+            cr.loadText(text,replacePattern)
+
+        template = Template(pkgutil.get_data('mrtutils',templateFile) )
+        newContents = "\n".join(template.render(obj = object, t = TemplateHelper()).splitlines())
+        newContents = cr.insertBlocks(newContents,replacePattern)
+        cr.printDrops()
+        text_file = open( outputFile , "w")
+        text_file.write(newContents)
+        text_file.close()
+
     def camelCase(self, text):
         out =""
         cap = True 

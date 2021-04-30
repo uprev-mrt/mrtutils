@@ -135,6 +135,7 @@ class GattCharacteristic(object):
         self.arrayLen = 1
         self.nextVal = 0
         self.style = ''
+
     
     def uuidArray(self):
         val = self.uuid 
@@ -273,6 +274,14 @@ class GattCharacteristic(object):
         
         self.nextVal = self.nextVal +1
         self.vals.append(val)
+    
+    def printType(self):
+        ret = self.type
+
+        if self.arrayLen > 1:
+            ret+="[{0}]".format(self.arrayLen)
+
+        return ret
     
     def getDict(self):
         val_arr = [] #array of gattValues for enums/masks

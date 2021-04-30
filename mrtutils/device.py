@@ -272,6 +272,44 @@ class RegField:
         
         return self.desc, message
 
+    def getRstTable(self):
+        
+        t =TemplateHelper()
+        lName =12
+        lVal =12
+        lDesc =12
+        lines = []
+
+        for val in self.vals:
+            if len(val.name) > lName:
+                lName = len(val.name) 
+
+            if len(val.formatVal()) > lVal:
+                lVal = len(reg.formatVal())
+
+            if len(val.desc) > lDesc:
+                lDesc = len(val.desc)
+        
+        lName +=2
+        lVal +=2
+        lDesc +=2
+
+        divLine = "+" + ("-"* lName) + "+" + ("-"* lVal) + "+" + ("-"* lDesc)  + "+"
+        titleLine = "|" + t.padAfter("Name", lName) + "|" + t.padAfter("Address", lVal) + "|" + t.padAfter("Description", lDesc)  + "|"
+        headLine = divLine.replace("-","=")
+
+        lines.append(divLine)
+        lines.append(titleLine)
+        lines.append(headLine)
+
+        for val in self.vals:
+            line = "|" + t.padAfter(val.name, lName) + "|" + t.padAfter(val.formatVal(), lVal) +"|" + t.padAfter(val.desc, lDesc)  + "|"
+            lines.append(line)
+            lines.append(divLine)
+
+
+        return '\n'.join(lines)
+
     def getDict(self):
         val_arr = []
         for val in self.vals:
@@ -679,6 +717,59 @@ class Device:
         json_dict = {"name": self.name, "regs": reg_dict, "configs": cfg_dict, "currentVals": self.defaults, "smallestReg" : self.smallestReg * 8 , "largestReg": self.largestReg * 8}
 
         return json_dict
+
+    def getRstTable(self):
+        
+        t =TemplateHelper()
+        lName =12
+        lAddr =12
+        lType =12
+        lAccess =12
+        lDef =12
+        lDesc =12
+        lines = []
+
+        for key,reg in self.regs.items():
+            if len(reg.name) > lName:
+                lName = len(reg.name) 
+
+            if len(reg.printAddr()) > lAddr:
+                lAddr = len(reg.printAddr())
+
+            if len(reg.type) > lType:
+                lType = len(reg.type)
+
+            if len(reg.perm) > lAccess:
+                lAccess = len(reg.perm)
+
+            if len(reg.formatHex(reg.default)) > lDef:
+                lDef = len(reg.formatHex(reg.default))
+
+            if len(reg.desc) > lDesc:
+                lDesc = len(reg.desc)
+        
+        lName +=2
+        lAddr +=2
+        lType +=2
+        lAccess +=2
+        lDef +=2
+        lDesc +=2
+
+        divLine = "+" + ("-"* lName) + "+" + ("-"* lAddr) + "+" + ("-"* lType)  + "+" + ("-"* lAccess) + "+" + ("-"* lDef) + "+" + ("-"* lDesc)  + "+"
+        titleLine = "|" + t.padAfter("Name", lName) + "|" + t.padAfter("Address", lAddr) + "|" + t.padAfter("Type", lType)  + "|" + t.padAfter("Access", lAccess) + "|" + t.padAfter("Default", lDef) + "|" + t.padAfter("Description", lDesc)  + "|"
+        headLine = divLine.replace("-","=")
+
+        lines.append(divLine)
+        lines.append(titleLine)
+        lines.append(headLine)
+
+        for key,reg in self.regs.items():
+            line = "|" + t.padAfter(reg.name, lName) + "|" + t.padAfter(reg.printAddr(), lAddr) + "|" + t.padAfter(reg.type, lType)  + "|" + t.padAfter(reg.perm, lAccess) + "|" + t.padAfter(reg.formatHex(reg.default), lDef) + "|" + t.padAfter(reg.desc, lDesc)  + "|"
+            lines.append(line)
+            lines.append(divLine)
+
+
+        return '\n'.join(lines)
     
     def printJSON(self):
         return json.dumps(self.getDict());
