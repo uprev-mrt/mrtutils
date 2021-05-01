@@ -35,13 +35,7 @@ ${obj.desc}
 Register Map
 ------------
 
-=================     ================     ================     ================     ================     ================
-Name                    Address             Type                  Access              Default               Description
-=================     ================     ================     ================     ================     ================
-%for key,reg in obj.regs.items():
-${t.padAfter(reg.name+"_", 23)}${t.padAfter(reg.printAddr(),21)}${t.padAfter(reg.type,21)}${t.padAfter(reg.perm.upper(),21)}${t.padAfter(reg.formatHex(reg.default),21)}${t.padAfter(reg.desc,21)}
-%endfor
-=================     ================     ================     ================     ================     ================
+${obj.getRstTable()}
 
 
 
@@ -98,13 +92,7 @@ Fields
 :${field.name}: ${field.desc}
 %if len(field.vals) > 0:
 
-=====================     ================     ================================================================
-Name                       Value               Descriptions
-=====================     ================     ================================================================
-%for val in field.vals:
-${t.padAfter(val.name,27)} ${t.padAfter(val.formatVal(),21) }   ${val.desc}
-%endfor
-=====================     ================     ================================================================
+${field.getRstTable()}
 
 %endif
 

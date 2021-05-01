@@ -3,8 +3,11 @@
 import sys
 import os
 import argparse
+from mako.template import Template
+from mrtutils.mrtTemplateHelper import *
 import git
 import re
+from mrtutils.updates import *
 
 args = None
 parser = None
@@ -30,37 +33,100 @@ def commitsSinceTag(repo, tag, branch = "master"):
     return count
 
 class VersionStruct:
-    def __init__(self, major=0, minor=0, patch=0, build = 0):
-        self.major = major
-        self.minor = minor
-        self.patch = patch
-        self.build = build
+    def __init__(self):
+        self.major = 0
+        self.minor = 0
+        self.patch = 0
+        self.build = 0
         self.branch = "none"
+        self.prefix =""
         self.hash = ""
+        self.useTags = False
+
+    def loadFile(self, path):
+        f = open(path)
+        txt = f.read()
+        
+        reMajor = re.compile(r'VERSION_MAJOR\s*?(\S*?)\s*?\n' )
+        reMinor = re.compile(r'VERSION_MINOR\s*?(\S*?)\s*?\n' )
+        rePatch = re.compile(r'VERSION_PATCH\s*?(\S*?)\s*?\n' )
+        reBuild = re.compile(r'VERSION_BUILD\s*?(\S*?)\s*?\n' )
+        
+        mMajor = reMajor.findall(txt)
+        mMinor = reMinor.findall(txt)
+
+        mPatch = rePatch.findall(txt)
+        mBuild = reBuild.findall(txt)
+
+        self.major = int(mMajor[0][0].strip())
+        self.minor = int(mMinor[0][0].strip())
+        self.patch = int(mPatch[0][0].strip())
+        self.build = int(mBuild[0][0].strip())
+        
+
+        ##TODO parse version.h file
     
     def loadRepo(self,repo):
 
         self.branch = repo.active_branch.name
+        self.hash = repo.head.commit.hexsha
         vTag = None
 
-        #load tags 
-        tags = filter(filter_tags, repo.tags)
-        tags = sorted(tags, key=lambda t: t.commit.committed_datetime)
-        if len(tags) > 0:
-            vTag = tags[-1]
-            regex = re.compile(r'VER-(.*?)\.(.*?)$')
-            matches = regex.findall(vTag.name)
-            self.major = matches[0][0]
-            self.minor = matches[0][1]
+        if self.useTags:
+            #load tags 
+            tags = filter(filter_tags, repo.tags)
+            tags = sorted(tags, key=lambda t: t.commit.committed_datetime)
+            if len(tags) > 0:
+                vTag = tags[-1]
+                regex = re.compile(r'VER-(.*?)\.(.*?)$')
+                matches = regex.findall(vTag.name)
+                self.major = matches[0][0]
+                self.minor = matches[0][1]
     
-        if not vTag == None:
-            self.patch = commitsSinceTag(repo,vTag, self.branch)
+            if not vTag == None:
+                self.patch = commitsSinceTag(repo,vTag, self.branch)
+
+    def setMajor(self, str):
+
+        if str[0] == '+':
+            val = int(str[1:])
+            self.major += val 
+            self.minor = 0
+            self.patch = 0
+        
+        else:
+            self.major = int(str)
+
+    def setMinor(self, str):
+
+        if str[0] == '+':
+            val = int(str[1:])
+            self.minor += val 
+            self.patch = 0
+        
+        else:
+            self.minor = int(str)
+
+    def setPatch(self, str):
+
+        if str[0] == '+':
+            val = int(str[1:])
+            self.patch += val   
+        else:
+            self.patch = int(str)
+
+    def setbuild(self, str):
+
+        if str[0] == '+':
+            val = int(str[1:])
+            self.build += val 
+        
+        else:
+            self.build = int(str)
 
 
     def print(self):
-        print("Version {0}.{1}.{2}.{3}".format(self.major, self.minor, self.patch, self.build))
-        print("Branch: {0}".format(self.branch))
-        print("Commit: {0}".format(self.hash))
+        print("v{0}.{1}.{2}".format(self.major, self.minor, self.patch))
 
 
 
@@ -70,11 +136,11 @@ class VersionStruct:
 def init_args():
     global parser
     parser = argparse.ArgumentParser("Tool to generate version file")
-    parser.add_argument('-o', '--output', type=str, help='Output path', default=".")
-    parser.add_argument('-m', '--major', type=str, help='Major version', default="0")
-    parser.add_argument('-n', '--minor', type=str, help='Minor version', default="0")
-    parser.add_argument('-p', '--patch', type=str, help='Patch', default="0")
-    parser.add_argument('-b', '--build', type=str, help='build number', default="0")
+    parser.add_argument('versionFile', type=str, nargs='?', help='version header file', default="version.h")
+    parser.add_argument('-m', '--major', type=str, help='Major version', default="")
+    parser.add_argument('-n', '--minor', type=str, help='Minor version', default="")
+    parser.add_argument('-p', '--patch', type=str, help='Patch', default="")
+    parser.add_argument('-b', '--build', type=str, help='build number', default="")
     parser.add_argument('-t', '--tags', action='store_true', help='use version tags in repo', default=False)
 
     
@@ -84,11 +150,31 @@ def main():
     global args
     init_args()
     args = parser.parse_args() 
-    vs = VersionStruct(major = args.major, minor=args.minor , patch= args.patch, build = args.build)
+    vs = VersionStruct()
     
     if args.tags :
-        repo = git.Repo(os.getcwd())
-        vs.loadRepo(repo)
+        vs.useTags = True 
+
+
+    repo = git.Repo(os.getcwd())
+    vs.loadRepo(repo)
+
+    if os.path.isfile(args.versionFile):
+        vs.loadFile(args.versionFile)
+
+    if not args.major == "":
+        vs.setMajor(args.major)
+    if not args.minor == "":
+        vs.setMinor(args.minor)
+    if not args.patch == "":
+        vs.setPatch(args.patch)
+    if not args.build == "":
+        vs.setBuild(args.build)
+
+
+        
+    TemplateHelper.buildTemplate(vs,'templates/version/version.h',args.versionFile)
+
 
     vs.print()
 

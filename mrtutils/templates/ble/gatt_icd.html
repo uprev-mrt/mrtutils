@@ -83,7 +83,7 @@
     <td width=""><b>${characteristic.name}</b></td>
     %endif
     <td width="">${ characteristic.uuidStr() } </td>
-    <td width="">${characteristic.type} </td>
+    <td width="">${characteristic.printType()}</td>
     <td width="">${characteristic.perm} </td>
     <td>${characteristic.desc}\
       %if characteristic.isEnum:

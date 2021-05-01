@@ -3,6 +3,10 @@
 import sys
 import os
 from sys import platform
+from mako.template import Template
+import pkgutil
+from datetime import date
+
 import re
 
 sizeDict = {
@@ -83,6 +87,30 @@ class TemplateHelper:
     def __init__(self):
         self.sizeDict = sizeDict
         self.cTypeDict = cTypeDict
+
+    def getDate(self):
+        return date.today().strftime("%m/%d/%y")
+
+
+    def buildTemplate(object, templateFile, outputFile, replacePattern = r"@file (.*?\.)(.*?) \*/"):
+        exists= False
+        cr = CodeReplacer()
+        newContents =""
+        if os.path.isfile(outputFile):
+            exists = True
+            curFile = open(outputFile, "r")
+            text = curFile.read()
+            cr.loadText(text,replacePattern)
+            cr.loadText(text)
+
+        template = Template(pkgutil.get_data('mrtutils',templateFile) )
+        newContents = "\n".join(template.render(obj = object, t = TemplateHelper()).splitlines())
+        newContents = cr.insertBlocks(newContents,replacePattern)
+        newContents = cr.insertBlocks(newContents)
+        cr.printDrops()
+        text_file = open( outputFile , "w")
+        text_file.write(newContents)
+        text_file.close()
 
     def camelCase(self, text):
         out =""
