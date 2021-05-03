@@ -8,29 +8,13 @@ from mrtutils.mrtTemplateHelper import *
 import git
 import re
 from mrtutils.updates import *
+import subprocess
 
 args = None
 parser = None
 
 #def filter_commits:
 
-def filter_tags(tag):
-
-    regex = re.compile(r'VER-(.*?)\.(.*?)$')
-    matches = regex.findall(tag.name)
-    for m in matches:
-        return True 
-    
-    return False    
-
-def commitsSinceTag(repo, tag, branch = "master"):
-    commits = repo.commits()
-    count = 0
-    for c in commits:
-        if c.branch.name == branch:
-            if c.committed_datetime > tag.commit.committed_datetime:
-                count += 1
-    return count
 
 class VersionStruct:
     def __init__(self):
@@ -42,10 +26,13 @@ class VersionStruct:
         self.prefix =""
         self.hash = ""
         self.useTags = False
+        self.fileName =""
+        self.repo = None
 
     def loadFile(self, path):
         f = open(path)
         txt = f.read()
+        self.fileName = path
         
         reMajor = re.compile(r'VERSION_MAJOR\s*?(\S*?)\s*?\n' )
         reMinor = re.compile(r'VERSION_MINOR\s*?(\S*?)\s*?\n' )
@@ -68,23 +55,11 @@ class VersionStruct:
     
     def loadRepo(self,repo):
 
+        self.repo = repo
         self.branch = repo.active_branch.name
         self.hash = repo.head.commit.hexsha
-        vTag = None
 
-        if self.useTags:
-            #load tags 
-            tags = filter(filter_tags, repo.tags)
-            tags = sorted(tags, key=lambda t: t.commit.committed_datetime)
-            if len(tags) > 0:
-                vTag = tags[-1]
-                regex = re.compile(r'VER-(.*?)\.(.*?)$')
-                matches = regex.findall(vTag.name)
-                self.major = matches[0][0]
-                self.minor = matches[0][1]
-    
-            if not vTag == None:
-                self.patch = commitsSinceTag(repo,vTag, self.branch)
+
 
     def setMajor(self, str):
 
@@ -98,8 +73,11 @@ class VersionStruct:
             self.major = int(str)
 
     def setMinor(self, str):
-
-        if str[0] == '+':
+        
+        if str == 'auto':
+            self.patch = self.getCommitsSinceLast('master', change='major')
+            self.patch = 0
+        elif str[0] == '+':
             val = int(str[1:])
             self.minor += val 
             self.patch = 0
@@ -109,13 +87,15 @@ class VersionStruct:
 
     def setPatch(self, str):
 
-        if str[0] == '+':
+        if str == 'auto':
+            self.patch = self.getCommitsSinceLast('master', change='minor')
+        elif str[0] == '+':
             val = int(str[1:])
             self.patch += val   
         else:
             self.patch = int(str)
 
-    def setbuild(self, str):
+    def setBuild(self, str):
 
         if str[0] == '+':
             val = int(str[1:])
@@ -124,9 +104,40 @@ class VersionStruct:
         else:
             self.build = int(str)
 
+    def getCommitsSinceLast(self, branch = 'master', change= 'minor' ):
+    
+        repattern = None
+        count = 0
 
-    def print(self):
-        print("v{0}.{1}.{2}".format(self.major, self.minor, self.patch))
+        if change == 'minor':
+            repattern = re.compile(r'\+.*?VERSION_MINOR\s*?(\S*?)\s*?\n' )
+        elif change == 'major':
+            repattern = re.compile(r'\+.*?VERSION_MAJOR\s*?(\S*?)\s*?\n' )
+        
+        commit = self.repo.commit(branch)
+        firstParent = None 
+
+        #iterate through using first-parent method 
+        while(len(commit.parents) > 0):
+            firstParent = commit.parents[0]
+            diff = self.repo.git.diff(firstParent, commit, self.fileName)
+            if repattern.search(diff):
+                    return count
+            
+            count+= 1
+            commit = firstParent
+
+        
+        return count
+
+
+    def print(self, full):
+
+        if full:
+            print("v{0}.{1}.{2}.{3}".format(self.major, self.minor, self.patch, self.build))
+        else :
+            print("v{0}.{1}.{2}".format(self.major, self.minor, self.patch))
+
 
 
 
@@ -142,6 +153,7 @@ def init_args():
     parser.add_argument('-p', '--patch', type=str, help='Patch', default="")
     parser.add_argument('-b', '--build', type=str, help='build number', default="")
     parser.add_argument('-t', '--tags', action='store_true', help='use version tags in repo', default=False)
+    parser.add_argument('-f', '--full', action='store_true', help='output full version including build number', default=False)
 
     
 
@@ -176,7 +188,7 @@ def main():
     TemplateHelper.buildTemplate(vs,'templates/version/version.h',args.versionFile)
 
 
-    vs.print()
+    vs.print(args.full)
 
 
 
