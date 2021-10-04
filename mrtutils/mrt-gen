@@ -1,0 +1,145 @@
+#!/usr/bin/env python
+
+import sys
+import os
+from mrtutils.mrtTemplateHelper import *
+from mako.template import Template
+import argparse
+from datetime import date
+import getpass
+
+
+
+args = None
+parser = None
+
+
+def copyFile( srcfile, outputFile):
+    src_data = pkgutil.get_data('mrtutils',srcfile)
+    dst = open( outputFile , "wb")
+    dst.write(src_data)
+    dst.close()
+    print("Created " + outputFile)
+
+
+def buildTemplate(object, templateFile, outputFile, replacePattern = r"@file (.*?\.)(.*?) \*/"):
+    exists= False
+    cr = CodeReplacer()
+    newContents =""
+    if os.path.isfile(outputFile):
+        exists = True
+        curFile = open(outputFile, "r")
+        text = curFile.read()
+        cr.loadText(text)
+        cr.loadText(text,replacePattern)
+
+    template = Template(pkgutil.get_data('mrtutils',templateFile) )
+    newContents = "\n".join(template.render(obj = object, t = TemplateHelper()).splitlines())
+    newContents = cr.insertBlocks(newContents)
+    newContents = cr.insertBlocks(newContents,replacePattern)
+    cr.printDrops()
+    text_file = open( outputFile , "w")
+    text_file.write(newContents)
+    text_file.close()
+    print("Created " + outputFile)
+
+# Initialize the argument parser
+def init_args():
+    global parser
+    parser = argparse.ArgumentParser("Tool to generate code snippets and components")
+    parser.add_argument('path', type=str, nargs='?', help='generation path', default="")
+    parser.add_argument('-t', '--type', type=str, help='Generation type [c,cpp,doc]', default="")
+    parser.add_argument('-d', '--desc', type=str, help='description', default="")
+    parser.add_argument('-m', '--module', action='store_true', help='Generates mrt module', default=False)
+    
+
+
+def gen_c_files(obj):
+
+    buildTemplate(obj, "templates/gen/c.h", obj.path +".h")
+    buildTemplate(obj, "templates/gen/c.c", obj.path +".c")
+
+def gen_cpp_files(obj):
+
+    buildTemplate(obj, "templates/gen/c.h", obj.path +".h")
+    buildTemplate(obj, "templates/gen/cpp.cpp", obj.path +".cpp")
+
+def gen_doc_structure(obj):
+
+    os.mkdir(obj.path) 
+    os.mkdir(obj.path +"/pages") 
+    os.mkdir(obj.path +"/assets") 
+    os.mkdir(obj.path +"/assets/diagrams") 
+    buildTemplate(obj, "templates/gen/Makefile", obj.path +"/Makefile")
+    buildTemplate(obj, "templates/gen/index.rst", obj.path +"/index.rst")
+    buildTemplate(obj, "templates/gen/conf.py", obj.path +"/conf.py")
+    buildTemplate(obj, "templates/gen/samplepage.rst", obj.path +"/pages/samplepage.rst")
+    copyFile( "templates/gen/samplediagram.dio.png", obj.path +"/assets/diagrams/samplediagram.dio.png")
+
+def gen_mrt_mod(obj):
+
+    os.mkdir(obj.path)
+    buildTemplate(obj, "templates/gen/c.h", obj.path + "/" + obj.name +".h")
+    buildTemplate(obj, "templates/gen/c.c", obj.path + "/" + obj.name +".c")
+    buildTemplate(obj, "templates/gen/README.rst", obj.path + "/README.rst")
+    buildTemplate(obj, "templates/gen/mrt.yml", obj.path + "/mrt.yml")
+    buildTemplate(obj, "templates/gen/UT.cpp", obj.path +"/"+ obj.name + "_UT.cpp")
+    
+
+
+
+class config:
+    def __init__(self, path):
+        self.path = path
+        self.name = path.split('/')[-1]
+        self.gentime = date.today().strftime("%m/%d/%y")
+        self.user = getpass.getuser()
+        self.desc = ""
+        self.type = ""
+
+def main():
+
+    global parser
+    global args
+
+
+    init_args()
+    args= parser.parse_args()
+
+    obj = config(args.path)
+    obj.desc = args.desc
+    obj.type = args.type
+
+    #if type isnt specified
+    if obj.type == '':
+
+        #if path ends in doc ie ./project/doc, assume doc generation
+        if obj.name in ['doc', 'docs']:
+            obj.type = 'doc'
+        else: #otherwise default to c
+            obj.type = 'c'
+    
+    if args.module:
+        obj.type = "mod"
+
+        
+
+
+    switcher = {
+        "c": gen_c_files,
+        "cpp": gen_cpp_files,
+        "doc": gen_doc_structure,
+        "mod": gen_mrt_mod
+    }
+
+    
+    func = switcher.get(obj.type)
+
+    func(obj)
+
+
+
+        
+
+if __name__ == "__main__":
+    main()
