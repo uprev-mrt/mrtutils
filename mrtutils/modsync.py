@@ -91,6 +91,8 @@ class Submodule:
                     self.requirements.append('Common')
                 else:
                     self.requirements.append(req)
+        
+        self.mrtprops = yamlObj
 
 
     def getYaml(self):
@@ -218,7 +220,7 @@ class RepoDirectory:
         for dir in self.dirs.values():
             dir.printout(lvl+1)
 
-    def copyDocStruct(self, lvl, root ):
+    def copyDocStruct(self, lvl, root , root_index_text = "" ):
 
         if lvl == 0:
             path = root
@@ -226,11 +228,18 @@ class RepoDirectory:
             path = root+"/"+self.name
 
 
-        os.makedirs(path,exist_ok=True)
 
-        indexText = self.name+"\n"
-        for c in self.name:
-            indexText+= "="
+
+        os.makedirs(path,exist_ok=True)
+        indexText =""
+
+        if lvl == 0 and root_index_text != "":
+            indexText = root_index_text 
+        else:
+            indexText = self.name+"\n"
+            for c in self.name:
+                indexText+= "="
+
         indexText+= "\n"
         indexText+= ".. toctree::\n"
         indexText+= "\t:caption: " + self.name+"\n"
@@ -281,9 +290,15 @@ class RepoDirectory:
             
             for req in mod.requirements:
                 fileTxt+="\tselect ENABLE_{0}\n".format(req.upper())
+  
+            # strYaml = yaml.dump(mod.mrtprops)
+            # strYaml = strYaml.replace("\n", "\n\t\t")
+            # fileTxt +="\thelp\n\t\t{0}\n".format(strYaml)
 
             if not mod.getProp("description") == None:
-                fileTxt +="\thelp\n\t\t{0}\n".format(mod.getProp("description"))
+                brief = mod.getProp("description")
+                brief = brief.replace("\n", "\n\t\t")
+                fileTxt +="\thelp\n\t\t{0}\n".format(brief)
 
 
             fileTxt += "\n"
@@ -311,6 +326,19 @@ class Repo:
 
     def setRelativePath(self,path):
         self.relativePath = path
+
+    def getDir(self, path):
+
+        nodes = path.split('/')
+        curDir = self.dir 
+        for n in nodes:
+            if n != '.' and n in curDir.dirs:
+                curDir = curDir.dirs[n]
+
+
+        return curDir
+
+
     
     def crossCheckMods(self,repo):
         for mod in self.mods:

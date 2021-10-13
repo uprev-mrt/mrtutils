@@ -3,6 +3,7 @@
 import sys
 import os
 from mrtutils.mrtTemplateHelper import *
+from mrtutils.mrtDocHelper import DocHelper
 from mako.template import Template
 import argparse
 from datetime import date
@@ -66,15 +67,11 @@ def gen_cpp_files(obj):
 
 def gen_doc_structure(obj):
 
-    os.mkdir(obj.path) 
-    os.mkdir(obj.path +"/pages") 
-    os.mkdir(obj.path +"/assets") 
-    os.mkdir(obj.path +"/assets/diagrams") 
-    buildTemplate(obj, "templates/gen/Makefile", obj.path +"/Makefile")
-    buildTemplate(obj, "templates/gen/index.rst", obj.path +"/index.rst")
-    buildTemplate(obj, "templates/gen/conf.py", obj.path +"/conf.py")
-    buildTemplate(obj, "templates/gen/samplepage.rst", obj.path +"/pages/samplepage.rst")
-    copyFile( "templates/gen/samplediagram.dio.png", obj.path +"/assets/diagrams/samplediagram.dio.png")
+    d = DocHelper() 
+
+    d.buildDocStructure(obj.path)
+
+
 
 def gen_mrt_mod(obj):
 

@@ -12,7 +12,7 @@ from kconfiglib import Kconfig, \
                        expr_value, \
                        TRI_TO_STR
 
-from menuconfig import menuconfig
+from mrtutils.menuconfig import menuconfig
 
 remoteRepo = None #Repo("git@bitbucket.org/uprev/uprev-mrt.git", remote= True) 
 localRepo = None #Repo(os.getcwd())
@@ -82,6 +82,7 @@ class MrtKConfig(Kconfig):
         self.missing_syms = [] 
 
         return "Loaded Submodules"
+    
 
 # Initialize the argument parser
 def init_args():
