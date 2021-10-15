@@ -391,6 +391,16 @@ class GattService(object):
     def addChar(self, char):
         self.chars.append(char)
 
+    def getAttrCount(self):
+
+        count = 1 # #1 attr for the service itself
+
+        for char in self.chars:
+            count +=2 #each char has a declaration and value attribute 
+
+            if 'n' in char.perm.lower():
+                count+=1        #each char gets an additional attribute for CCCD if it has notify permission
+
     def getDict(self):
         char_arr = []
 
@@ -407,6 +417,7 @@ class GattProfile(object):
         self.name= "unnamed"
         self.services = []
         self.genTime = datetime.datetime.now().strftime("%m/%d/%y")
+        self.platform = "mrt"
     
     def nrfServices(self, uuidType):
 

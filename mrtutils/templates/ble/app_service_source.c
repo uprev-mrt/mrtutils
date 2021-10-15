@@ -6,7 +6,6 @@
  */
 
 /*user-block-includes-start -------------------------------------------------*/
-#include "Utilities/Interfaces/GattServer/gatt_server.h"
 #include "svc/${obj.prefix}_svc.h"
 
 /*user-block-includes-end*/

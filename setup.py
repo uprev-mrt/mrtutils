@@ -13,12 +13,12 @@ setuptools.setup(
      author_email="JBerger@up-rev.com",
      description="Utilities for MrT",
      long_description=long_description,
-     scripts=['mrtutils/mrt-config','mrtutils/mrt-device', 'mrtutils/mrt-ble', 'mrtutils/mrt-config-gui','mrtutils/mrt-doc', 'mrtutils/mrt-version','mrtutils/mrt-gen'],
+     scripts=['mrtutils/mrt-config','mrtutils/mrt-device', 'mrtutils/mrt-ble','mrtutils/mrt-gatt', 'mrtutils/mrt-config-gui','mrtutils/mrt-doc', 'mrtutils/mrt-version','mrtutils/mrt-gen'],
      long_description_content_type="text/x-rst",
      url="https://mrt.readthedocs.io/en/latest/index.html",
      packages=setuptools.find_packages(),
      package_data={
-     'mrtutils':['templates/*', 'templates/*/*']
+     'mrtutils':['templates/*', 'templates/*/*','templates/*/*/*']
      },
      install_requires=[
         'markdown',

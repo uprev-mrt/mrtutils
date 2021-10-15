@@ -11,7 +11,12 @@ extern "C"
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+%if obj.profile.platform == 'mrt':
 #include "Utilities/Interfaces/GattServer/gatt_server.h"
+%endif 
+%if obj.profile.platform == 'esp32':
+#include "interface/gatt_server.h"
+%endif
 
 /* Exported Macros -----------------------------------------------------------*/
 /* Types */
