@@ -7,6 +7,8 @@
 
 #include "${obj.name.lower()}_profile.h"
 
+
+
 /*user-block-top-start*/
 
 static esp_ble_adv_params_t data_adv_params = {
@@ -20,25 +22,41 @@ static esp_ble_adv_params_t data_adv_params = {
 
 /*user-block-top-end*/
 
+
+
 void ${obj.name.lower()}_profile_init(void)
 {
     /* Initialize all services */
     %for svc in obj.services:
-    ${svc.prefix}_svc_init(&${svc.prefix}_svc);
+    ${svc.prefix}_svc_init();
     %endfor
 
 }
+
+mrt_gatt_svc_t*
 
 void ${obj.name.lower()}_profile_create_services(esp_gatt_if_t gatts_if);
 {
     uint8_t id =0;
 
-    /* Initialize all services */
+    /* Add Attribute tables for all services */
     %for svc in obj.services:
-    ${"esp_ble_gatts_create_attr_tab({0}_svc_attr_db, gatts_if, IDX_{1}_NB, id++);".format(obj.prefix.lower(),obj.prefix.upper())}
-
+    ${"esp_ble_gatts_create_attr_tab({0}_svc_attr_db, gatts_if, IDX_{1}_NB, id++);".format(svc.prefix.lower(),svc.prefix.upper())}
     %endfor
 
+
+}
+
+void ${obj.name.lower()}_profile_set_handles(esp_bt_uuid_t* svc_uuid,uint16_t* handles, int len )
+{
+    /* Find Service with matching UUID and pass handles*/
+    %for svc in obj.services:
+    if((svc_uuid->len == ${obj.prefix}_svc.mUuid.mLen) && (memcmp( (uint8_t*)svc_uuid->uuid, (uint8_t*)${obj.prefix}_svc->mUuid.m16Bit, svc_uuid->len) == 0))
+    {
+        ${svc.prefix}_svc_set_handles(handles,len);
+        return;
+    }
+    %endfor
 
 }
 
@@ -50,6 +68,11 @@ void ${obj.name.lower()}_gatt_write_handler(esp_gatt_if_t gatts_if, esp_ble_gatt
 void ${obj.name.lower()}_gatt_read_handler(esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
     //TODO dispatch from param->write.handle
+}
+
+void ${obj.name.lower()}_profile_set_handles(esp_bt_uuid_t svc_uuid,uint16_t* handles, int len )
+{
+    //TODO Dispatch
 }
 
 /*user-block-functions-start*/
@@ -134,85 +157,10 @@ static void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, es
             break;
         case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
             ESP_LOGI(GATTS_SERVER_TAG, "Create attr tab : handle = %x",param->add_attr_tab.num_handle);
-            if (param->create.status == ESP_GATT_OK){
-				if(memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128,ble_gatt_device_status_service_uuid, ESP_UUID_LEN_128) == 0)
-				{
-				   if( param->add_attr_tab.num_handle != GATT_SERVICE_DEVICE_STATUS_IDX_NB)
-				   {
-					   ESP_LOGE(GATTS_SERVER_TAG,"create attribute table abnormally, num_handle (%d) isn't equal to GATT_SERVICE_DEVICE_STATUS_IDX_NB(%d)", param->add_attr_tab.num_handle, GATT_SERVICE_DEVICE_STATUS_IDX_NB);
-				   }
-				   else
-				   {
-					   ESP_LOGI(GATTS_SERVER_TAG,"create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
-					   memcpy(gatt_device_status_handle_table, param->add_attr_tab.handles, sizeof(gatt_device_status_handle_table));
-					   esp_ble_gatts_start_service(gatt_device_status_handle_table[GATT_SERVICE_DEVICE_STATUS_IDX_SVC]);
-				   }
-				}
-				else if(memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128,ble_gatt_result_data_service_uuid, ESP_UUID_LEN_128) == 0)
-				{
-				   if( param->add_attr_tab.num_handle != GATT_SERVICE_RESULT_DATA_IDX_NB)
-				   {
-					   ESP_LOGE(GATTS_SERVER_TAG,"create attribute table abnormally, num_handle (%d) isn't equal to GATT_SERVICE_RESULT_DATA_IDX_NB(%d)", param->add_attr_tab.num_handle, GATT_SERVICE_RESULT_DATA_IDX_NB);
-				   }
-				   else
-				   {
-					   ESP_LOGI(GATTS_SERVER_TAG,"create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
-					   memcpy(gatt_result_data_handle_table, param->add_attr_tab.handles, sizeof(gatt_result_data_handle_table));
-					   esp_ble_gatts_start_service(gatt_result_data_handle_table[GATT_SERVICE_RESULT_DATA_IDX_SVC]);
-				   }
-				}
-				else if(memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128,ble_gatt_led_control_service_uuid, ESP_UUID_LEN_128) == 0)
-				{
-				   if( param->add_attr_tab.num_handle != GATT_SERVICE_LED_CONTROL_IDX_NB)
-				   {
-					   ESP_LOGE(GATTS_SERVER_TAG,"create attribute table abnormally, num_handle (%d) isn't equal to GATT_SERVICE_LED_CONTROL_IDX_NB(%d)", param->add_attr_tab.num_handle, GATT_SERVICE_LED_CONTROL_IDX_NB);
-				   }
-				   else
-				   {
-					   ESP_LOGI(GATTS_SERVER_TAG,"create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
-					   memcpy(gatt_led_control_handle_table, param->add_attr_tab.handles, sizeof(gatt_led_control_handle_table));
-					   esp_ble_gatts_start_service(gatt_led_control_handle_table[GATT_SERVICE_LED_CONTROL_IDX_SVC]);
-				   }
-				}
-				else if(memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128,ble_gatt_advanced_control_service_uuid, ESP_UUID_LEN_128) == 0)
-				{
-				   if( param->add_attr_tab.num_handle != GATT_SERVICE_ADVANCED_CONTROL_IDX_NB)
-				   {
-					   ESP_LOGE(GATTS_SERVER_TAG,"create attribute table abnormally, num_handle (%d) isn't equal to GATT_SERVICE_ADVANCED_CONTROL_IDX_NB(%d)", param->add_attr_tab.num_handle, GATT_SERVICE_ADVANCED_CONTROL_IDX_NB);
-				   }
-				   else
-				   {
-					   ESP_LOGI(GATTS_SERVER_TAG,"create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
-					   memcpy(gatt_advanced_control_handle_table, param->add_attr_tab.handles, sizeof(gatt_advanced_control_handle_table));
-					   esp_ble_gatts_start_service(gatt_advanced_control_handle_table[GATT_SERVICE_ADVANCED_CONTROL_IDX_SVC]);
-				   }
-				}
-				else if(memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128,ble_gatt_sensor_thresh_service_uuid, ESP_UUID_LEN_128) == 0)
-				{
-				   if( param->add_attr_tab.num_handle != GATT_SERVICE_SENSOR_THRESH_IDX_NB)
-				   {
-					   ESP_LOGE(GATTS_SERVER_TAG,"create attribute table abnormally, num_handle (%d) isn't equal to GATT_SERVICE_SENSOR_THRESH_IDX_NB(%d)", param->add_attr_tab.num_handle, GATT_SERVICE_SENSOR_THRESH_IDX_NB);
-				   }
-				   else
-				   {
-					   ESP_LOGI(GATTS_SERVER_TAG,"create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
-					   memcpy(gatt_sensor_thresh_handle_table, param->add_attr_tab.handles, sizeof(gatt_sensor_thresh_handle_table));
-					   esp_ble_gatts_start_service(gatt_sensor_thresh_handle_table[GATT_SERVICE_SENSOR_THRESH_IDX_SVC]);
-				   }
-				}
-				else if(memcmp(param->add_attr_tab.svc_uuid.uuid.uuid128,ble_gatt_fota_service_uuid, ESP_UUID_LEN_128) == 0)
-				{
-				   if( param->add_attr_tab.num_handle != GATT_SERVICE_FOTA_IDX_NB)
-				   {
-					   ESP_LOGE(GATTS_SERVER_TAG,"create attribute table abnormally, num_handle (%d) isn't equal to GATT_SERVICE_FOTA_IDX_NB(%d)", param->add_attr_tab.num_handle, GATT_SERVICE_FOTA_IDX_NB);
-				   }
-				   else
-				   {
-					   ESP_LOGI(GATTS_SERVER_TAG,"create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
-					   memcpy(gatt_fota_handle_table, param->add_attr_tab.handles, sizeof(gatt_fota_handle_table));
-					   esp_ble_gatts_start_service(gatt_fota_handle_table[GATT_SERVICE_FOTA_IDX_SVC]);
-				   }
-				}
+            if (param->create.status == ESP_GATT_OK)
+            {
+            
+                ${obj.name.lower()}_profile_set_handles(&param->add_attr_tab.svc_uuid,param->add_attr_tab.handles, param->add_attr_tab.num_handle);
 
             }
             else

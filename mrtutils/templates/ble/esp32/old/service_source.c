@@ -40,7 +40,7 @@ const esp_gatts_attr_db_t ${"{0}_svc_attr_db[IDX_{1}_NB] = ".format(obj.prefix.l
 
     /* ${char.name} Value */
     [${"IDX_{0}_{1}_VAL".format(obj.prefix.upper(), char.name.upper())}] =
-    {{ESP_GATT_AUTO_RSP}, {${obj.uuidType.replace("bit","").replace("e","ESP_UUID_LEN_")}, (uint8_t *)&GATTS_CHAR_UUID_TEST_A, ${char.props().replace("MRT_GATT_PROP_", "ESP_GATT_PERM_")},
+    {{ESP_GATT_AUTO_RSP}, {${obj.uuidType.replace("MRT","ESP")}, (uint8_t *)&GATTS_CHAR_UUID_TEST_A, ${char.props().replace("MRT_GATT_PROP_", "ESP_GATT_PERM_")},
        ${"{0}_svc->m{1}.mSize, {0}_svc->m{1}.mCache.mLen,{0}_svc->m{1}.mCache.mData".format(obj.prefix, t.camelCase(char.name))}  }},
 
     %if 'n' in char.perm.lower():
@@ -71,7 +71,13 @@ void ${obj.prefix}_svc_set_handles(uint16_t* handles, int len)
 
     for(uint32_t i = 0; i < ${obj.prefix}_svc.mCharCount; i++)
     {
+        ${obj.prefix}_svc.mChars[i]->mHandles.mchar = handles[cur++];
+        ${obj.prefix}_svc.mChars[i]->mHandles.mValue = handles[cur++];
 
+        if((${obj.prefix}_svc.mChars[i]->mProps | MRT_GATT_PROP_NOTIFY) > 0)
+        {
+          ${obj.prefix}_svc.mChars[i]->mHandles.mCCCD = handles[cur++];  
+        }
     }
 }
 

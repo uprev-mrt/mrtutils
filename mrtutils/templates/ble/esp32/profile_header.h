@@ -23,12 +23,16 @@ extern "C"
 /*user-block-top-end*/
 
 /* Exported constants --------------------------------------------------------*/
+
+#define ${obj.name.upper()}_SERVICE_COUNT ${len(obj.services)}
+
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 
 
 void ${obj.name.lower()}_profile_init(void);
 void ${obj.name.lower()}_profile_create_services(esp_gatt_if_t gatts_if);
+void ${obj.name.lower()}_profile_set_handles(esp_bt_uuid_t* svc_uuid,uint16_t* handles, int len );
 
 void ${obj.name.lower()}_gatt_write_handler(esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 void ${obj.name.lower()}_gatt_read_handler(esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);

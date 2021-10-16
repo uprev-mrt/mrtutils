@@ -13,10 +13,10 @@ extern "C"
 /* Includes ------------------------------------------------------------------*/
 %if obj.profile.platform == 'mrt':
 #include "Utilities/Interfaces/GattServer/gatt_server.h"
+%else:
+#include "../interface/mrt_gatt_interface.h"
 %endif 
-%if obj.profile.platform == 'esp32':
-#include "interface/gatt_server.h"
-%endif
+
 
 /* Exported Macros -----------------------------------------------------------*/
 /* Types */
@@ -48,12 +48,15 @@ typedef struct{
 extern ${obj.prefix}_svc_t ${obj.prefix}_svc;
 
 /* Initializer----------------------------------------------------------------*/
-void ${obj.prefix}_svc_init(${obj.prefix}_svc_t* ${obj.prefix}_svc);
+void ${obj.prefix}_svc_init();
+
+void ${obj.prefix}_svc_register();
+
 
 /**
  * @brief Called after server is intialized
  */
-void ${obj.prefix}_svc_post_init(void);
+void ${obj.prefix}_svc_post_init();
 
 
 /* Getters and Setters--------------------------------------------------------*/
@@ -62,9 +65,9 @@ void ${obj.prefix}_svc_post_init(void);
 % for char in obj.chars:
 % if char.perm.lower() != 'w':
 %if char.type == 'string':
-${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"MRT_GATT_UPDATE_CHAR(&{0}_svc.m{1}, (uint8_t*)(val), strlen(val))".format(obj.prefix, t.camelCase(char.name))}
+${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*)(val), strlen(val))".format(obj.prefix, t.camelCase(char.name))}
 %else:
-${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"MRT_GATT_UPDATE_CHAR(&{0}_svc.m{1}, (uint8_t*)(val), {2})".format(obj.prefix, t.camelCase(char.name),char.size())}
+${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*)(val), {2})".format(obj.prefix, t.camelCase(char.name),char.size())}
 %endif
 %endif
 % endfor

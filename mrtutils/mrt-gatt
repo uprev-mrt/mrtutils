@@ -90,19 +90,21 @@ def buildProfileSourceEsp32(gatt , outputPath, baseName =''):
     if not os.path.exists(outputPath +"/svc"):
         os.makedirs(outputPath+"/svc")
     
-    if not os.path.exists(outputPath +"/svc/adapter"):
-        os.makedirs(outputPath+"/svc/adapter")
+    if not os.path.exists(outputPath +"/interface"):
+        os.makedirs(outputPath+"/interface")
 
     buildTemplate(gatt, 'templates/ble/esp32/profile_header.h', outputPath +"/"+gatt.name.lower() + "_profile.h" )
     buildTemplate(gatt, 'templates/ble/esp32/profile_source.c', outputPath +"/"+gatt.name.lower() + "_profile.c" )
-    buildTemplate(gatt, 'templates/ble/esp32/mrt_gatt_adapter.h', outputPath +"/svc/adapter/mrt_gatt_adapter.h" )
-    buildTemplate(gatt, 'templates/ble/esp32/mrt_gatt_adapter.c', outputPath +"/svc/adapter/mrt_gatt_adapter.c" )
+    buildTemplate(gatt, 'templates/ble/mrt_gatt_interface.h', outputPath +"/interface/mrt_gatt_interface.h" )
+    buildTemplate(gatt, 'templates/ble/mrt_gatt_interface.c', outputPath +"/interface/mrt_gatt_interface.c" )
+    buildTemplate(gatt, 'templates/ble/esp32/esp32_gatt_adapter.c', outputPath +"/interface/esp32_gatt_adapter.c" )
+    buildTemplate(gatt, 'templates/ble/esp32/esp32_gatt_adapter.h', outputPath +"/interface/esp32_gatt_adapter.h" )
 
     for service in gatt.services:
         print("***" + service.name + "****")
-        buildTemplate(service, 'templates/ble/esp32/service_header.h', outputPath +"/svc/"+service.prefix + "_svc.h", False  )
-        buildTemplate(service, 'templates/ble/esp32/service_source.c', outputPath +"/svc/"+service.prefix + "_svc.c", False )
-        buildTemplate(service, 'templates/ble/esp32/app_service_source.c', outputPath +"/app_" + service.prefix+"_svc.c" )
+        buildTemplate(service, 'templates/ble/service_header.h', outputPath +"/svc/"+service.prefix + "_svc.h", False  )
+        buildTemplate(service, 'templates/ble/service_source.c', outputPath +"/svc/"+service.prefix + "_svc.c", False )
+        buildTemplate(service, 'templates/ble/app_service_source.c', outputPath +"/app_" + service.prefix+"_svc.c" )
 
 
 

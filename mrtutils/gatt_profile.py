@@ -128,7 +128,7 @@ class GattCharacteristic(object):
         self.perm = None
         self.url =""
         self.uuid = None
-        self.uuidType = "e128Bit"
+        self.uuidType = "MRT_UUID_LEN_128"
         self.icon = ''
         self.coef = 1
         self.unit = ''
@@ -142,7 +142,7 @@ class GattCharacteristic(object):
         arr =[]
         if type(val) != str:
             val = "%0.4X" % val
-            self.uuidType ="e16Bit"
+            self.uuidType ="MRT_UUID_LEN_16"
         
         val = val.replace('-','')
         arr = [val[i:i+2] for i in range(0, len(val), 2)]
@@ -315,7 +315,7 @@ class GattService(object):
         self.url =""
         self.uri = None
         self.nextUuid = 0
-        self.uuidType ="e128Bit"
+        self.uuidType ="MRT_UUID_LEN_128"
         self.profile = ''
         self.icon = ''
     
@@ -328,7 +328,7 @@ class GattService(object):
 
         self.name = root.attrib['name'].replace(' ', '_')
         self.uuid = int(root.attrib['uuid'],16)
-        self.uuidType = 'e16Bit'
+        self.uuidType = 'MRT_UUID_LEN_16'
         setIfEmpty(self, 'desc',root.find('./InformativeText/Abstract'))
         setIfEmpty(self, 'desc',root.find('./InformativeText/Summary'))
 
@@ -348,7 +348,7 @@ class GattService(object):
         arr =[]
         if type(val) != str:
             val = "%0.4X" % val
-            self.uuidType ="e16Bit"
+            self.uuidType ="MRT_UUID_LEN_16"
         
         val = val.replace('-','')
         arr = [val[i:i+2] for i in range(0, len(val), 2)]
