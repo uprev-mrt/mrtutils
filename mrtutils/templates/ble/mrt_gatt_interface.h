@@ -68,15 +68,14 @@ extern "C"
 #define MRT_UUID_LEN_32 4
 #define MRT_UUID_LEN_128 16
 
+#define MRT_GATT_EVT_NONE          0x00, /* None/unknown */     
+#define MRT_GATT_EVT_VALUE_WRITE   0x01, /* Value is being written */
+#define MRT_GATT_EVT_VALUE_READ    0x02, /* Value is being read */
+#define MRT_GATT_EVT_CCCD_WRITE    0x03, /* Descriptor is being written (ususally to enable notifications)*/
+#define MRT_GATT_EVT_CCCD_READ     0x04  /* Descriptor is  being read*/
+
 /* Exported types ------------------------------------------------------------*/
 
-typedef enum{
-    GATT_EVT_NONE           = 0x00, /* None/unknown */     
-    GATT_EVT_VALUE_WRITE    = 0x01, /* Value is being written */
-    GATT_EVT_VALUE_READ     = 0x02, /* Value is being read */
-    GATT_EVT_DESCR_WRITE    = 0x03, /* Descriptor is being written (ususally to enable notifications)*/
-    GATT_EVT_DESCR_READ    = 0x04  /* Descriptor is  being read*/
-}mrt_gatt_evt_type_e;
 
 /* UUID struct */
 typedef struct{
@@ -90,17 +89,24 @@ typedef struct{
 
 /* Forward Declare for self referencing function pointers */
 typedef struct mrt_gatt_svc_t mrt_gatt_svc_t;                             //forward declare for self referencing callback
-typedef struct mrt_gatt_char_t mrt_gatt_char_t;                             //forward declare for self referencing callback
+typedef struct mrt_gatt_char_t mrt_gatt_char_t;                            //forward declare for self referencing callback
+typedef struct mrt_gatt_evt_t mrt_gatt_evt_t;                             //forward declare for self referencing callback
 
+
+typedef mrt_status_t (*mrt_gatt_svc_callback)(mrt_gatt_svc_t* svc, mrt_gatt_evt_t* event); 
+typedef mrt_status_t (*mrt_gatt_char_callback)(mrt_gatt_evt_t* event); 
 
 /* gatt Event struct*/
 typedef struct{
-    mrt_gatt_evt_type_e mType;   /*Type of event*/
-    mrt_gatt_char_t* mChar;      /*Characteristic for event*/
+    uint8_t mType;              /*Type of event*/
+    uint16_t mHandle;           /* Handle*/
+    mrt_gatt_char_t* mChar;     /*Characteristic for event*/
     struct{
-        uint8_t* data;          /*ptr to data for writes (or notify on client)*/
+        uint8_t* data;          /* ptr to data for writes (or notify on client)*/
         int len;                /* len of data in bytes*/
     }mData;
+    void* mCtx;                 /* Allows struct to reference platform specific objec if needed */
+    mrt_status_t mStatus;       /* Status */
 } mrt_gatt_evt_t;
 
 typedef struct{
@@ -109,8 +115,6 @@ typedef struct{
     uint16_t mCCCD;             //Client Config handle
 }mrt_gatt_handles_t;
 
-typedef mrt_status_t (*mrt_gatt_svc_callback)(mrt_gatt_svc_t* svc, mrt_gatt_evt_t* event); 
-typedef mrt_status_t (*mrt_gatt_char_callback)(mrt_gatt_evt_t* event); 
 
 /**
  * Gatt Characteristic Struct
@@ -131,6 +135,7 @@ struct mrt_gatt_char_t{
     uint16_t mCCCD;
     mrt_gatt_svc_t* mSvc;           //ptr to service
     mrt_gatt_char_callback cbEvent; //characteristic event callback
+    const char* mName;              // Name
     void* mCtx;                     //Allows struct to reference other objects in adapters.
 };
 
@@ -149,21 +154,22 @@ struct mrt_gatt_svc_t{
     uint8_t mSecurity;              //Security flags for service, if set this will override characteristic level security flags
     mrt_gatt_pro_t* mPro;           //Ptr to profile
     mrt_gatt_svc_callback cbEvent;  //Service event callback
+    const char* mName;              // Name
     void* mCtx;                     //Allows struct to reference other objects in adapters.
 };
 
 
 /**
- *  Profile Struct 
+ * Gatt Profile Struct 
  * 
- *  Most applications use a single profile and will not need this layer
- *  But it is here for future expansion
+ * A Profile is a collection of services
  */
 struct mrt_gatt_pro_t{
     uint32_t mId;                 //Some platforms use an ID when running multiple profiles
     mrt_gatt_svc_t** mSvcs;       //Array of Services   
     uint16_t mSvcCount;           //Number of Services
     uint16_t mMaxSvcCount;        //max number of Services
+    const char* mName;              // Name
     void* mCtx;                   //Allows struct to reference other objects in adapters.
 };
 
@@ -176,8 +182,9 @@ struct mrt_gatt_pro_t{
  * @param profile - ptr to profile
  * @param serviceCount - number of services in profile
  * @param id - profile ID
+ * @param name - name of characteristic
  */
-mrt_status_t mrt_gatt_init_pro(mrt_gatt_pro_t* pro, uint16_t serviceCount, uint32_t id);   
+mrt_status_t mrt_gatt_init_pro(mrt_gatt_pro_t* pro, uint16_t serviceCount, uint32_t id, const char* name);   
 
 
 /**
@@ -195,8 +202,9 @@ mrt_status_t mrt_gatt_add_svc(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc );
  * @param arrUuid - array of bytes representing UUID
  * @param charCount - number of characteristics in service 
  * @param cbEvent - callback event (unused for now)
+ * @param name - name of characteristic
  */
-mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidType, const uint8_t* arrUuid, uint16_t charCount, mrt_gatt_svc_callback cbEvent);
+mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidType, const uint8_t* arrUuid, uint16_t charCount, mrt_gatt_svc_callback cbEvent, const char* name);
 
 /**
  * @brief Initializes a characteristic and adds it to a service
@@ -207,8 +215,9 @@ mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidType, const uint
  * @param size - size of data in bytes
  * @param props - properties (READ,WRITE,NOTIFY etc)
  * @param cbEvent - callback handler for gatt event 
+ * @param name - name of characteristic
  */
-mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8_t uuidType, const uint8_t* arrUuid, uint16_t size, uint8_t props, mrt_gatt_char_callback cbEvent );
+mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8_t uuidType, const uint8_t* arrUuid, uint16_t size, uint8_t props, mrt_gatt_char_callback cbEvent,const char* name );
 
 /**
  * @brief Sets the default security flags for intializing characteristics  
@@ -219,8 +228,48 @@ mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8
 mrt_status_t mrt_gatt_set_default_security(uint8_t securityFlags);
 
 
-mrt_gatt_svc_t* mrt_gatt_lookup_svc(mrt_gatt_pro_t* pro, mrt_gatt_uuid_t* uuid);
-mrt_gatt_char_t* mrt_gatt_lookup_char(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc, mrt_gatt_uuid_t* uuid);
+/**
+ * @brief checks if characteristic contains the handle
+ * 
+ * @param chr 
+ * @param handle 
+ * @return true if handle matches any of the characteristic handles
+ */
+bool mrt_gatt_char_has_handle(mrt_gatt_char_t* chr, uint16_t handle);
+
+/**
+ * @brief looks for a service in a profile by service uuid
+ * @param pro ptr to profile
+ * @param uuid uuid to match
+ * @return ptr to service or NULL if not found 
+ */
+mrt_gatt_svc_t* mrt_gatt_lookup_svc_uuid(mrt_gatt_pro_t* pro, mrt_gatt_uuid_t* uuid);
+
+/**
+ * @brief looks for a chacateristic in a service or profile by uuid.
+ * @param pro ptr to profile, NULL if searching service
+ * @param svc ptr to service, NULL if searching profile
+ * @param uuid uuid to match
+ * @return ptr to characteristic or NULL if not found
+ */
+mrt_gatt_char_t* mrt_gatt_lookup_char_uuid(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc, mrt_gatt_uuid_t* uuid);
+
+/**
+ * @brief looks for a service in a profile by service handle
+ * @param pro ptr to profile
+ * @param handle handle to match
+ * @return ptr to service or NULL if not found 
+ */
+mrt_gatt_svc_t* mrt_gatt_lookup_svc_handle(mrt_gatt_pro_t* pro, uint16_t handle);
+
+/**
+ * @brief looks for a chacateristic in a service or profile by handle.
+ * @param pro ptr to profile, NULL if searching service
+ * @param svc ptr to service, NULL if searching profile
+ * @param handle handle to match
+ * @return ptr to characteristic or NULL if not found
+ */
+mrt_gatt_char_t* mrt_gatt_lookup_char_handle(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc, uint16_t handle);
 
 
 

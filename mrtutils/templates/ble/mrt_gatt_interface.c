@@ -21,9 +21,10 @@ uint8_t default_security = MRT_GATT_SECURITY_NONE;    //Default to no security
 
 /* Exported Functions --------------------------------------------------------*/
 
-mrt_status_t mrt_gatt_init_profile(mrt_gatt_pro_t* pro, uint16_t serviceCount, uint32_t id)
+mrt_status_t mrt_gatt_init_profile(mrt_gatt_pro_t* pro, uint16_t serviceCount, uint32_t id, const char* name)
 {
     pro->mId = id;
+    pro->mName = name;
     pro->mSvcCount = 0;
     pro->mSvcs = (mrt_gatt_svc_t**)malloc(sizeof(mrt_gatt_svc_t*) * serviceCount);
     pro->mMaxSvcCount = serviceCount;
@@ -47,17 +48,18 @@ mrt_status_t mrt_gatt_add_service(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc )
 }
 
 
-mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidType, const uint8_t* arrUuid, uint16_t charCount, mrt_gatt_svc_callback cbEvent)
+mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidType, const uint8_t* arrUuid, uint16_t charCount, mrt_gatt_svc_callback cbEvent,const char* name)
 {
      /* Set UUID */
     svc->mUuid.mLen = uuidType;
+    svc->mName = name;
     if(uuidType == MRT_UUID_LEN_16)
     {   
-        memcpy((uint8_t*)&svc->mUuid.m16Bit, arrUuid, 2);
+        memcpy((uint8_t*)&svc->mUuid.mUuid.m16Bit, arrUuid, 2);
     }
     else
     {
-        memcpy((uint8_t*)&svc->mUuid.m128Bit, arrUuid, 16);
+        memcpy((uint8_t*)&svc->mUuid.mUuid.m128Bit, arrUuid, 16);
     }
 
     /* malloc memory for characteristic descriptors */
@@ -71,7 +73,7 @@ mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidType, const uint
     return MRT_STATUS_OK;
 }
 
-mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8_t uuidType, const uint8_t* arrUuid, uint16_t size, uint8_t props, mrt_gatt_char_callback cbEvent  )
+mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8_t uuidType, const uint8_t* arrUuid, uint16_t size, uint8_t props, mrt_gatt_char_callback cbEvent,const char* name  )
 {
     if(svc->mCharCount < svc->mMaxCharCount)
     {
@@ -80,13 +82,14 @@ mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8
         chr->mHandles.mChar = 0;
         chr->mHandles.mValue = 0;
         chr->mHandles.mCCCD = 0;
+        chr->mName = name;
         if(uuidType == MRT_UUID_LEN_16)
         {   
-            memcpy((uint8_t*)&chr->mUuid.m16Bit, arrUuid, 2);
+            memcpy((uint8_t*)&chr->mUuid.mUuid.m16Bit, arrUuid, 2);
         }
         else
         {
-            memcpy((uint8_t*)&chr->mUuid.m128Bit, arrUuid, 16);
+            memcpy((uint8_t*)&chr->mUuid.mUuid.m128Bit, arrUuid, 16);
         }
 
         chr->mSize = size;
@@ -121,7 +124,17 @@ mrt_status_t mrt_gatt_set_default_security(uint8_t securityFlags)
     return MRT_STATUS_OK;
 }
 
-mrt_gatt_svc_t* mrt_gatt_lookup_svc(mrt_gatt_pro_t* pro, mrt_gatt_uuid_t* uuid)
+bool mrt_gatt_char_has_handle(mrt_gatt_char_t* chr, uint16_t handle)
+{
+    if((chr->mHandles.mValue == handle) && (chr->mHandles.mChar == handle) &&(chr->mHandles.mCCCD == handle))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+mrt_gatt_svc_t* mrt_gatt_lookup_svc_uuid(mrt_gatt_pro_t* pro, mrt_gatt_uuid_t* uuid)
 {
     for(uint32_t i=0; i < pro->mSvcCount; i++ )
     {
@@ -138,19 +151,76 @@ mrt_gatt_svc_t* mrt_gatt_lookup_svc(mrt_gatt_pro_t* pro, mrt_gatt_uuid_t* uuid)
     return NULL;
 }
 
-mrt_gatt_char_t* mrt_gatt_lookup_char(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc, mrt_gatt_uuid_t* uuid)
+mrt_gatt_char_t* mrt_gatt_lookup_char_uuid(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc, mrt_gatt_uuid_t* uuid)
 {
     if(svc == NULL)
     {
-        svc = mrt_gatt_lookup_svc(pro,uuid)
+        for(uint32_t i=0; i < pro->mSvcCount; i++ )
+        {
+            for(uint32_t a=0; a < svc->mCharCount; a++ )
+            {
+                if(pro->mSvcs[i]->mChars[a]->mUuid.mLen == uuid->mLen)
+                {
+                    
+                    if(memcmp((void*)pro->mSvcs[i]->mChars[a]->mUuid.mUuid, (void*) &uuid->mUuid, uuid->mLen  ) ==0)
+                    {
+                        return pro->mSvcs[i]->mChars[a];
+                    }
+                }
+            }
+        }
+    }
+    else 
+    {
+        for(uint32_t i=0; i < svc->mCharCount; i++ )
+        {
+            if(svc->mChars[i]->mUuid.mLen == uuid->mLen)
+            {
+                
+                if(memcmp((void*)svc->mChars[i]->mUuid.mUuid, (void*) &uuid->mUuid, uuid->mLen  ) ==0)
+                {
+                    return svc->mChars[i];
+                }
+            }
+        }
     }
 
-    for(uint32_t i=0; i < svc->mCharCount; i++ )
+    return NULL;
+}
+
+mrt_gatt_svc_t* mrt_gatt_lookup_svc_handle(mrt_gatt_pro_t* pro, uint16_t handle)
+{
+    for(uint32_t i=0; i < pro->mSvcCount; i++ )
     {
-        if(svc->mChars[i]->mUuid.mLen == uuid->mLen)
+        if(pro->mSvcs[i]->mHandle == handle)
         {
-            
-            if(memcmp((void*)svc->mChars[i]->mUuid.mUuid, (void*) &uuid->mUuid, uuid->mLen  ) ==0)
+            return pro->mSvcs[i];
+        }
+    }
+
+    return NULL;
+}
+
+mrt_gatt_char_t* mrt_gatt_lookup_char_uuid(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc, uint16_t handle)
+{
+    if(svc == NULL)
+    {
+        for(uint32_t i=0; i < pro->mSvcCount; i++ )
+        {
+            for(uint32_t a=0; a < svc->mCharCount; a++ )
+            {
+                if(mrt_gatt_char_has_handle(&pro->mSvcs[i]->mChars[a],handle))
+                {   
+                    return pro->mSvcs[i]->mChars[a];
+                }
+            }
+        }
+    }
+    else 
+    {
+        for(uint32_t i=0; i < svc->mCharCount; i++ )
+        {
+            if(mrt_gatt_char_has_handle(&svc->mChars[i] ,handle))
             {
                 return svc->mChars[i];
             }
@@ -227,7 +297,3 @@ __attribute__((weak)) mrt_status_t mrt_gatt_register_char(mrt_gatt_char_t* chr)
 
 #endif //MRT_NO_WEAK
 
-
-
-
-e

@@ -45,7 +45,7 @@ mrt_status_t mrt_gatt_set_handles(mrt_gatt_pro_t* pro, esp_bt_uuid_t* svc_uuid,u
   };
 
   //Find service in profile by uuid
-  mrt_gatt_svc_t* svc = mrt_gatt_lookup_svc(pro, &uuid);
+  mrt_gatt_svc_t* svc = mrt_gatt_lookup_svc_uuid(pro, &uuid);
 
   if(svc == NULL)
   {
@@ -73,6 +73,83 @@ mrt_status_t mrt_gatt_set_handles(mrt_gatt_pro_t* pro, esp_bt_uuid_t* svc_uuid,u
   }
 
   return MRT_STATUS_OK;
+}
+
+
+mrt_gatt_evt_t mrt_gatt_convert_evt(esp_gatts_cb_event_t event, esp_ble_gatts_cb_param_t *param)
+{
+    mrt_gatt_evt_t mrt_evt; 
+
+    mrt_evt.mType = MRT_GATT_EVT_NONE;
+    mrt_evt.mCtx = (void*)param;          //Not currently used, but allows reference to the native esp_ble_gatts_cb_param_t in the event handler if needed
+    
+    switch(event)
+    {
+        case ESP_GATTS_WRITE_EVT:
+            mrt_evt.mHandle = param->write.handle;
+            mrt_evt.mData.len = param->write.len;
+            mrt_evt.mData.data = param->write.value;
+
+            //Check if it is writing the value attribute, or the CCCD
+            if(mrt_evt.mChar->mHandles.mValue == param->write.handle)
+            {
+              mrt_evt.mType = MRT_GATT_EVT_WRITE;
+            }
+            else
+            {
+              mrt_evt.mType = MRT_GATT_EVT_CCCD_WRITE;
+            }
+            break;
+        case ESP_GATTS_READ_EVT:       
+            mrt_evt.mType = MRT_GATT_EVT_VALUE_READ;
+            mrt_evt.mHandle = param->read.handle
+            break;
+        default:
+            mrt_evt.mType = MRT_GATT_EVT_NONE;
+            mrt_evt.mData.len = 0;
+            mrt_evt.mData.data = NULL;
+            mrt_evt.mHandle = 0;
+            break;
+        
+    }   
+
+    return mrt_evt;
+}
+
+mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t event, esp_ble_gatts_cb_param_t *param)
+{
+  //Convert event data
+  mrt_gatt_evt_t mrt_evt = mrt_gatt_convert_evt(event, param);
+
+  //Lookup characteristic
+  mrt_evt.mChar = mrt_gatt_lookup_char_handle(pro, NULL, mrt_evt.mHandle);
+
+  if(mrt_evt.mChar == NULL)
+  {
+      ESP_LOGE(GATT_ADAPTER_TAG, "Failed to find characteristic with handle %04X", mrt_evt.mHandle );
+      return;
+  }
+
+  //If it is a 'Write' event, check if it is writing the CCCD and change event type if needed
+  if((mrt_evt.mType == MRT_GATT_EVT_WRITE) && (mrt_evt.mChar->mHandles.mCCCD == mrt_evt.handle)
+  {
+    mrt_evt.mType = MRT_GATT_EVT_CCCD_WRITE;
+  }
+
+  /**
+   * ** BY DEFAULT WE ONLY PASS WRITE EVENTS TO THE CHARACTERISTIC CALLBACK HANDLERS **
+   * To pass all events to the handler, comment out the following line
+   */
+  if(mrt_evt.mType != MRT_GATT_EVT_WRITE){return mrt_evt;}
+
+
+  //By default only call the event callback for write events because READ events are auto-response by default
+  if((mrt_evt.mChar != NULL) && (mrt_evt.mType != MRT_GATT_EVT_NONE))
+  {
+     mrt_evt.mStatus = mrt_evt.mChar->cbEvent(&mrt_evt);
+  }
+
+  return mrt_evt;
 }
 
 /* Override Funtions for mrt_gatt_interface  ---------------------------------*/

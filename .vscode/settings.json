@@ -1,3 +1,7 @@
 {
-    "restructuredtext.confPath": ""
+    "restructuredtext.confPath": "",
+    "files.associations": {
+        "typeinfo": "c",
+        "type_traits": "c"
+    }
 }

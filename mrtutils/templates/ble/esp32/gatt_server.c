@@ -1,15 +1,17 @@
 /**
- * @file ${obj.name.lower()}_profile.h
+ * @file ${obj.name.lower()}_gatt_server.h
  * @brief ${obj.desc}
  * @date ${obj.genTime}
  * 
  */
 
-#include "${obj.name.lower()}_profile.h"
+#include "gatt_server.c"
 
 
 
 /*user-block-top-start*/
+#define ${obj.name.upper()}_PROFILE_ID 0;
+#define ${obj.name.upper()}_DEVICE_NAME          "${obj.name.upper()}_DEVICE"
 
 static esp_ble_adv_params_t data_adv_params = {
     .adv_int_min        = 0x100,
@@ -22,74 +24,85 @@ static esp_ble_adv_params_t data_adv_params = {
 
 /*user-block-top-end*/
 
+/* Private Variables ---------------------------------------------------------*/
+MRT_GATT_DATA_ATTR mrt_gatt_pro_t ${obj.name}_profile;
 
 
-void ${obj.name.lower()}_profile_init(void)
+/* Private Functions ---------------------------------------------------------*/
+
+
+/* Exported Functions --------------------------------------------------------*/
+
+mrt_status_t ${obj.name.lower()}_profile_init(void)
 {
+    mrt_gatt_init_pro(&${obj.name}_profile.mPro, ${len(obj.services)}, 0, "${obj.name}");
+    
     /* Initialize all services */
     %for svc in obj.services:
-    ${svc.prefix}_svc_init();
+    ${"{0}_profile.m{1} = {2}_svc_init(&{0}_profile.mPro);".format(obj.name.lower(),t.camelCase(svc.name), svc.prefix)}
     %endfor
-
+    
+    return MRT_STATUS_OK;
 }
 
-mrt_gatt_svc_t*
-
-void ${obj.name.lower()}_profile_create_services(esp_gatt_if_t gatts_if);
+mrt_status_t ${obj.name.lower()}_profile_register_services(void)
 {
-    uint8_t id =0;
-
-    /* Add Attribute tables for all services */
-    %for svc in obj.services:
-    ${"esp_ble_gatts_create_attr_tab({0}_svc_attr_db, gatts_if, IDX_{1}_NB, id++);".format(svc.prefix.lower(),svc.prefix.upper())}
-    %endfor
-
-
-}
-
-void ${obj.name.lower()}_profile_set_handles(esp_bt_uuid_t* svc_uuid,uint16_t* handles, int len )
-{
-    /* Find Service with matching UUID and pass handles*/
-    %for svc in obj.services:
-    if((svc_uuid->len == ${obj.prefix}_svc.mUuid.mLen) && (memcmp( (uint8_t*)svc_uuid->uuid, (uint8_t*)${obj.prefix}_svc->mUuid.m16Bit, svc_uuid->len) == 0))
+    mrt_status_t status;
+    for(uint16_t i =0; i < ${obj.name}_profile.mSvcCount; i++ )
     {
-        ${svc.prefix}_svc_set_handles(handles,len);
-        return;
+        status = mrt_gatt_register_svc(${obj.name}_profile.mPro.mSvcs[i]);
+        if(status != MRT_STATUS_OK)
+        {
+            break;
+        }
+
     }
-    %endfor
 
+    return status;
 }
 
-void ${obj.name.lower()}_gatt_write_handler(esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
+
+
+esp_err_t ${obj.name.lower()}_gatts_start(void)
 {
-    //TODO dispatch from param->write.handle
+    esp_err_t ret;
+
+    ${obj.name.lower()}_profile_init(void);
+    ${obj.name}_profile.mId = ${obj.name.upper()}_PROFILE_ID;
+
+    //Register event handler
+    ret = esp_ble_gatts_register_callback(${obj.name.lower()}_gatts_evt_handler);
+    if (ret){
+        ESP_LOGE(GATTS_TABLE_TAG, "gatts register error, error code = %x", ret);
+        return ret;
+    }
+
+    //Register "App", which will start the process and generate a ESP_GATTS_REG_EVT event
+    ret = esp_ble_gatts_app_register(${obj.name}_profile.mPro.mId);
+    if (ret){
+        ESP_LOGE(GATTS_TABLE_TAG, "gatts app register error, error code = %x", ret);
+        return ret;
+    }
+
+
+
 }
 
-void ${obj.name.lower()}_gatt_read_handler(esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
-{
-    //TODO dispatch from param->write.handle
-}
 
-void ${obj.name.lower()}_profile_set_handles(esp_bt_uuid_t svc_uuid,uint16_t* handles, int len )
-{
-    //TODO Dispatch
-}
-
-/*user-block-functions-start*/
-
-static void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
+void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
     switch (event) {
         case ESP_GATTS_REG_EVT:
 
-            esp_ble_gap_set_device_name(DeviceName);
+            //Set Device name
+            esp_ble_gap_set_device_name(${obj.name.upper()}_DEVICE_NAME );
 
-            ${obj.name.lower()}_profile_create_services(gatts_if);
+            //Register all of the services in our profile
+            ${obj.name.lower()}_profile_register_services();
+
         case ESP_GATTS_READ_EVT:
-            ${obj.name.lower()}_gatt_read_handler(gatts_if, param);
-            break;
         case ESP_GATTS_WRITE_EVT:
-            ${obj.name.lower()}_gatt_write_handler(gatts_if, param);
+            mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t event, esp_ble_gatts_cb_param_t *param);
             break;
         case ESP_GATTS_EXEC_WRITE_EVT:
             break;
@@ -159,9 +172,11 @@ static void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, es
             ESP_LOGI(GATTS_SERVER_TAG, "Create attr tab : handle = %x",param->add_attr_tab.num_handle);
             if (param->create.status == ESP_GATT_OK)
             {
-            
-                ${obj.name.lower()}_profile_set_handles(&param->add_attr_tab.svc_uuid,param->add_attr_tab.handles, param->add_attr_tab.num_handle);
-
+                /**
+                 * Every time an attribute table is registered, it will trigger this event and pass back an array of 'handles'
+                 * These arrays are passed to the profile to sort them out and assign them to characteristics
+                 */
+                mrt_gatt_set_handles(&${obj.name}_profile,&param->add_attr_tab.svc_uuid ,param->add_attr_tab.handles, param->add_attr_tab.num_handle );
             }
             else
             {
@@ -177,5 +192,6 @@ static void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, es
 
 
 
+/*user-block-functions-start*/
 /*user-block-functions-end*/
 

@@ -43,6 +43,22 @@ void mrt_gatt_set_interface(mrt_gatt_pro_t* pro, esp_gatt_if_t gatts_if);
  */
 mrt_status_t mrt_gatt_set_handles(mrt_gatt_pro_t* pro, esp_bt_uuid_t* svc_uuid,uint16_t* handles, int len );
 
+/**
+ * @brief Converts the esp gatt event to the mrt_gatt_evt_t so that it can be handled by the mrt_gatt_interface
+ * @param event esp gatt event type
+ * @param param esp gatt event parameters
+ * @return converted mrt_gatt_evt_t
+ */
+mrt_gatt_evt_t mrt_gatt_convert_evt( esp_gatts_cb_event_t event, esp_ble_gatts_cb_param_t *param);
+
+/**
+ * @brief Handles the gatt event, and dispatches the correct app_svc handler
+ * @param pro ptr to profile 
+ * @param event esp gatt event type
+ * @param param esp gatt event parameters
+ * @return converted mrt_gatt_evt_t
+ */
+mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t event, esp_ble_gatts_cb_param_t *param);
 
 #ifdef __cplusplus
 }

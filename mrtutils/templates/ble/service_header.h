@@ -48,7 +48,7 @@ typedef struct{
 extern ${obj.prefix}_svc_t ${obj.prefix}_svc;
 
 /* Initializer----------------------------------------------------------------*/
-void ${obj.prefix}_svc_init();
+${obj.prefix}_svc_t* ${obj.prefix}_svc_init(mrt_gatt_pro_t* pro);
 
 void ${obj.prefix}_svc_register();
 

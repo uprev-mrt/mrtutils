@@ -93,12 +93,12 @@ def buildProfileSourceEsp32(gatt , outputPath, baseName =''):
     if not os.path.exists(outputPath +"/interface"):
         os.makedirs(outputPath+"/interface")
 
-    buildTemplate(gatt, 'templates/ble/esp32/profile_header.h', outputPath +"/"+gatt.name.lower() + "_profile.h" )
-    buildTemplate(gatt, 'templates/ble/esp32/profile_source.c', outputPath +"/"+gatt.name.lower() + "_profile.c" )
     buildTemplate(gatt, 'templates/ble/mrt_gatt_interface.h', outputPath +"/interface/mrt_gatt_interface.h" )
     buildTemplate(gatt, 'templates/ble/mrt_gatt_interface.c', outputPath +"/interface/mrt_gatt_interface.c" )
     buildTemplate(gatt, 'templates/ble/esp32/esp32_gatt_adapter.c', outputPath +"/interface/esp32_gatt_adapter.c" )
     buildTemplate(gatt, 'templates/ble/esp32/esp32_gatt_adapter.h', outputPath +"/interface/esp32_gatt_adapter.h" )
+    buildTemplate(gatt, 'templates/ble/esp32/gatt_server.h', outputPath +"/{0}_gatt_server.h".format(gatt.name.lower()) )
+    buildTemplate(gatt, 'templates/ble/esp32/gatt_server.c', outputPath +"/{0}_gatt_server.c".format(gatt.name.lower() ))
 
     for service in gatt.services:
         print("***" + service.name + "****")
