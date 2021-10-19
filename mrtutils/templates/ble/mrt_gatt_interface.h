@@ -19,6 +19,7 @@ extern "C"
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
+#include <stdbool.h>
 
 // This allows the interface to be used outside of the MRT framework
 #ifdef MRT_PLATFORM
@@ -68,10 +69,10 @@ extern "C"
 #define MRT_UUID_LEN_32 4
 #define MRT_UUID_LEN_128 16
 
-#define MRT_GATT_EVT_NONE          0x00, /* None/unknown */     
-#define MRT_GATT_EVT_VALUE_WRITE   0x01, /* Value is being written */
-#define MRT_GATT_EVT_VALUE_READ    0x02, /* Value is being read */
-#define MRT_GATT_EVT_CCCD_WRITE    0x03, /* Descriptor is being written (ususally to enable notifications)*/
+#define MRT_GATT_EVT_NONE          0x00 /* None/unknown */     
+#define MRT_GATT_EVT_VALUE_WRITE   0x01 /* Value is being written */
+#define MRT_GATT_EVT_VALUE_READ    0x02 /* Value is being read */
+#define MRT_GATT_EVT_CCCD_WRITE    0x03 /* Descriptor is being written (ususally to enable notifications)*/
 #define MRT_GATT_EVT_CCCD_READ     0x04  /* Descriptor is  being read*/
 
 /* Exported types ------------------------------------------------------------*/
@@ -80,10 +81,11 @@ extern "C"
 /* UUID struct */
 typedef struct{
     union {
-        uint16_t m16Bit;            //16bit uuid
-        uint8_t m128Bit[16];        //128bit uuid
-    } mUuid;
-    uint8_t mLen;                   //UUID len in bytes
+        uint8_t val[16];
+        uint16_t uuid16;            //16bit uuid
+        uint8_t uuid128[16];        //128bit uuid
+    };
+    uint8_t len;                   //UUID len in bytes
 } mrt_gatt_uuid_t;
 
 
@@ -91,28 +93,29 @@ typedef struct{
 typedef struct mrt_gatt_svc_t mrt_gatt_svc_t;                             //forward declare for self referencing callback
 typedef struct mrt_gatt_char_t mrt_gatt_char_t;                            //forward declare for self referencing callback
 typedef struct mrt_gatt_evt_t mrt_gatt_evt_t;                             //forward declare for self referencing callback
+typedef struct mrt_gatt_pro_t mrt_gatt_pro_t;                             //forward declare for self referencing callback
 
 
 typedef mrt_status_t (*mrt_gatt_svc_callback)(mrt_gatt_svc_t* svc, mrt_gatt_evt_t* event); 
 typedef mrt_status_t (*mrt_gatt_char_callback)(mrt_gatt_evt_t* event); 
 
 /* gatt Event struct*/
-typedef struct{
-    uint8_t mType;              /*Type of event*/
-    uint16_t mHandle;           /* Handle*/
-    mrt_gatt_char_t* mChar;     /*Characteristic for event*/
+struct mrt_gatt_evt_t{
+    uint8_t type;              /*Type of event*/
+    uint16_t handle;           /* Handle*/
+    mrt_gatt_char_t* chr;     /*Characteristic for event*/
     struct{
         uint8_t* data;          /* ptr to data for writes (or notify on client)*/
         int len;                /* len of data in bytes*/
-    }mData;
-    void* mCtx;                 /* Allows struct to reference platform specific objec if needed */
-    mrt_status_t mStatus;       /* Status */
-} mrt_gatt_evt_t;
+    }data;
+    void* ctx;                 /* Allows struct to reference platform specific objec if needed */
+    mrt_status_t status;       /* Status */
+} ;
 
 typedef struct{
-    uint16_t mChar;             //Character declaration handle
-    uint16_t mValue;            //Value handle 
-    uint16_t mCCCD;             //Client Config handle
+    uint16_t char_handle;             //Character declaration handle
+    uint16_t val_handle;            //Value handle 
+    uint16_t cccd_handle;             //Client Config handle
 }mrt_gatt_handles_t;
 
 
@@ -122,21 +125,21 @@ typedef struct{
  * This is a single data field on the gatt server
  */ 
 struct mrt_gatt_char_t{
-    mrt_gatt_uuid_t mUuid;          //UUID of Characteristic
-    uint16_t mSize;                 //size of Characteristic
-    mrt_gatt_handles_t mHandles;               //Handles of Characteristic
-    uint8_t mProps;                 //Permissions of characteristic
-    uint8_t mSecurity;              //Security flags for characteristic
-    bool mNotificationsEnable;      //Indicates if Notifications are enabled in CCCD
+    mrt_gatt_uuid_t uuid;          //UUID of Characteristic
+    uint16_t size;                 //size of Characteristic
+    mrt_gatt_handles_t handles;               //Handles of Characteristic
+    uint8_t props;                 //Permissions of characteristic
+    uint8_t security;              //Security flags for characteristic
+    bool notificationsEnable;      //Indicates if Notifications are enabled in CCCD
     struct{
-        uint8_t* mData;              // Cached data
-        uint8_t mLen;                    // len of last cached data (data invalid if 0)
-    }mCache;
-    uint16_t mCCCD;
-    mrt_gatt_svc_t* mSvc;           //ptr to service
+        uint8_t* value;              // Cached data
+        uint16_t len;                    // len of last cached data (data invalid if 0)
+    }data;
+    uint16_t cccd;                 //cccd value
+    mrt_gatt_svc_t* svc;           //ptr to service
     mrt_gatt_char_callback cbEvent; //characteristic event callback
-    const char* mName;              // Name
-    void* mCtx;                     //Allows struct to reference other objects in adapters.
+    const char* name;              // Name
+    void* ctx;                     //Allows struct to reference other objects in adapters.
 };
 
 /**
@@ -145,17 +148,17 @@ struct mrt_gatt_char_t{
  * A service is just a collection of related characteristics
  */ 
 struct mrt_gatt_svc_t{
-    mrt_gatt_uuid_t mUuid;          //UUID of Service
-    uint16_t  mHandle;              //Handle
-    mrt_gatt_char_t** mChars;       //Array of characteristics   
-    uint16_t mCharCount;            //Number of characterestics
-    uint16_t mMaxCharCount;         //max number of characteristics
-    uint16_t mAttrCount;             //Number of attributes in service. 
-    uint8_t mSecurity;              //Security flags for service, if set this will override characteristic level security flags
-    mrt_gatt_pro_t* mPro;           //Ptr to profile
+    mrt_gatt_uuid_t uuid;          //UUID of Service
+    uint16_t  handle;              //Handle
+    mrt_gatt_char_t** chars;       //Array of characteristics   
+    uint16_t charCount;            //Number of characterestics
+    uint16_t maxCharCount;         //max number of characteristics
+    uint16_t attrCount;             //Number of attributes in service. 
+    uint8_t security;              //Security flags for service, if set this will override characteristic level security flags
+    mrt_gatt_pro_t* pro;           //Ptr to profile
     mrt_gatt_svc_callback cbEvent;  //Service event callback
-    const char* mName;              // Name
-    void* mCtx;                     //Allows struct to reference other objects in adapters.
+    const char* name;              // Name
+    void* ctx;                     //Allows struct to reference other objects in adapters.
 };
 
 
@@ -165,12 +168,12 @@ struct mrt_gatt_svc_t{
  * A Profile is a collection of services
  */
 struct mrt_gatt_pro_t{
-    uint32_t mId;                 //Some platforms use an ID when running multiple profiles
-    mrt_gatt_svc_t** mSvcs;       //Array of Services   
-    uint16_t mSvcCount;           //Number of Services
-    uint16_t mMaxSvcCount;        //max number of Services
-    const char* mName;              // Name
-    void* mCtx;                   //Allows struct to reference other objects in adapters.
+    uint32_t id;                 //Some platforms use an ID when running multiple profiles
+    mrt_gatt_svc_t** svcs;       //Array of Services   
+    uint16_t svcCount;           //Number of Services
+    uint16_t maxSvcCount;        //max number of Services
+    const char* name;              // Name
+    void* ctx;                   //Allows struct to reference other objects in adapters.
 };
 
 
@@ -198,26 +201,26 @@ mrt_status_t mrt_gatt_add_svc(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc );
 /**
  * @brief Initialize service struct
  * @param svc - ptr to struct
- * @param uuidType - uuid type (e16Bit or e128Bit)
+ * @param uuidLen - uuid type (e16Bit or e128Bit)
  * @param arrUuid - array of bytes representing UUID
  * @param charCount - number of characteristics in service 
  * @param cbEvent - callback event (unused for now)
  * @param name - name of characteristic
  */
-mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidType, const uint8_t* arrUuid, uint16_t charCount, mrt_gatt_svc_callback cbEvent, const char* name);
+mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidLen, const uint8_t* arrUuid, uint16_t charCount, mrt_gatt_svc_callback cbEvent, const char* name);
 
 /**
  * @brief Initializes a characteristic and adds it to a service
  * @param chr - ptr to characteristic
  * @param svc - ptr to service
- * @param uuidType - uuid type (e16Bit or e128Bit)
+ * @param uuidLen - uuid type (e16Bit or e128Bit)
  * @param arrUuid - array of bytes representing UUID
  * @param size - size of data in bytes
  * @param props - properties (READ,WRITE,NOTIFY etc)
  * @param cbEvent - callback handler for gatt event 
  * @param name - name of characteristic
  */
-mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8_t uuidType, const uint8_t* arrUuid, uint16_t size, uint8_t props, mrt_gatt_char_callback cbEvent,const char* name );
+mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8_t uuidLen, const uint8_t* arrUuid, uint16_t size, uint8_t props, mrt_gatt_char_callback cbEvent,const char* name );
 
 /**
  * @brief Sets the default security flags for intializing characteristics  
@@ -280,7 +283,7 @@ mrt_gatt_char_t* mrt_gatt_lookup_char_handle(mrt_gatt_pro_t* pro, mrt_gatt_svc_t
  * Because the Gatt Server will be up for the full lifecycle of most applications, they are not needed
  * They are mainly used for detecting memory leaks in unit testing
  */
-void mrt_gatt_deinit_pro(mrt_gatt_prof_t* pro);
+void mrt_gatt_deinit_pro(mrt_gatt_pro_t* pro);
 void mrt_gatt_deinit_svc(mrt_gatt_svc_t* svc);
 void mrt_gatt_deinit_chr(mrt_gatt_char_t* chr);
 
@@ -295,29 +298,16 @@ void mrt_gatt_deinit_chr(mrt_gatt_char_t* chr);
  * @param len length of data in bytes
  * @return mrt_status_t 
  */
-mrt_status_t mrt_gatt_update_char_val(mrt_gatt_char_t* chr, uint8_t* data, uint16_t len);
+mrt_status_t mrt_gatt_update_char_val(mrt_gatt_char_t* chr, uint8_t* data, int len);
 
 /**
- * @brief Gets the characteristic and updates the local cache (chr->mCache.mData) from the actual data on the device
+ * @brief Gets the characteristic and updates the local cache (chr->cache.data) from the actual data on the device
  * @param chr ptr to char
  * @return status
  */
 mrt_status_t mrt_gatt_get_char_val(mrt_gatt_char_t* chr);
 
-/**
- * @brief This functions registers the service with the actual ble platform
- * @param svc ptr to service
- * @return mrt_status_t 
- */
-mrt_status_t mrt_gatt_register_svc(mrt_gatt_svc_t* svc);
 
-/**
- * @brief This functions registers the characteristic with the actual ble platform 
- *
- * @param svc ptr to service
- * @return mrt_status_t 
- */
-mrt_status_t mrt_gatt_register_char(mrt_gatt_char_t* chr);
 
 
 #ifdef __cplusplus

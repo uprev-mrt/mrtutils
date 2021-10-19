@@ -14,24 +14,14 @@ extern "C"
 /* Includes ------------------------------------------------------------------*/
 #include "esp_gap_ble_api.h"
 #include "esp_gatts_api.h"
-#include "../mrt_gatt_interface.h"
+#include "mrt_gatt_interface.h"
+#include "esp_log.h"
 
 /* Exported types ------------------------------------------------------------*/
-
-typedef struct {
-  esp_gatt_if_t gatts_if;
-}esp32_adapter_ctx_t;
 
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
-
-/**
- * @brief Sets gatt_if for profile so we can reference it
- * @param pro ptr to profile
- * @param gatts_if gatt interface
- */
-void mrt_gatt_set_interface(mrt_gatt_pro_t* pro, esp_gatt_if_t gatts_if);
 
 /**
  * @brief Sets the handles for attributes
@@ -60,9 +50,17 @@ mrt_gatt_evt_t mrt_gatt_convert_evt( esp_gatts_cb_event_t event, esp_ble_gatts_c
  */
 mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t event, esp_ble_gatts_cb_param_t *param);
 
+/**
+ * @brief Registers a service with the ble system by creating an attribute table
+ * 
+ * @param svc ptr to service
+ * @param gatts_if  gatt server interface id
+ * @return mrt_status_t 
+ */
+mrt_status_t mrt_gatt_register_svc(mrt_gatt_svc_t* svc,esp_gatt_if_t gatts_if);
+
 #ifdef __cplusplus
 }
 #endif
-
 
 

@@ -87,7 +87,7 @@ ${"{0} {1}_get_{2}();".format(t.cTypeDict[char.type], obj.prefix,char.name.lower
  * @brief check if cache is valid
  */
 % for char in obj.chars:
-${t.padAfter("#define {0}_{1}_cache_valid()".format(obj.prefix,char.name.lower()) , 65)}${"({0}_svc.m{1}.mCache.mLen != 0)".format(obj.prefix,  t.camelCase(char.name))}
+${t.padAfter("#define {0}_{1}_cache_valid()".format(obj.prefix,char.name.lower()) , 65)}${"({0}_svc.m{1}.data.len != 0)".format(obj.prefix,  t.camelCase(char.name))}
 % endfor
 
 

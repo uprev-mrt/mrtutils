@@ -90,7 +90,7 @@ mrt_status_t ${obj.name.lower()}_profile_init(void);
  * @brief Registers the services with the esp ble component
  * @return MRT_STATUS_OK or MRT_STATUS_ERROR 
  */
-mrt_status_t ${obj.name.lower()}_profile_register_services(void);
+mrt_status_t ${obj.name.lower()}_profile_register_services(esp_gatt_if_t gatts_if);
 
 /**
  * @brief Starts the gatt server.
@@ -103,6 +103,11 @@ esp_err_t ${obj.name.lower()}_gatts_start(void);
  * @brief Gatts event handler. This will manage the gatt server events
  */
 void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,esp_ble_gatts_cb_param_t *param);
+
+/**
+ * @brief Gap event handler. You can register this one, or define and register your own
+ */
+void ${obj.name.lower()}_gap_evt_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
 
 /*user-block-functions-start*/
 /*user-block-functions-end*/

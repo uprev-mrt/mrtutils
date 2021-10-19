@@ -23,11 +23,11 @@ uint8_t default_security = MRT_GATT_SECURITY_NONE;    //Default to no security
 
 mrt_status_t mrt_gatt_init_profile(mrt_gatt_pro_t* pro, uint16_t serviceCount, uint32_t id, const char* name)
 {
-    pro->mId = id;
-    pro->mName = name;
-    pro->mSvcCount = 0;
-    pro->mSvcs = (mrt_gatt_svc_t**)malloc(sizeof(mrt_gatt_svc_t*) * serviceCount);
-    pro->mMaxSvcCount = serviceCount;
+    pro->id = id;
+    pro->name = name;
+    pro->svcCount = 0;
+    pro->svcs = (mrt_gatt_svc_t**)malloc(sizeof(mrt_gatt_svc_t*) * serviceCount);
+    pro->maxSvcCount = serviceCount;
 
     return MRT_STATUS_OK;
 }
@@ -36,76 +36,63 @@ mrt_status_t mrt_gatt_init_profile(mrt_gatt_pro_t* pro, uint16_t serviceCount, u
 mrt_status_t mrt_gatt_add_service(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc )
 {   
 
-    if(pro->mSvcCount >= pro->mMaxSvcCount)
+    if(pro->svcCount >= pro->maxSvcCount)
     {
         return MRT_STATUS_ERROR; // Profile is already full
     }
 
-    pro->mSvcs[profile->mSvcCount++] = svc;
-    svc->mPro = pro;
+    pro->svcs[pro->svcCount++] = svc;
+    svc->pro = pro;
 
     return MRT_STATUS_OK;
 }
 
 
-mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidType, const uint8_t* arrUuid, uint16_t charCount, mrt_gatt_svc_callback cbEvent,const char* name)
+mrt_status_t mrt_gatt_init_svc(mrt_gatt_svc_t* svc, uint8_t uuidLen, const uint8_t* arrUuid, uint16_t charCount, mrt_gatt_svc_callback cbEvent,const char* name)
 {
      /* Set UUID */
-    svc->mUuid.mLen = uuidType;
-    svc->mName = name;
-    if(uuidType == MRT_UUID_LEN_16)
-    {   
-        memcpy((uint8_t*)&svc->mUuid.mUuid.m16Bit, arrUuid, 2);
-    }
-    else
-    {
-        memcpy((uint8_t*)&svc->mUuid.mUuid.m128Bit, arrUuid, 16);
-    }
+    svc->uuid.len = uuidLen;
+    svc->name = name;
+    memcpy((uint8_t*) svc->uuid.val, arrUuid, uuidLen);
+   
 
     /* malloc memory for characteristic descriptors */
-    svc->mCharCount = 0;
-    svc->mMaxCharCount = charCount;
-    svc->mChars = (mrt_gatt_char_t**)malloc(sizeof(mrt_gatt_char_t*) * charCount);
+    svc->charCount = 0;
+    svc->maxCharCount = charCount;
+    svc->chars = (mrt_gatt_char_t**)malloc(sizeof(mrt_gatt_char_t*) * charCount);
     svc->cbEvent = cbEvent;
-    svc->mSecurity = MRT_GATT_SECURITY_NONE;    //Default to no security
-    svc->mAttrCount = 1; //One attribute is needed for the service declaration
+    svc->security = MRT_GATT_SECURITY_NONE;    //Default to no security
+    svc->attrCount = 1; //One attribute is needed for the service declaration
 
     return MRT_STATUS_OK;
 }
 
-mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8_t uuidType, const uint8_t* arrUuid, uint16_t size, uint8_t props, mrt_gatt_char_callback cbEvent,const char* name  )
+mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8_t uuidLen, const uint8_t* arrUuid, uint16_t size, uint8_t props, mrt_gatt_char_callback cbEvent,const char* name  )
 {
-    if(svc->mCharCount < svc->mMaxCharCount)
+    if(svc->charCount < svc->maxCharCount)
     {
         /* Set UUID */
-        chr->mUuid.mLen = uuidType;
-        chr->mHandles.mChar = 0;
-        chr->mHandles.mValue = 0;
-        chr->mHandles.mCCCD = 0;
-        chr->mName = name;
-        if(uuidType == MRT_UUID_LEN_16)
-        {   
-            memcpy((uint8_t*)&chr->mUuid.mUuid.m16Bit, arrUuid, 2);
-        }
-        else
-        {
-            memcpy((uint8_t*)&chr->mUuid.mUuid.m128Bit, arrUuid, 16);
-        }
+        chr->uuid.len = uuidLen;
+        chr->handles.char_handle = 0;
+        chr->handles.val_handle = 0;
+        chr->handles.cccd_handle = 0;
+        chr->name = name;
+        memcpy((uint8_t*)chr->uuid.val, arrUuid, uuidLen);
 
-        chr->mSize = size;
-        chr->mSecurity = default_security;    //use default
-        chr->mProps = props;
+        chr->size = size;
+        chr->security = default_security;    //use default
+        chr->props = props;
         chr->cbEvent = cbEvent;
-        chr->mNotificationsEnable = false;
-        chr->mSvc = svc;
-        chr->mCache.mData = (uint8_t*)malloc(size);
-        chr->mCache.mLen = 0;
-        svc->mChars[svc->mCharCount++] = chr;   /*Add ptr to list for looping through*/
+        chr->notificationsEnable = false;
+        chr->svc = svc;
+        chr->data.value = (uint8_t*)malloc(size);
+        chr->data.len = 0;
+        svc->chars[svc->charCount++] = chr;   /*Add ptr to list for looping through*/
 
-        svc->mAttrCount +=2; //2 attribute for characteristic declaration and value 
-        if(chr->mProps | MRT_GATT_PROP_NOTIFY)
+        svc->attrCount +=2; //2 attribute for characteristic declaration and value 
+        if(chr->props | MRT_GATT_PROP_NOTIFY)
         {
-            svc->mAttrCount ++; //If Characteristic has notifications, then we add another attribute for the CCCD
+            svc->attrCount ++; //If Characteristic has notifications, then we add another attribute for the CCCD
         }
     }
     else 
@@ -126,7 +113,7 @@ mrt_status_t mrt_gatt_set_default_security(uint8_t securityFlags)
 
 bool mrt_gatt_char_has_handle(mrt_gatt_char_t* chr, uint16_t handle)
 {
-    if((chr->mHandles.mValue == handle) && (chr->mHandles.mChar == handle) &&(chr->mHandles.mCCCD == handle))
+    if((chr->handles.val_handle == handle) && (chr->handles.char_handle == handle) &&(chr->handles.cccd_handle == handle))
     {
         return true;
     }
@@ -136,14 +123,14 @@ bool mrt_gatt_char_has_handle(mrt_gatt_char_t* chr, uint16_t handle)
 
 mrt_gatt_svc_t* mrt_gatt_lookup_svc_uuid(mrt_gatt_pro_t* pro, mrt_gatt_uuid_t* uuid)
 {
-    for(uint32_t i=0; i < pro->mSvcCount; i++ )
+    for(uint32_t i=0; i < pro->svcCount; i++ )
     {
-        if(pro->mSvcs[i]->mUuid.mLen == uuid->mLen)
+        if(pro->svcs[i]->uuid.len == uuid->len)
         {
             
-            if(memcmp((void*)pro->mSvcs[i]->mUuid.mUuid, (void*) &uuid->mUuid, uuid->mLen  ) ==0)
+            if(memcmp((void*)pro->svcs[i]->uuid.val, (void*) &uuid->val, uuid->len  ) ==0)
             {
-                return pro->mSvcs[i];
+                return pro->svcs[i];
             }
         }
     }
@@ -155,16 +142,16 @@ mrt_gatt_char_t* mrt_gatt_lookup_char_uuid(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* 
 {
     if(svc == NULL)
     {
-        for(uint32_t i=0; i < pro->mSvcCount; i++ )
+        for(uint32_t i=0; i < pro->svcCount; i++ )
         {
-            for(uint32_t a=0; a < svc->mCharCount; a++ )
+            for(uint32_t a=0; a < svc->charCount; a++ )
             {
-                if(pro->mSvcs[i]->mChars[a]->mUuid.mLen == uuid->mLen)
+                if(pro->svcs[i]->chars[a]->uuid.len == uuid->len)
                 {
                     
-                    if(memcmp((void*)pro->mSvcs[i]->mChars[a]->mUuid.mUuid, (void*) &uuid->mUuid, uuid->mLen  ) ==0)
+                    if(memcmp((void*)pro->svcs[i]->chars[a]->uuid.val, (void*) &uuid->val, uuid->len  ) ==0)
                     {
-                        return pro->mSvcs[i]->mChars[a];
+                        return pro->svcs[i]->chars[a];
                     }
                 }
             }
@@ -172,14 +159,14 @@ mrt_gatt_char_t* mrt_gatt_lookup_char_uuid(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* 
     }
     else 
     {
-        for(uint32_t i=0; i < svc->mCharCount; i++ )
+        for(uint32_t i=0; i < svc->charCount; i++ )
         {
-            if(svc->mChars[i]->mUuid.mLen == uuid->mLen)
+            if(svc->chars[i]->uuid.len == uuid->len)
             {
                 
-                if(memcmp((void*)svc->mChars[i]->mUuid.mUuid, (void*) &uuid->mUuid, uuid->mLen  ) ==0)
+                if(memcmp((void*)svc->chars[i]->uuid.val, (void*) &uuid->val, uuid->len  ) ==0)
                 {
-                    return svc->mChars[i];
+                    return svc->chars[i];
                 }
             }
         }
@@ -190,39 +177,39 @@ mrt_gatt_char_t* mrt_gatt_lookup_char_uuid(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* 
 
 mrt_gatt_svc_t* mrt_gatt_lookup_svc_handle(mrt_gatt_pro_t* pro, uint16_t handle)
 {
-    for(uint32_t i=0; i < pro->mSvcCount; i++ )
+    for(uint32_t i=0; i < pro->svcCount; i++ )
     {
-        if(pro->mSvcs[i]->mHandle == handle)
+        if(pro->svcs[i]->handle == handle)
         {
-            return pro->mSvcs[i];
+            return pro->svcs[i];
         }
     }
 
     return NULL;
 }
 
-mrt_gatt_char_t* mrt_gatt_lookup_char_uuid(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc, uint16_t handle)
+mrt_gatt_char_t* mrt_gatt_lookup_char_handle(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc, uint16_t handle)
 {
     if(svc == NULL)
     {
-        for(uint32_t i=0; i < pro->mSvcCount; i++ )
+        for(uint32_t i=0; i < pro->svcCount; i++ )
         {
-            for(uint32_t a=0; a < svc->mCharCount; a++ )
+            for(uint32_t a=0; a < svc->charCount; a++ )
             {
-                if(mrt_gatt_char_has_handle(&pro->mSvcs[i]->mChars[a],handle))
+                if(mrt_gatt_char_has_handle(pro->svcs[i]->chars[a],handle))
                 {   
-                    return pro->mSvcs[i]->mChars[a];
+                    return pro->svcs[i]->chars[a];
                 }
             }
         }
     }
     else 
     {
-        for(uint32_t i=0; i < svc->mCharCount; i++ )
+        for(uint32_t i=0; i < svc->charCount; i++ )
         {
-            if(mrt_gatt_char_has_handle(&svc->mChars[i] ,handle))
+            if(mrt_gatt_char_has_handle(svc->chars[i] ,handle))
             {
-                return svc->mChars[i];
+                return svc->chars[i];
             }
         }
     }
@@ -237,7 +224,7 @@ mrt_gatt_char_t* mrt_gatt_lookup_char_uuid(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* 
  * Because the Gatt Server will be up for the full lifecycle of most applications, they are not needed
  * They are mainly used for detecting memory leaks in unit testing
  */
-void mrt_gatt_deinit_pro(mrt_gatt_prof_t* pro)
+void mrt_gatt_deinit_pro(mrt_gatt_pro_t* pro)
 {
     //TODO
 }
@@ -262,13 +249,13 @@ void mrt_gatt_deinit_chr(mrt_gatt_char_t* chr)
  */
 __attribute__((weak)) mrt_status_t mrt_gatt_set_char_val(mrt_gatt_char_t* chr, uint8_t* val, uint16_t len)
 {
-    if(len > chr->mSize)
+    if(len > chr->size)
     {
         return MRT_STATUS_ERROR;
     }
 
-    memcpy(chr->mCache.mData, val, len);
-    chr->mCache.mLen = len;
+    memcpy(chr->data.value, val, len);
+    chr->data.len = len;
 
     return MRT_STATUS_OK;
 }
@@ -277,7 +264,7 @@ __attribute__((weak)) mrt_status_t mrt_gatt_set_char_val(mrt_gatt_char_t* chr, u
  * @brief This weakly defined function just reads the cache.
  *        Each platform will override this with its own function
  */
-__attribute__((weak)) mrt_status_t mrt_gatt_get_char_val(mrt_gatt_char_t* chr);
+__attribute__((weak)) mrt_status_t mrt_gatt_get_char_val(mrt_gatt_char_t* chr)
 {
 
 
@@ -285,15 +272,5 @@ __attribute__((weak)) mrt_status_t mrt_gatt_get_char_val(mrt_gatt_char_t* chr);
 }
 
 
-__attribute__((weak)) mrt_status_t mrt_gatt_register_svc(mrt_gatt_svc_t* svc)
-{
-    return MRT_STATUS_NOT_IMPLEMENTED; 
-}
-
-__attribute__((weak)) mrt_status_t mrt_gatt_register_char(mrt_gatt_char_t* chr)
-{
-    return MRT_STATUS_NOT_IMPLEMENTED; 
-}
 
 #endif //MRT_NO_WEAK
-

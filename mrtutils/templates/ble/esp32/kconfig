@@ -1,0 +1,10 @@
+menu "${obj.name.upper()}_GATT_SERVER"
+
+
+    config MRT_USE_MRT_GAP_EVENT_HANDLER
+        bool "Enable https"
+        default y
+        help
+           Enabling this will register ${obj.name.lower()}_gap_evt_handler from ${obj.name.lower()}_gatt_server.c as the default handler for GAP events
+
+endmenu

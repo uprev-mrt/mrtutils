@@ -24,9 +24,9 @@ const uint8_t ${"{0}_CHR_UUID[] = {{{1}}}".format(char.name.upper(), char.uuidAr
 /* Initializer-----------------------------------------------------------------*/
 ${obj.prefix}_svc_t* ${obj.prefix}_svc_init(mrt_gatt_pro_t* pro)
 {   
-    ${'gatt_init_svc(&{0}_svc.mSvc, {1}, {2}_SVC_UUID, {3}, NULL, "{4}");'.format(obj.prefix, obj.uuidType, obj.name.upper(), len(obj.chars), obj.name)}
+    ${'mrt_gatt_init_svc(&{0}_svc.mSvc, {1}, {2}_SVC_UUID, {3}, NULL, "{4}");'.format(obj.prefix, obj.uuidType, obj.name.upper(), len(obj.chars), obj.name)}
 % for char in obj.chars:
-    ${'gatt_init_char(&{0}_svc.mSvc , &{0}_svc.m{1},{2},  (uint8_t*)&{3}_CHR_UUID, {4}, {5}, {0}_{6}_handler, "{7}");'.format(obj.prefix, t.camelCase(char.name), char.uuidType, char.name.upper(), char.size(), char.props(), char.name.lower(), char.name)}
+    ${'mrt_gatt_init_char(&{0}_svc.mSvc , &{0}_svc.m{1},{2},  (uint8_t*)&{3}_CHR_UUID, {4}, {5}, {0}_{6}_handler, "{7}");'.format(obj.prefix, t.camelCase(char.name), char.uuidType, char.name.upper(), char.size(), char.props(), char.name.lower(), char.name)}
 %endfor
 
     if(pro != NULL)
