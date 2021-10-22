@@ -18,6 +18,7 @@ extern "C"
 
 
 /* Includes ------------------------------------------------------------------*/
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -306,7 +307,6 @@ mrt_status_t mrt_gatt_update_char_val(mrt_gatt_char_t* chr, uint8_t* data, int l
  * @return status
  */
 mrt_status_t mrt_gatt_get_char_val(mrt_gatt_char_t* chr);
-
 
 
 

@@ -76,7 +76,7 @@ typedef struct{
 }${obj.name.lower()}_profile_t;
 
 /* Exported constants --------------------------------------------------------*/
-extern ${obj.name.lower()}_profile_t ${obj.name}_profile;
+extern ${obj.name.lower()}_profile_t ${obj.name.lower()}_profile;
 
 /* Exported functions ------------------------------------------------------- */
 

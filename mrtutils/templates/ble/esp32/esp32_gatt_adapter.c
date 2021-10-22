@@ -17,15 +17,7 @@
 /**
  * @brief defines an attribute in the attribute table
  */
-#define DEF_ATTR_DB_T(_attr, _auto_rsp, _uuidlen, _uuid, _perm, _maxlen, _len, _val ) {\
-  attr.attr_control.auto_rsp =   _auto_rsp;         \
-  attr.att_desc.uuid_length  =   _uuidlen;          \
-  attr.att_desc.uuid_p       =   (uint8_t*) _uuid;  \
-  attr.att_desc.perm         =   _perm;             \
-  attr.att_desc.max_length   =   _maxlen;           \
-  attr.att_desc.length       =   _len;              \
-  attr.att_desc.value        =   (uint8_t *) _val ; \
-}
+#define DEF_ATTR_DB_T(_attr, _auto_rsp, _uuidlen, _uuid, _perm, _maxlen, _len, _val ) {  attr.attr_control.auto_rsp =   _auto_rsp;           attr.att_desc.uuid_length  =   _uuidlen;            attr.att_desc.uuid_p       =   (uint8_t*) _uuid;    attr.att_desc.perm         =   _perm;               attr.att_desc.max_length   =   _maxlen;             attr.att_desc.length       =   _len;                attr.att_desc.value        =   (uint8_t *) _val ; }
 
 
 /* Private Variables ---------------------------------------------------------*/
@@ -42,19 +34,9 @@ static const uint8_t char_prop_write = ESP_GATT_CHAR_PROP_BIT_WRITE;
 
 /* Exported functions ------------------------------------------------------- */
 
-mrt_status_t mrt_gatt_set_handles(mrt_gatt_pro_t* pro, esp_bt_uuid_t* svc_uuid,uint16_t* handles, int len )
+mrt_status_t mrt_gatt_set_handles(mrt_gatt_svc_t* svc,uint16_t* handles, int len )
 {
   int cur = 0;
-
-  //Convert uuid to mrt 
-  mrt_gatt_uuid_t uuid;
-  uuid.len = svc_uuid->len;
-  memcpy(uuid.uuid128, svc_uuid->uuid.uuid128, uuid.len);
-
-
-
-  //Find service in profile by uuid
-  mrt_gatt_svc_t* svc = mrt_gatt_lookup_svc_uuid(pro, &uuid);
 
   if(svc == NULL)
   {
@@ -75,7 +57,7 @@ mrt_status_t mrt_gatt_set_handles(mrt_gatt_pro_t* pro, esp_bt_uuid_t* svc_uuid,u
       svc->chars[i]->handles.char_handle = handles[cur++];
       svc->chars[i]->handles.val_handle = handles[cur++];
 
-      if((svc->chars[i]->props | MRT_GATT_PROP_NOTIFY) > 0)
+      if((svc->chars[i]->props & MRT_GATT_PROP_NOTIFY) > 0)
       {
         svc->chars[i]->handles.cccd_handle = handles[cur++];  
       }
@@ -116,6 +98,16 @@ mrt_gatt_evt_t mrt_gatt_convert_evt(esp_gatts_cb_event_t event, esp_ble_gatts_cb
     return mrt_evt;
 }
 
+mrt_gatt_uuid_t mrt_gatt_convert_uuid( esp_bt_uuid_t* esp_uuid)
+{
+  mrt_gatt_uuid_t uuid;
+  uuid.len = esp_uuid->len;
+  memcpy(uuid.uuid128, esp_uuid->uuid.uuid128, uuid.len);
+
+  return uuid;
+}
+
+
 mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t event, esp_ble_gatts_cb_param_t *param)
 {
 
@@ -152,6 +144,28 @@ mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t eve
   }
 
   return mrt_evt;
+}
+
+void mrt_gatt_print_uuid(esp_bt_uuid_t* esp_uuid, mrt_gatt_uuid_t* mrt_uuid)
+{
+  mrt_gatt_uuid_t uuid;
+  char str[256] = {0};
+  int cur = 0;
+
+  if(mrt_uuid == NULL)
+  {
+    uuid = mrt_gatt_convert_uuid(esp_uuid);
+    mrt_uuid = &uuid;
+  }
+
+  cur = sprintf(str,"UUID->: "); 
+  for(int i=0; i < mrt_uuid->len; i++ )
+  {
+    cur+= sprintf(&str[cur],"%02X", mrt_uuid->val[i]);
+  }
+
+  ESP_LOGI(GATT_ADAPTER_TAG,"%s",str);
+
 }
 
 /* Override Funtions for mrt_gatt_interface  ---------------------------------*/
@@ -227,7 +241,7 @@ mrt_status_t mrt_gatt_register_svc(mrt_gatt_svc_t* svc,esp_gatt_if_t gatts_if)
 
     //Permissions 
     
-    if(chr->props | MRT_GATT_PROP_READ) 
+    if(chr->props & MRT_GATT_PROP_READ) 
     {
       esp_perm |= ESP_GATT_PERM_READ;
     }
@@ -235,15 +249,15 @@ mrt_status_t mrt_gatt_register_svc(mrt_gatt_svc_t* svc,esp_gatt_if_t gatts_if)
     {
       esp_prop = &char_prop_write;
     }
-    if(chr->props | MRT_GATT_PROP_WRITE) 
+    if(chr->props & MRT_GATT_PROP_WRITE) 
     {
       esp_perm |= ESP_GATT_PERM_WRITE;
       esp_prop = &char_prop_read_write;
     }
-    if(chr->props | MRT_GATT_PROP_NOTIFY) 
+    if(chr->props & MRT_GATT_PROP_NOTIFY) 
     {
       esp_perm |= ESP_GATT_PERM_READ;
-      if(chr->props | MRT_GATT_PROP_WRITE)
+      if(chr->props & MRT_GATT_PROP_WRITE)
       {
         esp_prop = &char_prop_read_write_notify;
       }
@@ -263,7 +277,7 @@ mrt_status_t mrt_gatt_register_svc(mrt_gatt_svc_t* svc,esp_gatt_if_t gatts_if)
     DEF_ATTR_DB_T(gatt_db[idx++],ESP_GATT_AUTO_RSP, chr->uuid.len,chr->uuid.val,esp_perm,
                   chr->size, chr->data.len, chr->data.value);
 
-    if(chr->props | MRT_GATT_PROP_NOTIFY)
+    if(chr->props & MRT_GATT_PROP_NOTIFY)
     {
           /* Client Characteristic Configuration Descriptor */
           DEF_ATTR_DB_T(gatt_db[idx++],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&character_client_config_uuid ,ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,

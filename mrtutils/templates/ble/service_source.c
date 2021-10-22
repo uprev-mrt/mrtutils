@@ -34,14 +34,10 @@ ${obj.prefix}_svc_t* ${obj.prefix}_svc_init(mrt_gatt_pro_t* pro)
         ${"mrt_gatt_add_svc(pro,&{0}_svc.mSvc);".format(obj.prefix)}
     }
 
-    return &{0}_svc;
+    return &${obj.prefix}_svc;
     
 }
 
-void ${obj.prefix}_svc_register()
-{
-    mrt_gatt_register_svc(${obj.prefix}_svc);
-}
 
 /* Getters and Setters--------------------------------------------------------*/
 
@@ -54,7 +50,7 @@ ${"{0}* {1}_get_{2}()".format(t.cTypeDict[char.type], obj.prefix,char.name.lower
        return NULL;
    }
 
-   return  ${"(({0}*) {1}_svc.m{2}.mCache.mData);".format(t.cTypeDict[char.type], obj.prefix, t.camelCase(char.name))}
+   return  ${"(({0}*) {1}_svc.m{2}.data.value);".format(t.cTypeDict[char.type], obj.prefix, t.camelCase(char.name))}
 }
 
 %else:
@@ -65,24 +61,18 @@ ${"{0} {1}_get_{2}()".format(t.cTypeDict[char.type], obj.prefix,char.name.lower(
        return 0;
    }
 
-   return  ${"*(({0}*) {1}_svc.m{2}.mCache.mData);".format(t.cTypeDict[char.type], obj.prefix, t.camelCase(char.name))}
+   return  ${"*(({0}*) {1}_svc.m{2}.data.value);".format(t.cTypeDict[char.type], obj.prefix, t.camelCase(char.name))}
 }
 
 %endif
 % endfor
 
 
-/* Initialization Handler----------------------------------------------*/
-__attribute__((weak)) void ${obj.prefix}_svc_post_init_handler(void)
-{
-
-}
-
-/* Characteristic Event Handlers----------------------------------------------*/
+/* Weak Characteristic Event Handlers-----------------------------------------*/
 % for char in obj.chars:
 __attribute__((weak)) ${"mrt_status_t {0}_{1}_handler(mrt_gatt_evt_t* event)".format(obj.prefix,char.name.lower())}
 {
-    //${t.cTypeDict[char.type]} val = *((${t.cTypeDict[char.type]}*) event->mData.data); /* Cast to correct data type*/
+    //${"{0}_{1}_t*".format(obj.prefix,char.name.lower())} val = *((${"{0}_{1}_t*".format(obj.prefix,char.name.lower())}*) event->mData.data); /* Cast to correct data type*/
 
 % if char.isEnum> 0:
     //switch(*ptrVal)

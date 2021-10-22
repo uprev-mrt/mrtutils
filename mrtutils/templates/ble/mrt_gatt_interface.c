@@ -21,7 +21,7 @@ uint8_t default_security = MRT_GATT_SECURITY_NONE;    //Default to no security
 
 /* Exported Functions --------------------------------------------------------*/
 
-mrt_status_t mrt_gatt_init_profile(mrt_gatt_pro_t* pro, uint16_t serviceCount, uint32_t id, const char* name)
+mrt_status_t mrt_gatt_init_pro(mrt_gatt_pro_t* pro, uint16_t serviceCount, uint32_t id, const char* name)
 {
     pro->id = id;
     pro->name = name;
@@ -33,7 +33,7 @@ mrt_status_t mrt_gatt_init_profile(mrt_gatt_pro_t* pro, uint16_t serviceCount, u
 }
 
 
-mrt_status_t mrt_gatt_add_service(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc )
+mrt_status_t mrt_gatt_add_svc(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* svc )
 {   
 
     if(pro->svcCount >= pro->maxSvcCount)
@@ -90,7 +90,7 @@ mrt_status_t mrt_gatt_init_char(mrt_gatt_svc_t* svc, mrt_gatt_char_t* chr, uint8
         svc->chars[svc->charCount++] = chr;   /*Add ptr to list for looping through*/
 
         svc->attrCount +=2; //2 attribute for characteristic declaration and value 
-        if(chr->props | MRT_GATT_PROP_NOTIFY)
+        if((chr->props & MRT_GATT_PROP_NOTIFY) > 0)
         {
             svc->attrCount ++; //If Characteristic has notifications, then we add another attribute for the CCCD
         }
@@ -113,7 +113,7 @@ mrt_status_t mrt_gatt_set_default_security(uint8_t securityFlags)
 
 bool mrt_gatt_char_has_handle(mrt_gatt_char_t* chr, uint16_t handle)
 {
-    if((chr->handles.val_handle == handle) && (chr->handles.char_handle == handle) &&(chr->handles.cccd_handle == handle))
+    if((chr->handles.val_handle == handle) || (chr->handles.char_handle == handle) || (chr->handles.cccd_handle == handle))
     {
         return true;
     }
@@ -144,7 +144,7 @@ mrt_gatt_char_t* mrt_gatt_lookup_char_uuid(mrt_gatt_pro_t* pro, mrt_gatt_svc_t* 
     {
         for(uint32_t i=0; i < pro->svcCount; i++ )
         {
-            for(uint32_t a=0; a < svc->charCount; a++ )
+            for(uint32_t a=0; a < pro->svcs[i]->charCount; a++ )
             {
                 if(pro->svcs[i]->chars[a]->uuid.len == uuid->len)
                 {
@@ -194,7 +194,7 @@ mrt_gatt_char_t* mrt_gatt_lookup_char_handle(mrt_gatt_pro_t* pro, mrt_gatt_svc_t
     {
         for(uint32_t i=0; i < pro->svcCount; i++ )
         {
-            for(uint32_t a=0; a < svc->charCount; a++ )
+            for(uint32_t a=0; a < pro->svcs[i]->charCount; a++ )
             {
                 if(mrt_gatt_char_has_handle(pro->svcs[i]->chars[a],handle))
                 {   

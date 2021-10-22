@@ -1,209 +1,330 @@
 /**
- * @file ${obj.name.lower()}_gatt_server.c
- * @brief ${obj.desc}
- * @date ${obj.genTime}
- * 
+  *@file esp32_gatt_adapter.c
+  *@brief header for 
+  *@author Jason Berger
+  *@date 10/16/21
+  */
+
+/* Includes ------------------------------------------------------------------*/
+#include <string.h>
+#include "esp32_gatt_adapter.h"
+
+#define GATT_ADAPTER_TAG "MRT"
+
+
+/* Private Macros ------------------------------------------------------------*/
+
+/**
+ * @brief defines an attribute in the attribute table
  */
+#define DEF_ATTR_DB_T(_attr, _auto_rsp, _uuidlen, _uuid, _perm, _maxlen, _len, _val ) {  _attr.attr_control.auto_rsp =   _auto_rsp;\
+	_attr.att_desc.uuid_length  =   _uuidlen;\
+	_attr.att_desc.uuid_p       =   (uint8_t*) _uuid;\
+	_attr.att_desc.perm         =   _perm;\
+	_attr.att_desc.max_length   =   _maxlen;\
+	_attr.att_desc.length       =   _len;\
+	_attr.att_desc.value        =   (uint8_t *) _val ;\
+}
 
-#include "${obj.name.lower()}_gatt_server.h"
+void print_attr(esp_gatts_attr_db_t* attr )
+{
+  char buf[512];
+  int cur = 0;
 
+  cur+= sprintf(&buf[cur], " AutoRsp: %d\n", attr->attr_control.auto_rsp );
+  cur+= sprintf(&buf[cur], " UUID Len: %d\n", attr->att_desc.uuid_length );
+  cur+= sprintf(&buf[cur], " UUID P: %p\n", attr->att_desc.uuid_p );
+  cur+= sprintf(&buf[cur], " PERM: %d\n", attr->att_desc.perm );
+  cur+= sprintf(&buf[cur], " max_length: %d\n", attr->att_desc.max_length );
+  cur+= sprintf(&buf[cur], " len: %d\n", attr->att_desc.length );
+  cur+= sprintf(&buf[cur], " val: %p\n", attr->att_desc.value );
 
-
-
-/*user-block-top-start*/
-#define ${obj.name.upper()}_PROFILE_ID 0
-#define ${obj.name.upper()}_PROFILE_TAG          "${obj.name.upper()}_PROFILE"
-#define ${obj.name.upper()}_DEVICE_NAME          "${obj.name.upper()}_DEVICE"
-
-static esp_ble_adv_params_t data_adv_params = {
-    .adv_int_min        = 0x100,
-    .adv_int_max        = 0x100,
-    .adv_type           = ADV_TYPE_IND,
-    .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,
-    .channel_map        = ADV_CHNL_ALL,
-    .adv_filter_policy  = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
-};
-
-/*user-block-top-end*/
+  ESP_LOGI(GATT_ADAPTER_TAG, "%s", buf );
+}
 
 /* Private Variables ---------------------------------------------------------*/
-MRT_GATT_DATA_ATTR ${obj.name.lower()}_profile_t ${obj.name.lower()}_profile;
+static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
+static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
+static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+
+static const uint8_t char_prop_read = ESP_GATT_CHAR_PROP_BIT_READ;
+static const uint8_t char_prop_read_notify = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+static const uint8_t char_prop_read_write = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ;
+static const uint8_t char_prop_read_write_notify = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY | ESP_GATT_CHAR_PROP_BIT_WRITE;
+static const uint8_t char_prop_write = ESP_GATT_CHAR_PROP_BIT_WRITE;
 
 
-/* Private Functions ---------------------------------------------------------*/
+/* Exported functions ------------------------------------------------------- */
 
-
-/* Exported Functions --------------------------------------------------------*/
-
-mrt_status_t ${obj.name.lower()}_profile_init(void)
+mrt_status_t mrt_gatt_set_handles(mrt_gatt_svc_t* svc,uint16_t* handles, int len )
 {
-    mrt_gatt_init_pro(&${obj.name.lower()}_profile.mPro, ${len(obj.services)}, 0, "${obj.name}");
+  int cur = 0;
+
+  if(svc == NULL)
+  {
+    ESP_LOGI(GATT_ADAPTER_TAG, "Failed to find Service" );
+    return MRT_STATUS_ERROR;
+  }
+
+  if(len != svc->attrCount)
+  {
+    ESP_LOGI(GATT_ADAPTER_TAG, "Unexpected Handle count. expected %d, received %d",svc->attrCount, len);
+    return MRT_STATUS_ERROR;
+  }
+
+  svc->handle = handles[cur++];
+
+  for(uint32_t i = 0; i < svc->charCount; i++)
+  {
+      svc->chars[i]->handles.char_handle = handles[cur++];
+      svc->chars[i]->handles.val_handle = handles[cur++];
+
+      if((svc->chars[i]->props | MRT_GATT_PROP_NOTIFY) > 0)
+      {
+        svc->chars[i]->handles.cccd_handle = handles[cur++];  
+      }
+  }
+
+  return MRT_STATUS_OK;
+}
+
+
+mrt_gatt_evt_t mrt_gatt_convert_evt(esp_gatts_cb_event_t event, esp_ble_gatts_cb_param_t *param)
+{
+    mrt_gatt_evt_t mrt_evt; 
+
+    mrt_evt.type = MRT_GATT_EVT_NONE;
     
-    /* Initialize all services */
-    %for svc in obj.services:
-    ${"{0}_profile.m{1} = {2}_svc_init(&{0}_profile.mPro);".format(obj.name.lower(),t.camelCase(svc.name), svc.prefix)}
-    %endfor
-    
+    switch(event)
+    {
+        case ESP_GATTS_WRITE_EVT:
+            mrt_evt.handle = param->write.handle;
+            mrt_evt.data.len = param->write.len;
+            mrt_evt.data.data = param->write.value;
+            mrt_evt.type = MRT_GATT_EVT_VALUE_WRITE;
+            
+            break;
+        case ESP_GATTS_READ_EVT:       
+            mrt_evt.type = MRT_GATT_EVT_VALUE_READ;
+            mrt_evt.handle = param->read.handle;
+            break;
+        default:
+            mrt_evt.type = MRT_GATT_EVT_NONE;
+            mrt_evt.data.len = 0;
+            mrt_evt.data.data = NULL;
+            mrt_evt.handle = 0;
+            break;
+        
+    }   
+
+    return mrt_evt;
+}
+
+mrt_gatt_uuid_t mrt_gatt_convert_uuid( esp_bt_uuid_t* esp_uuid)
+{
+  mrt_gatt_uuid_t uuid;
+  uuid.len = esp_uuid->len;
+  memcpy(uuid.uuid128, esp_uuid->uuid.uuid128, uuid.len);
+
+  return uuid;
+}
+
+
+mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t event, esp_ble_gatts_cb_param_t *param)
+{
+
+  //Convert event data
+  mrt_gatt_evt_t mrt_evt = mrt_gatt_convert_evt(event, param);
+
+  //Lookup characteristic
+  mrt_evt.chr = mrt_gatt_lookup_char_handle(pro, NULL, mrt_evt.handle);
+
+  if(mrt_evt.chr == NULL)
+  {
+      ESP_LOGE(GATT_ADAPTER_TAG, "Failed to find characteristic with handle %04X", mrt_evt.handle );
+      return mrt_evt;
+      
+  }
+
+  //If it is a 'Write' event, check if it is writing the CCCD and change event type if needed
+  if((mrt_evt.type == MRT_GATT_EVT_VALUE_WRITE) && (mrt_evt.chr->handles.cccd_handle == mrt_evt.handle))
+  {
+    mrt_evt.type = MRT_GATT_EVT_CCCD_WRITE;
+  }
+
+  /**
+   * ** BY DEFAULT WE ONLY PASS WRITE EVENTS TO THE CHARACTERISTIC CALLBACK HANDLERS **
+   * To pass all events to the handler, comment out the following line
+   */
+  if(mrt_evt.type != MRT_GATT_EVT_VALUE_WRITE){return mrt_evt;}
+
+
+  //By default only call the event callback for write events because READ events are auto-response by default
+  if((mrt_evt.chr != NULL) && (mrt_evt.type != MRT_GATT_EVT_NONE))
+  {
+     mrt_evt.status = mrt_evt.chr->cbEvent(&mrt_evt);
+  }
+
+  return mrt_evt;
+}
+
+void mrt_gatt_print_uuid(esp_bt_uuid_t* esp_uuid, mrt_gatt_uuid_t* mrt_uuid)
+{
+  mrt_gatt_uuid_t uuid;
+  char str[256] = {0};
+  int cur = 0;
+
+  if(mrt_uuid == NULL)
+  {
+    uuid = mrt_gatt_convert_uuid(esp_uuid);
+    mrt_uuid = &uuid;
+  }
+
+  cur = sprintf(str,"UUID->: "); 
+  for(int i=0; i < mrt_uuid->len; i++ )
+  {
+    cur+= sprintf(&str[cur],"%02X", mrt_uuid->val[i]);
+  }
+
+  ESP_LOGI(GATT_ADAPTER_TAG,"%s",str);
+
+}
+
+/* Override Funtions for mrt_gatt_interface  ---------------------------------*/
+
+/**
+ * @brief Updates the characteristic value
+ * @param chr ptr to char
+ * @param data data to update with
+ * @param len length of data in bytes
+ * @return mrt_status_t 
+ */
+mrt_status_t mrt_gatt_update_char_val(mrt_gatt_char_t* chr, uint8_t* data, int len)
+{
+    //Update attribute
+    esp_err_t error = esp_ble_gatts_set_attr_value(chr->handles.val_handle, len, data);
+    if (error != ESP_OK) {
+        ESP_LOGI(GATT_ADAPTER_TAG, "UPDATE: Failed to set handle: (%x): GATT Char, %x", chr->handles.val_handle, error);
+        return MRT_STATUS_ERROR;
+    }
+
+    //Read back the value to make sure cache is in sync
+    mrt_gatt_get_char_val(chr);
+
     return MRT_STATUS_OK;
 }
 
-mrt_status_t ${obj.name.lower()}_profile_register_services(esp_gatt_if_t gatts_if)
+/**
+ * @brief Gets the characteristic and updates the local cache (chr->cache.data) from the actual data on the device
+ * @param chr ptr to char
+ * @return status
+ */
+mrt_status_t mrt_gatt_get_char_val(mrt_gatt_char_t* chr)
 {
-    mrt_status_t status = MRT_STATUS_ERROR;
-    for(uint16_t i =0; i < ${obj.name.lower()}_profile.mPro.svcCount; i++ )
+    //Read back the value to make sure cache is in sync
+    esp_ble_gatts_get_attr_value(chr->handles.val_handle, &chr->data.len, (const uint8_t **) &chr->data.value);
+
+    return MRT_STATUS_OK;
+}
+
+/**
+ * @brief This functions registers the service by generating a service table and registering it
+ * @param svc ptr to service
+ * @return mrt_status_t 
+ */
+mrt_status_t mrt_gatt_register_svc(mrt_gatt_svc_t* svc,esp_gatt_if_t gatts_if)
+{
+  //Get context from profile
+  uint32_t idx =0;
+
+  //Create table //TODO verify it doesnt need to be allocated 
+  esp_gatts_attr_db_t gatt_db[svc->attrCount]; 
+  uint16_t esp_perm;
+  uint8_t* esp_prop;
+
+  esp_gatts_attr_db_t attr; 
+  attr.attr_control.auto_rsp = ESP_GATT_AUTO_RSP; // Default to auto response 
+
+
+
+
+  //Service Attribute
+  DEF_ATTR_DB_T(gatt_db[idx],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&primary_service_uuid,ESP_GATT_PERM_READ,
+                svc->uuid.len, svc->uuid.len, svc->uuid.val);
+  idx++;
+
+  
+  for(uint32_t i=0; i < svc->charCount; i++)
+  {
+    mrt_gatt_char_t* chr = svc->chars[i];
+
+    esp_perm = 0;
+    esp_prop = &char_prop_read;
+
+
+    //Permissions 
+    
+    if(chr->props & MRT_GATT_PROP_READ) 
     {
-        status = mrt_gatt_register_svc(${obj.name.lower()}_profile.mPro.svcs[i],gatts_if);
-        if(status != MRT_STATUS_OK)
-        {
-            break;
-        }
+      esp_perm |= ESP_GATT_PERM_READ;
+    }
+    else 
+    {
+      esp_prop = &char_prop_write;
+    }
+    if(chr->props & MRT_GATT_PROP_WRITE) 
+    {
+      esp_perm |= ESP_GATT_PERM_WRITE;
+      esp_prop = &char_prop_read_write;
+    }
+    if(chr->props & MRT_GATT_PROP_NOTIFY) 
+    {
+      esp_perm |= ESP_GATT_PERM_READ;
+      if(chr->props & MRT_GATT_PROP_WRITE)
+      {
+        esp_prop = &char_prop_read_write_notify;
+      }
+      else 
+      {
+        esp_prop = &char_prop_read_notify;
+      }
+    }
+
+    //Characteristic Declaration Attribute
+    DEF_ATTR_DB_T(gatt_db[idx],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&character_declaration_uuid,ESP_GATT_PERM_READ,
+                  sizeof(uint8_t), sizeof(uint8_t), esp_prop);
+    idx++;
+
+    
+
+    //Characteristic Value Attribute
+    DEF_ATTR_DB_T(gatt_db[idx],ESP_GATT_AUTO_RSP, chr->uuid.len,chr->uuid.val,esp_perm,
+                  chr->size, chr->data.len, chr->data.value);
+    idx++;
+
+    if(chr->props & MRT_GATT_PROP_NOTIFY)
+    {
+          /* Client Characteristic Configuration Descriptor */
+          DEF_ATTR_DB_T(gatt_db[idx],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&character_client_config_uuid ,ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+                        sizeof(uint16_t), sizeof(uint16_t), &chr->cccd );
+          idx++;
+
+
 
     }
 
-    return status;
-}
 
 
 
-esp_err_t ${obj.name.lower()}_gatts_start(void)
-{
-    esp_err_t ret;
+  }
 
-    ${obj.name.lower()}_profile_init();
-    ${obj.name.lower()}_profile.mPro.id = ${obj.name.upper()}_PROFILE_ID;
+  esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, svc->attrCount, 0);
+            if (create_attr_ret){
+                ESP_LOGE(GATT_ADAPTER_TAG, "create attr table failed, error code = %x", create_attr_ret);
 
-    //Register event handler
-    ret = esp_ble_gatts_register_callback(${obj.name.lower()}_gatts_evt_handler);
-    if (ret){
-        ESP_LOGE(${obj.name.upper()}_PROFILE_TAG , "gatts register error, error code = %x", ret);
-        return ret;
-    }
-
-#ifdef CONFIG_MRT_USE_MRT_GAP_EVENT_HANDLER
-    ret = esp_ble_gap_register_callback(${obj.name.lower()}_gap_evt_handler);
-    if (ret){
-        ESP_LOGE(${obj.name.upper()}_PROFILE_TAG , "gap register error, error code = %x", ret);
-        return ret;
-    }
-#endif
-
-    //Register "App", which will start the process and generate a ESP_GATTS_REG_EVT event
-    ret = esp_ble_gatts_app_register(${obj.name}_profile.mPro.id);
-    if (ret){
-        ESP_LOGE(${obj.name.upper()}_PROFILE_TAG , "gatts app register error, error code = %x", ret);
-        return ret;
-    }
-
-
-    return ret;
-}
-
-
-void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
-{
-    static mrt_gatt_evt_t mrt_evt;
-    switch (event) {
-        case ESP_GATTS_REG_EVT:
-
-            //Set Device name
-            esp_ble_gap_set_device_name(${obj.name.upper()}_DEVICE_NAME );
-
-            //Register all of the services in our profile
-            ${obj.name.lower()}_profile_register_services(gatts_if);
-            break;
-        case ESP_GATTS_READ_EVT:
-        case ESP_GATTS_WRITE_EVT:
-            mrt_evt =  mrt_gatt_handle_evt(&${obj.name}_profile.mPro,event, param);
-
-            // if(mrt_evt.type == MRT_GATT_EVT_CCCD_WRITE)
-            // {
-
-            // }
-
-            break;
-        case ESP_GATTS_EXEC_WRITE_EVT:
-            break;
-        case ESP_GATTS_MTU_EVT:
-            break;
-        case ESP_GATTS_CONF_EVT:
-            break;
-        case ESP_GATTS_UNREG_EVT:
-            break;
-        case ESP_GATTS_DELETE_EVT:
-            break;
-        case ESP_GATTS_START_EVT:
-            break;
-        case ESP_GATTS_STOP_EVT:
-            break;
-        case ESP_GATTS_CONNECT_EVT:
-            ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "ESP_GATTS_CONNECT_EVT");
-            #ifdef ENABLE_SECURE_BT_PAIRING
-				ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "ESP_GATTS_CONNECT_EVT: Secure Pairing Enabled");
-                if(isInPairingMode) // Allow all incoming connections while in paring mode
-                {
-					/* start security connect with peer device when receive the connect event sent by the master */
-					esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
-                }
-				else // If we are not in pairing mode and this device is not allowed, then disconnect
-				{
-					if (!check_bonded_devices(param->connect.remote_bda))
-                    {
-                            
-                        ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "Invalid remote address."); 
-                        esp_ble_gap_disconnect(param->connect.remote_bda);
-                    } 
-                    else
-                    {
-                        /* start security connect with peer device when receive the connect event sent by the master */
-                        esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
-                    }
-				}
-			#else
-				ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "ESP_GATTS_CONNECT_EVT: Secure Pairing Disabled");
-				/* start security connect with peer device when receive the connect event sent by the master */
-				esp_ble_set_encryption(param->connect.remote_bda, ESP_BLE_SEC_ENCRYPT_MITM);
-			#endif                
-            break;
-        case ESP_GATTS_DISCONNECT_EVT:
-            ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "ESP_GATTS_DISCONNECT_EVT");
-            /* start advertising again when missing the connect */
-            esp_ble_gap_start_advertising(&data_adv_params);
-            break;
-        case ESP_GATTS_OPEN_EVT:
-            break;
-        case ESP_GATTS_CANCEL_OPEN_EVT:
-            break;
-        case ESP_GATTS_CLOSE_EVT:
-            break;
-        case ESP_GATTS_LISTEN_EVT:
-            break;
-        case ESP_GATTS_CONGEST_EVT:
-            break;
-        case ESP_GATTS_SET_ATTR_VAL_EVT:
-            break;
-        case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
-            ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "Create attr tab : handle = %x",param->add_attr_tab.num_handle);
-            if (param->create.status == ESP_GATT_OK)
-            {
-                /**
-                 * Every time an attribute table is registered, it will trigger this event and pass back an array of 'handles'
-                 * These arrays are passed to the profile to sort them out and assign them to characteristics
-                 */
-                mrt_gatt_set_handles(&${obj.name}_profile.mPro,&param->add_attr_tab.svc_uuid ,param->add_attr_tab.handles, param->add_attr_tab.num_handle );
+                return MRT_STATUS_ERROR;
             }
-            else
-            {
-                ESP_LOGE(${obj.name.upper()}_PROFILE_TAG , " Create attribute table failed, error code = %x", param->create.status);
-            }
-        break;
-    }
-        default:
-           break;
-    }
+
+  return MRT_STATUS_OK;
+
 }
-
-
-
-/*user-block-functions-start*/
-/*user-block-functions-end*/
-

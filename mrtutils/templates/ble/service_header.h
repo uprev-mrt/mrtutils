@@ -19,11 +19,6 @@ extern "C"
 
 
 /* Exported Macros -----------------------------------------------------------*/
-/* Types */
-% for char in obj.chars:
-    ${t.padAfter("#define {0}_{1}_t".format(obj.prefix,char.name.lower()) , 45)}${t.cTypeDict[char.type]}
-% endfor
-
 % for char in obj.chars:
     % if len(char.vals) > 0:
 /* ${char.name} Values */
@@ -35,6 +30,15 @@ extern "C"
 % endfor
 
 /* Exported types ------------------------------------------------------------*/
+
+% for char in obj.chars:
+%if (char.arrayLen > 1):
+    ${t.padAfter("typedef {0}".format(t.cTypeDict[char.type]), 45)}${"{0}_{1}_t*".format(obj.prefix,char.name.lower())}
+%else:
+    ${t.padAfter("typedef {0}".format(t.cTypeDict[char.type]), 45)}${"{0}_{1}_t".format(obj.prefix,char.name.lower())}
+%endif
+% endfor
+
 typedef struct{
     mrt_gatt_svc_t mSvc;
 % for char in obj.chars:
