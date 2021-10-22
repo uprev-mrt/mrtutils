@@ -18,6 +18,8 @@ extern "C"
 #include "mrt_gatt_interface.h"
 #include "esp_log.h"
 #include "esp_gatt_common_api.h"
+#include "esp_bt.h"
+#include "esp_bt_main.h"
 
 /* Exported types ------------------------------------------------------------*/
 

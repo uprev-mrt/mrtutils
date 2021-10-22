@@ -17,8 +17,53 @@
 /**
  * @brief defines an attribute in the attribute table
  */
-#define DEF_ATTR_DB_T(_attr, _auto_rsp, _uuidlen, _uuid, _perm, _maxlen, _len, _val ) {  attr.attr_control.auto_rsp =   _auto_rsp;           attr.att_desc.uuid_length  =   _uuidlen;            attr.att_desc.uuid_p       =   (uint8_t*) _uuid;    attr.att_desc.perm         =   _perm;               attr.att_desc.max_length   =   _maxlen;             attr.att_desc.length       =   _len;                attr.att_desc.value        =   (uint8_t *) _val ; }
+#define DEF_ATTR_DB_T(_attr, _auto_rsp, _uuidlen, _uuid, _perm, _maxlen, _len, _val ) {\\
 
+    _attr.attr_control.auto_rsp =   _auto_rsp;\\
+
+    _attr.att_desc.uuid_length  =   _uuidlen;\\
+
+    _attr.att_desc.uuid_p       =   (uint8_t*) _uuid;\\
+
+    _attr.att_desc.perm         =   _perm;\\
+
+    _attr.att_desc.max_length   =   _maxlen;\\
+
+    _attr.att_desc.length       =   _len;\\
+
+    _attr.att_desc.value        =   (uint8_t *) _val ;\\
+
+ }
+
+void print_attr(esp_gatts_attr_db_t* attr )
+{
+  char buf[512];
+  int cur = 0;
+
+  cur+= sprintf(&buf[cur], " AutoRsp: %d\n", attr->attr_control.auto_rsp );
+  cur+= sprintf(&buf[cur], " UUID Len: %d\n", attr->att_desc.uuid_length );
+  cur+= sprintf(&buf[cur], " UUID P: %p\n", attr->att_desc.uuid_p );
+  cur+= sprintf(&buf[cur], " PERM: %d\n", attr->att_desc.perm );
+  cur+= sprintf(&buf[cur], " max_length: %d\n", attr->att_desc.max_length );
+  cur+= sprintf(&buf[cur], " len: %d\n", attr->att_desc.length );
+  cur+= sprintf(&buf[cur], " val: %p\n", attr->att_desc.value );
+
+  ESP_LOGI(GATT_ADAPTER_TAG, "%s", buf );
+}
+
+void print_svc(mrt_gatt_svc_t* svc)
+{
+   char buf[512];
+  int cur = 0;
+
+  cur+= sprintf(&buf[cur], " Name: %s\n", svc->name );
+  cur+= sprintf(&buf[cur], " Name: %d\n", svc->handle );
+  cur+= sprintf(&buf[cur], " Name: %d\n", svc->attrCount );
+  cur+= sprintf(&buf[cur], " Name: %d\n", svc->charCount );
+
+
+  ESP_LOGI(GATT_ADAPTER_TAG, "%s", buf );
+}
 
 /* Private Variables ---------------------------------------------------------*/
 static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
@@ -40,13 +85,14 @@ mrt_status_t mrt_gatt_set_handles(mrt_gatt_svc_t* svc,uint16_t* handles, int len
 
   if(svc == NULL)
   {
-    ESP_LOGI(GATT_ADAPTER_TAG, "Failed to find Service" );
+    ESP_LOGE(GATT_ADAPTER_TAG, "Error, NULL service" );
     return MRT_STATUS_ERROR;
   }
 
+
   if(len != svc->attrCount)
   {
-    ESP_LOGI(GATT_ADAPTER_TAG, "Unexpected Handle count. expected %d, received %d",svc->attrCount, len);
+    ESP_LOGE(GATT_ADAPTER_TAG, "Unexpected Handle count. expected %d, received %d",svc->attrCount, len);
     return MRT_STATUS_ERROR;
   }
 
@@ -54,11 +100,14 @@ mrt_status_t mrt_gatt_set_handles(mrt_gatt_svc_t* svc,uint16_t* handles, int len
 
   for(uint32_t i = 0; i < svc->charCount; i++)
   {
+      //ESP_LOGI(GATT_ADAPTER_TAG, "Char '%s' :  %x", svc->chars[i]->name, handles[cur]);
       svc->chars[i]->handles.char_handle = handles[cur++];
+      //ESP_LOGI(GATT_ADAPTER_TAG, "Char '%s' -> Val: %x", svc->chars[i]->name, handles[cur]);
       svc->chars[i]->handles.val_handle = handles[cur++];
 
       if((svc->chars[i]->props & MRT_GATT_PROP_NOTIFY) > 0)
       {
+      //ESP_LOGI(GATT_ADAPTER_TAG, "Char '%s' ->CCCD: %x", svc->chars[i]->name, handles[cur]);
         svc->chars[i]->handles.cccd_handle = handles[cur++];  
       }
   }
@@ -78,7 +127,7 @@ mrt_gatt_evt_t mrt_gatt_convert_evt(esp_gatts_cb_event_t event, esp_ble_gatts_cb
         case ESP_GATTS_WRITE_EVT:
             mrt_evt.handle = param->write.handle;
             mrt_evt.data.len = param->write.len;
-            mrt_evt.data.data = param->write.value;
+            mrt_evt.data.value = param->write.value;
             mrt_evt.type = MRT_GATT_EVT_VALUE_WRITE;
             
             break;
@@ -89,7 +138,7 @@ mrt_gatt_evt_t mrt_gatt_convert_evt(esp_gatts_cb_event_t event, esp_ble_gatts_cb
         default:
             mrt_evt.type = MRT_GATT_EVT_NONE;
             mrt_evt.data.len = 0;
-            mrt_evt.data.data = NULL;
+            mrt_evt.data.value = NULL;
             mrt_evt.handle = 0;
             break;
         
@@ -124,6 +173,8 @@ mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t eve
       
   }
 
+   ESP_LOGE(GATT_ADAPTER_TAG, "Event Type: %04X", mrt_evt.type );
+
   //If it is a 'Write' event, check if it is writing the CCCD and change event type if needed
   if((mrt_evt.type == MRT_GATT_EVT_VALUE_WRITE) && (mrt_evt.chr->handles.cccd_handle == mrt_evt.handle))
   {
@@ -140,6 +191,7 @@ mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t eve
   //By default only call the event callback for write events because READ events are auto-response by default
   if((mrt_evt.chr != NULL) && (mrt_evt.type != MRT_GATT_EVT_NONE))
   {
+    ESP_LOGE(GATT_ADAPTER_TAG, "CALLBACK  Event Type: %04X", mrt_evt.type );
      mrt_evt.status = mrt_evt.chr->cbEvent(&mrt_evt);
   }
 
@@ -220,15 +272,11 @@ mrt_status_t mrt_gatt_register_svc(mrt_gatt_svc_t* svc,esp_gatt_if_t gatts_if)
   uint16_t esp_perm;
   uint8_t* esp_prop;
 
-  esp_gatts_attr_db_t attr; 
-  attr.attr_control.auto_rsp = ESP_GATT_AUTO_RSP; // Default to auto response 
-
-
-
 
   //Service Attribute
-  DEF_ATTR_DB_T(gatt_db[idx++],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&primary_service_uuid,ESP_GATT_PERM_READ,
+  DEF_ATTR_DB_T(gatt_db[idx],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&primary_service_uuid,ESP_GATT_PERM_READ,
                 svc->uuid.len, svc->uuid.len, svc->uuid.val);
+  idx++;
 
   
   for(uint32_t i=0; i < svc->charCount; i++)
@@ -268,24 +316,29 @@ mrt_status_t mrt_gatt_register_svc(mrt_gatt_svc_t* svc,esp_gatt_if_t gatts_if)
     }
 
     //Characteristic Declaration Attribute
-    DEF_ATTR_DB_T(gatt_db[idx++],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&character_declaration_uuid,ESP_GATT_PERM_READ,
+    DEF_ATTR_DB_T(gatt_db[idx],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&character_declaration_uuid,ESP_GATT_PERM_READ,
                   sizeof(uint8_t), sizeof(uint8_t), esp_prop);
+    idx++;
 
     
 
     //Characteristic Value Attribute
-    DEF_ATTR_DB_T(gatt_db[idx++],ESP_GATT_AUTO_RSP, chr->uuid.len,chr->uuid.val,esp_perm,
+    DEF_ATTR_DB_T(gatt_db[idx],ESP_GATT_AUTO_RSP, chr->uuid.len,chr->uuid.val,esp_perm,
                   chr->size, chr->data.len, chr->data.value);
+    idx++;
 
     if(chr->props & MRT_GATT_PROP_NOTIFY)
     {
           /* Client Characteristic Configuration Descriptor */
-          DEF_ATTR_DB_T(gatt_db[idx++],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&character_client_config_uuid ,ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+          DEF_ATTR_DB_T(gatt_db[idx],ESP_GATT_AUTO_RSP, ESP_UUID_LEN_16,&character_client_config_uuid ,ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
                         sizeof(uint16_t), sizeof(uint16_t), &chr->cccd );
+          idx++;
 
 
 
     }
+
+
 
 
   }

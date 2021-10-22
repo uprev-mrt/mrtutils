@@ -106,7 +106,7 @@ struct mrt_gatt_evt_t{
     uint16_t handle;           /* Handle*/
     mrt_gatt_char_t* chr;     /*Characteristic for event*/
     struct{
-        uint8_t* data;          /* ptr to data for writes (or notify on client)*/
+        uint8_t* value;          /* ptr to data for writes (or notify on client)*/
         int len;                /* len of data in bytes*/
     }data;
     void* ctx;                 /* Allows struct to reference platform specific objec if needed */

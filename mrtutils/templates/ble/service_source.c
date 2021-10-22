@@ -72,10 +72,21 @@ ${"{0} {1}_get_{2}()".format(t.cTypeDict[char.type], obj.prefix,char.name.lower(
 % for char in obj.chars:
 __attribute__((weak)) ${"mrt_status_t {0}_{1}_handler(mrt_gatt_evt_t* event)".format(obj.prefix,char.name.lower())}
 {
-    //${"{0}_{1}_t*".format(obj.prefix,char.name.lower())} val = *((${"{0}_{1}_t*".format(obj.prefix,char.name.lower())}*) event->mData.data); /* Cast to correct data type*/
+
+%if (char.arrayLen > 1):
+%if (char.type == 'string'):
+    //char* val = (char*) event->data.value); /* Cast to correct data type*/
+%else:
+    //${"{0}_{1}_t* vals = ({0}_{1}_t*) event.data.value;".format(obj.prefix,char.name.lower())}  /* Cast to correct data type*/
+    //${"uint32_t len = event.data.len/sizof({0}_{1}_t);".format(obj.prefix,char.name.lower())}   /* Get length of array*/
+%endif
+%else:
+    //${"{0}_{1}_t val = *(({0}_{1}_t*) event.data.value);".format(obj.prefix,char.name.lower())} /* Cast to correct data type*/
+%endif
+
 
 % if char.isEnum> 0:
-    //switch(*ptrVal)
+    //switch(val)
     //{
     % for val in char.vals:
     //    case ${t.padAfter(obj.prefix +"_"+char.name + "_"+val.name+":" , 45).upper()}  /* ${val.desc} */

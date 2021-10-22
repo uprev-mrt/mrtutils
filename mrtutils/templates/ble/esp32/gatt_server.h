@@ -109,6 +109,11 @@ void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_
  */
 void ${obj.name.lower()}_gap_evt_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param);
 
+/**
+ * @brief Use this to start the gatt server as a task
+ */
+void task_${obj.name.lower()}_gatts( void * pvParameters );
+
 /*user-block-functions-start*/
 /*user-block-functions-end*/
 

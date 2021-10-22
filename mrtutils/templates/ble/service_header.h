@@ -23,7 +23,7 @@ extern "C"
     % if len(char.vals) > 0:
 /* ${char.name} Values */
         % for val in char.vals:
-    #define ${t.padAfter(obj.prefix +"_"+char.name + "_"+val.name , 45).upper()} ${"0x{:04x}".format(val.value)}   // ${val.desc}
+    #define ${t.padAfter(obj.prefix +"_"+char.name + "_"+val.name , 12).upper()} ${"0x{:04x}".format(val.value)}   // ${val.desc}
         % endfor
 
     %endif
@@ -32,10 +32,12 @@ extern "C"
 /* Exported types ------------------------------------------------------------*/
 
 % for char in obj.chars:
+%if (char.type != 'string'):
 %if (char.arrayLen > 1):
-    ${t.padAfter("typedef {0}".format(t.cTypeDict[char.type]), 45)}${"{0}_{1}_t*".format(obj.prefix,char.name.lower())}
+    ${t.padAfter("typedef {0}*".format(t.cTypeDict[char.type]), 45)}${"{0}_{1}_t;".format(obj.prefix,char.name.lower())}
 %else:
-    ${t.padAfter("typedef {0}".format(t.cTypeDict[char.type]), 45)}${"{0}_{1}_t".format(obj.prefix,char.name.lower())}
+    ${t.padAfter("typedef {0}".format(t.cTypeDict[char.type]), 45)}${"{0}_{1}_t;".format(obj.prefix,char.name.lower())}
+%endif
 %endif
 % endfor
 
