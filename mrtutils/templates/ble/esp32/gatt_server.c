@@ -279,21 +279,24 @@ void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_
         case ESP_GATTS_SET_ATTR_VAL_EVT:
             break;
         case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
+            /**
+             * Every time an attribute table is registered, it will trigger this event and pass back an array of 'handles'
+             * These arrays are passed to the profile to sort them out and assign them to characteristics
+             */
             if (param->create.status == ESP_GATT_OK)
-            {
-                mrt_gatt_print_uuid(&param->add_attr_tab.svc_uuid, NULL);
+            {   
+                //Convert UUID to mrt format, and lookup service
                 mrt_uuid = mrt_gatt_convert_uuid(&param->add_attr_tab.svc_uuid );
-                mrt_gatt_print_uuid(NULL, &mrt_uuid);
                 svc = mrt_gatt_lookup_svc_uuid(&easyrider_profile.mPro, &mrt_uuid );
-                ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "Create attr table for %s, Handle: %x", svc->name, param->add_attr_tab.num_handle);
-                esp_ble_gatts_start_service(param->add_attr_tab.handles[0]);
-                
 
-                /**
-                 * Every time an attribute table is registered, it will trigger this event and pass back an array of 'handles'
-                 * These arrays are passed to the profile to sort them out and assign them to characteristics
-                 */
+                ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "Create attr table for %s, Handle: %x", svc->name, param->add_attr_tab.num_handle);
+                
+                //Set handles for attribtues
                 mrt_gatt_set_handles(svc ,param->add_attr_tab.handles, param->add_attr_tab.num_handle );
+
+                //Start Service
+                esp_ble_gatts_start_service(svc->handle);
+
             }
             else
             {
