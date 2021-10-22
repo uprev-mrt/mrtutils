@@ -309,6 +309,7 @@ class GattService(object):
         #load uri first so we can override attributes as needed 
         
         self.name = "unnamed"
+        self.prefix = ""
         self.chars = []
         self.desc = None
         self.isStandard = False
@@ -318,6 +319,7 @@ class GattService(object):
         self.uuidType ="MRT_UUID_LEN_128"
         self.profile = ''
         self.icon = ''
+        
     
     def loadUri(self, uri):
         print("Pulling " + uri)
@@ -369,6 +371,11 @@ class GattService(object):
             yamlGetAttributes(node, attrDict, self)
             uuidSplit = self.uuid.split('-')
             self.nextUuid = int(uuidSplit[1], 16) + 1
+
+        if self.prefix == "":
+            self.prefix = self.name[0:3]
+
+        self.prefix = self.prefix.lower()
         
         if 'chars' in node:
             chars = node['chars']
