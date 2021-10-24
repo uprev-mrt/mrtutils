@@ -11,25 +11,36 @@ extern "C"
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+%if obj.profile.platform == 'mrt':
 #include "Utilities/Interfaces/GattServer/gatt_server.h"
+%else:
+#include "../interface/mrt_gatt_interface.h"
+%endif 
+
 
 /* Exported Macros -----------------------------------------------------------*/
-/* Types */
-% for char in obj.chars:
-    ${t.padAfter("#define {0}_{1}_t".format(obj.prefix,char.name.lower()) , 45)}${t.cTypeDict[char.type]}
-% endfor
-
 % for char in obj.chars:
     % if len(char.vals) > 0:
 /* ${char.name} Values */
         % for val in char.vals:
-    #define ${t.padAfter(obj.prefix +"_"+char.name + "_"+val.name , 45).upper()} ${"0x{:04x}".format(val.value)}   // ${val.desc}
+    #define ${t.padAfter(obj.prefix +"_"+char.name + "_"+val.name , 12).upper()} ${"0x{:04x}".format(val.value)}   // ${val.desc}
         % endfor
 
     %endif
 % endfor
 
 /* Exported types ------------------------------------------------------------*/
+
+% for char in obj.chars:
+%if (char.type != 'string'):
+%if (char.arrayLen > 1):
+    ${t.padAfter("typedef {0}*".format(t.cTypeDict[char.type]), 45)}${"{0}_{1}_t;".format(obj.prefix,char.name.lower())}
+%else:
+    ${t.padAfter("typedef {0}".format(t.cTypeDict[char.type]), 45)}${"{0}_{1}_t;".format(obj.prefix,char.name.lower())}
+%endif
+%endif
+% endfor
+
 typedef struct{
     mrt_gatt_svc_t mSvc;
 % for char in obj.chars:
@@ -43,12 +54,12 @@ typedef struct{
 extern ${obj.prefix}_svc_t ${obj.prefix}_svc;
 
 /* Initializer----------------------------------------------------------------*/
-void ${obj.prefix}_svc_init(${obj.prefix}_svc_t* ${obj.prefix}_svc);
+${obj.prefix}_svc_t* ${obj.prefix}_svc_init(mrt_gatt_pro_t* pro);
 
-/**
- * @brief Called after server is intialized
- */
-void ${obj.prefix}_svc_post_init(void);
+void ${obj.prefix}_svc_register();
+
+
+
 
 
 /* Getters and Setters--------------------------------------------------------*/
@@ -57,9 +68,9 @@ void ${obj.prefix}_svc_post_init(void);
 % for char in obj.chars:
 % if char.perm.lower() != 'w':
 %if char.type == 'string':
-${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"MRT_GATT_UPDATE_CHAR(&{0}_svc.m{1}, (uint8_t*)(val), strlen(val))".format(obj.prefix, t.camelCase(char.name))}
+${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*)(val), strlen(val))".format(obj.prefix, t.camelCase(char.name))}
 %else:
-${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"MRT_GATT_UPDATE_CHAR(&{0}_svc.m{1}, (uint8_t*)(val), {2})".format(obj.prefix, t.camelCase(char.name),char.size())}
+${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*)(val), {2})".format(obj.prefix, t.camelCase(char.name),char.size())}
 %endif
 %endif
 % endfor
@@ -79,11 +90,12 @@ ${"{0} {1}_get_{2}();".format(t.cTypeDict[char.type], obj.prefix,char.name.lower
  * @brief check if cache is valid
  */
 % for char in obj.chars:
-${t.padAfter("#define {0}_{1}_cache_valid()".format(obj.prefix,char.name.lower()) , 65)}${"({0}_svc.m{1}.mCache.mLen != 0)".format(obj.prefix,  t.camelCase(char.name))}
+${t.padAfter("#define {0}_{1}_cache_valid()".format(obj.prefix,char.name.lower()) , 65)}${"({0}_svc.m{1}.data.len != 0)".format(obj.prefix,  t.camelCase(char.name))}
 % endfor
 
+/* Handlers ------------------------------------------------------------------*/
+void ${obj.prefix}_svc_post_init_handler();
 
-/* Characteristic Event Handlers----------------------------------------------*/
 % for char in obj.chars:
 ${"mrt_status_t {0}_{1}_handler(mrt_gatt_evt_t* event);".format(obj.prefix,char.name.lower())}
 %endfor

@@ -18,7 +18,7 @@ setuptools.setup(
      url="https://mrt.readthedocs.io/en/latest/index.html",
      packages=setuptools.find_packages(),
      package_data={
-     'mrtutils':['templates/*', 'templates/*/*']
+     'mrtutils':['templates/*', 'templates/*/*','templates/*/*/*']
      },
      install_requires=[
         'markdown',

@@ -16,6 +16,10 @@ import pkgutil
 from mrtutils.mrtTemplateHelper import *
 from mrtutils.gatt_profile import GattProfile
 from mrtutils.updates import *
+from mrtutils.modsync import *
+
+
+supported_platforms = ['mrt', 'esp32']
 
 
 # Initialize the argument parser
@@ -26,11 +30,19 @@ def init_args():
     parser.add_argument('-o', '--output', type=str, help='Output path', default=".")
     parser.add_argument('-d', '--document', type=str, help='documentation path', default="")
     parser.add_argument('-t', '--template', type=str, help='path to create template', default="")
+    parser.add_argument('-p', '--platform', type=str, help='platform of target', default="mrt")
     parser.add_argument('-n', '--nrf', action='store_true', help='Generates definition file for nrf connect', default=False)
     
 
-def buildTemplate(object, templateFile, outputFile, userBlocks = True):
+def buildTemplate(object, templateFile, outputFile, userBlocks = True, overwrite= True):
     exists= False
+    if not os.path.exists(outputFile):
+        exists = True 
+
+    if exists and overwrite == False:
+        return 0
+
+
     cr = CodeReplacer()
     newContents =""
     headerPattern = r"@file (.*?)\n(.*?)\*/"
@@ -75,6 +87,42 @@ def buildProfileSource(gatt , outputPath, baseName =''):
         buildTemplate(service, 'templates/ble/app_service_source.c', outputPath +"/app_" + service.prefix+"_svc.c" )
 
 
+def buildProfileSourceEsp32(gatt , outputPath, baseName =''):
+
+    if baseName == '':
+        baseName = gatt.name.lower() 
+    
+    if not os.path.exists(outputPath):
+        os.makedirs(outputPath)
+    
+    if not os.path.exists(outputPath +"/svc"):
+        os.makedirs(outputPath+"/svc")
+    
+    if not os.path.exists(outputPath +"/interface"):
+        os.makedirs(outputPath+"/interface")
+
+
+
+    copyRepoFile("https://bitbucket.org/uprev/platform-esp32.git", "/ble/esp32_gatt_adapter.h", outputPath +"/interface/esp32_gatt_adapter.h")
+    copyRepoFile("https://bitbucket.org/uprev/platform-esp32.git", "/ble/esp32_gatt_adapter.c", outputPath +"/interface/esp32_gatt_adapter.c")
+
+    copyRepoFile("https://bitbucket.org/uprev/utility-gatt-interface.git", "mrt_gatt_interface.c", outputPath +"/interface/mrt_gatt_interface.c")
+    copyRepoFile("https://bitbucket.org/uprev/utility-gatt-interface.git", "mrt_gatt_interface.h", outputPath +"/interface/mrt_gatt_interface.h")
+
+    buildTemplate(gatt, 'templates/ble/esp32/gatt_server.h', outputPath +"/{0}_gatt_server.h".format(gatt.name.lower()) )
+    buildTemplate(gatt, 'templates/ble/esp32/gatt_server.c', outputPath +"/{0}_gatt_server.c".format(gatt.name.lower() ))
+    buildTemplate(gatt, 'templates/ble/esp32/component.mk', outputPath +"/component.mk")
+    buildTemplate(gatt, 'templates/ble/esp32/kconfig', outputPath +"/kconfig")
+    buildTemplate(gatt, 'templates/ble/esp32/CMakeLists.txt', outputPath +"/CMakeLists.txt")
+
+    for service in gatt.services:
+        print("***" + service.name + "****")
+        buildTemplate(service, 'templates/ble/service_header.h', outputPath +"/svc/"+service.prefix + "_svc.h", False  )
+        buildTemplate(service, 'templates/ble/service_source.c', outputPath +"/svc/"+service.prefix + "_svc.c", False )
+        buildTemplate(service, 'templates/ble/app_service_source.c', outputPath +"/app_" + service.prefix+"_svc.c" )
+
+
+
 
 def main():
     global path
@@ -95,6 +143,8 @@ def main():
 
     gatt = GattProfile()
 
+    gatt.platform = args.platform.lower()
+
     if not templatePath =="":
         templatePath.replace("yml","") 
         contents = pkgutil.get_data('mrtutils','templates/ble/gatt_descriptor_template.yml')
@@ -108,18 +158,34 @@ def main():
         print("No input file specified, use -t to create a template file")
         sys.exit()
 
+    if not gatt.platform in supported_platforms:
+        print("Unregconized platform: {0}".format(gatt.platform))
+        print("Supported Platforms: {0}".format(supported_platforms))
+        sys.exit()
+
     if os.path.isfile(inputFile):
 
 
         # if os.path.isfile(inputFile):
-        print("parsing " + inputFile )
+        print("Parsing " + inputFile )
         gatt.parseYaml(inputFile)
         gatt.hash = 'na'
         
 
-        print(" Generating Documentation and source for " + gatt.name)
+        print("Validating {0} Profile".format( gatt.name))
+
+        if not gatt.validate():
+            print("Error found in Descriptor file")
+            sys.exit()
+
+        print("Generating Source")
         
-        buildProfileSource(gatt, path)
+        if gatt.platform == 'mrt':
+            buildProfileSource(gatt, path)
+        elif gatt.platform == 'esp32':
+            buildProfileSourceEsp32(gatt, path)
+
+
 
    
         gatt.json = json.dumps(gatt.getDict(), indent=2)
@@ -130,6 +196,11 @@ def main():
 
 
         if not docPath == "":
+            print("Generating Docs")
+
+            if not os.path.exists(docPath):
+                os.makedirs(docPath)
+
             buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html", False )
             buildTemplate(gatt, 'templates/ble/smart_icd.html', docPath +"/" + gatt.name+"_live_icd.html", False )
         

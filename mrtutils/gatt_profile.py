@@ -16,6 +16,17 @@ import urllib.request
 from mrtutils.mrtYamlHelper import *
 import xml.etree.ElementTree as ET 
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 
 sizeDict = {
     "uint8" : 1,
@@ -106,7 +117,11 @@ class GattValue:
         self.desc = None
     
     def parseYaml(self, node):
+
         yamlGetAttributes(node, attrDict, self)
+
+        if self.desc == None:
+            self.desc = self.name
 
     def getDict(self):
 
@@ -128,7 +143,7 @@ class GattCharacteristic(object):
         self.perm = None
         self.url =""
         self.uuid = None
-        self.uuidType = "e128Bit"
+        self.uuidType = "MRT_UUID_LEN_128"
         self.icon = ''
         self.coef = 1
         self.unit = ''
@@ -142,7 +157,7 @@ class GattCharacteristic(object):
         arr =[]
         if type(val) != str:
             val = "%0.4X" % val
-            self.uuidType ="e16Bit"
+            self.uuidType ="MRT_UUID_LEN_16"
         
         val = val.replace('-','')
         arr = [val[i:i+2] for i in range(0, len(val), 2)]
@@ -235,6 +250,8 @@ class GattCharacteristic(object):
 
         yamlGetAttributes(node, attrDict, self)
 
+        self.type = self.type.replace("_t", "")
+
         if self.type in ['flag','flags','mask','bits']:
             self.isMask = True
 
@@ -246,6 +263,7 @@ class GattCharacteristic(object):
             if(m.group(1) != ''):
                 self.arrayLen = int(m.group(1))
             self.type = self.type[0:m.start()]
+        
 
         if 'vals' in node:
             valNodes = yamlNormalizeNodes( node['vals'], 'name','desc')
@@ -309,15 +327,17 @@ class GattService(object):
         #load uri first so we can override attributes as needed 
         
         self.name = "unnamed"
+        self.prefix = ""
         self.chars = []
         self.desc = None
         self.isStandard = False
         self.url =""
         self.uri = None
         self.nextUuid = 0
-        self.uuidType ="e128Bit"
+        self.uuidType ="MRT_UUID_LEN_128"
         self.profile = ''
         self.icon = ''
+        
     
     def loadUri(self, uri):
         print("Pulling " + uri)
@@ -328,7 +348,7 @@ class GattService(object):
 
         self.name = root.attrib['name'].replace(' ', '_')
         self.uuid = int(root.attrib['uuid'],16)
-        self.uuidType = 'e16Bit'
+        self.uuidType = 'MRT_UUID_LEN_16'
         setIfEmpty(self, 'desc',root.find('./InformativeText/Abstract'))
         setIfEmpty(self, 'desc',root.find('./InformativeText/Summary'))
 
@@ -348,7 +368,7 @@ class GattService(object):
         arr =[]
         if type(val) != str:
             val = "%0.4X" % val
-            self.uuidType ="e16Bit"
+            self.uuidType ="MRT_UUID_LEN_16"
         
         val = val.replace('-','')
         arr = [val[i:i+2] for i in range(0, len(val), 2)]
@@ -369,6 +389,11 @@ class GattService(object):
             yamlGetAttributes(node, attrDict, self)
             uuidSplit = self.uuid.split('-')
             self.nextUuid = int(uuidSplit[1], 16) + 1
+
+        
+
+
+        self.prefix = self.prefix.lower()
         
         if 'chars' in node:
             chars = node['chars']
@@ -391,6 +416,16 @@ class GattService(object):
     def addChar(self, char):
         self.chars.append(char)
 
+    def getAttrCount(self):
+
+        count = 1 # #1 attr for the service itself
+
+        for char in self.chars:
+            count +=2 #each char has a declaration and value attribute 
+
+            if 'n' in char.perm.lower():
+                count+=1        #each char gets an additional attribute for CCCD if it has notify permission
+
     def getDict(self):
         char_arr = []
 
@@ -407,6 +442,7 @@ class GattProfile(object):
         self.name= "unnamed"
         self.services = []
         self.genTime = datetime.datetime.now().strftime("%m/%d/%y")
+        self.platform = "mrt"
     
     def nrfServices(self, uuidType):
 
@@ -446,7 +482,40 @@ class GattProfile(object):
         for serviceNode in serviceNodes:
             newService = GattService()
             newService.parseYaml(serviceNode)
+            print("Created " + newService.name)
             self.addService(newService)
+    
+    def validate(self):
+
+        names = [] 
+        pres = []
+
+        for idx,svc in enumerate(self.services):
+
+            if svc.prefix == "":
+                svc.prefix = svc.name[0:3].lower() 
+                print( bcolors.WARNING + "Prefix not provided for '{0}' Service, defaulting to '{1}'".format(svc.name, svc.prefix)+ bcolors.ENDC)
+
+            if svc.name in names: 
+                for name in names:
+                    if name == svc.name:
+                        print(bcolors.WARNING+"Duplicate Service names: {0}".format(svc.name)+ bcolors.ENDC)
+                return False
+
+            if svc.prefix in pres:
+                    for adx,pre in enumerate(pres):
+                        if pre == svc.prefix:
+                            print(bcolors.WARNING+"Duplicate Service prefix: \n{0} -> {1}\n{0} -> {1}".format(svc.name, svc.prefix, names[adx], svc.prefix)+ bcolors.ENDC)
+                            return False
+            
+            for adx, chr in enumerate(svc.chars):
+                if chr.perm == None:
+                    chr.perm = "R"
+                    print(bcolors.WARNING+"Permissions not provided for {0} Characteristic, defaulting to Read only".format(chr.name) + bcolors.ENDC)
+            names.append(svc.name)
+            pres.append(svc.prefix)
+        
+        return True
 
     def addService(self, service):
         service.profile = self

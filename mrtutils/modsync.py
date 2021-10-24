@@ -50,6 +50,28 @@ def getBitbucketFile(account, repo, file):
     
     return txt
 
+def getRepoFile(url, file):
+    ret = ""
+    #https://bitbucket.org/uprev/utility-fifo.git
+    if url.find("bitbucket"):
+        nodes = url.split('/')
+        account = nodes[3]
+        repo_name = nodes[4].replace(".git","")
+
+        ret = getBitbucketFile('uprev',repo_name, file)
+    else:
+        ret = getGitFileText('ssh://' + url.replace(':','/'), file)
+
+    return ret
+
+def copyRepoFile(url, file, outfile):
+    txt = getRepoFile(url,file)
+    dst = open( outfile , "w")
+    dst.write(txt)
+    dst.close()
+    #print("Pulled {0} from {1}".format(file,url))
+
+
 class Submodule:
     def __init__(self, path, url):
         self.url = url

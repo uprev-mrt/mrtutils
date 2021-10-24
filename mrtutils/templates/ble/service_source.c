@@ -22,16 +22,22 @@ const uint8_t ${"{0}_CHR_UUID[] = {{{1}}}".format(char.name.upper(), char.uuidAr
 
 
 /* Initializer-----------------------------------------------------------------*/
-void ${obj.prefix}_svc_init(${obj.prefix}_svc_t* ${obj.prefix}_svc)
+${obj.prefix}_svc_t* ${obj.prefix}_svc_init(mrt_gatt_pro_t* pro)
 {   
-    ${"gatt_init_svc(&{0}_svc->mSvc, {1}, {2}_SVC_UUID, {3}, NULL);".format(obj.prefix, obj.uuidType, obj.name.upper(), len(obj.chars))}
+    ${'mrt_gatt_init_svc(&{0}_svc.mSvc, {1}, {2}_SVC_UUID, {3}, NULL, "{4}");'.format(obj.prefix, obj.uuidType, obj.name.upper(), len(obj.chars), obj.name)}
 % for char in obj.chars:
-    ${"gatt_init_char(&{0}_svc->mSvc , &{0}_svc->m{1},{2},  (uint8_t*)&{3}_CHR_UUID, {4}, {5}, {0}_{6}_handler);".format(obj.prefix, t.camelCase(char.name), char.uuidType, char.name.upper(), char.size(), char.props(), char.name.lower())}
+    ${'mrt_gatt_init_char(&{0}_svc.mSvc , &{0}_svc.m{1},{2},  (uint8_t*)&{3}_CHR_UUID, {4}, {5}, {0}_{6}_handler, "{7}");'.format(obj.prefix, t.camelCase(char.name), char.uuidType, char.name.upper(), char.size(), char.props(), char.name.lower(), char.name)}
 %endfor
-    
-    MRT_GATT_REGISTER_SERVICE(&${obj.prefix}_svc->mSvc);
 
+    if(pro != NULL)
+    {   
+        ${"mrt_gatt_add_svc(pro,&{0}_svc.mSvc);".format(obj.prefix)}
+    }
+
+    return &${obj.prefix}_svc;
+    
 }
+
 
 /* Getters and Setters--------------------------------------------------------*/
 
@@ -44,7 +50,7 @@ ${"{0}* {1}_get_{2}()".format(t.cTypeDict[char.type], obj.prefix,char.name.lower
        return NULL;
    }
 
-   return  ${"(({0}*) {1}_svc.m{2}.mCache.mData);".format(t.cTypeDict[char.type], obj.prefix, t.camelCase(char.name))}
+   return  ${"(({0}*) {1}_svc.m{2}.data.value);".format(t.cTypeDict[char.type], obj.prefix, t.camelCase(char.name))}
 }
 
 %else:
@@ -55,27 +61,32 @@ ${"{0} {1}_get_{2}()".format(t.cTypeDict[char.type], obj.prefix,char.name.lower(
        return 0;
    }
 
-   return  ${"*(({0}*) {1}_svc.m{2}.mCache.mData);".format(t.cTypeDict[char.type], obj.prefix, t.camelCase(char.name))}
+   return  ${"*(({0}*) {1}_svc.m{2}.data.value);".format(t.cTypeDict[char.type], obj.prefix, t.camelCase(char.name))}
 }
 
 %endif
 % endfor
 
 
-/* Initialization Handler----------------------------------------------*/
-__attribute__((weak)) void ${obj.prefix}_svc_post_init_handler(void)
-{
-
-}
-
-/* Characteristic Event Handlers----------------------------------------------*/
+/* Weak Characteristic Event Handlers-----------------------------------------*/
 % for char in obj.chars:
 __attribute__((weak)) ${"mrt_status_t {0}_{1}_handler(mrt_gatt_evt_t* event)".format(obj.prefix,char.name.lower())}
 {
-    //${t.cTypeDict[char.type]} val = *((${t.cTypeDict[char.type]}*) event->mData.data); /* Cast to correct data type*/
+
+%if (char.arrayLen > 1):
+%if (char.type == 'string'):
+    //char* val = (char*) event->data.value); /* Cast to correct data type*/
+%else:
+    //${"{0}_{1}_t* vals = ({0}_{1}_t*) event.data.value;".format(obj.prefix,char.name.lower())}  /* Cast to correct data type*/
+    //${"uint32_t len = event.data.len/sizof({0}_{1}_t);".format(obj.prefix,char.name.lower())}   /* Get length of array*/
+%endif
+%else:
+    //${"{0}_{1}_t val = *(({0}_{1}_t*) event.data.value);".format(obj.prefix,char.name.lower())} /* Cast to correct data type*/
+%endif
+
 
 % if char.isEnum> 0:
-    //switch(*ptrVal)
+    //switch(val)
     //{
     % for val in char.vals:
     //    case ${t.padAfter(obj.prefix +"_"+char.name + "_"+val.name+":" , 45).upper()}  /* ${val.desc} */
