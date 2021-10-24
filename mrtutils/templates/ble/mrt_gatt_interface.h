@@ -65,16 +65,22 @@ extern "C"
 #define MRT_GATT_SECURITY_AUTHOR_WRITE  0x10 /* Need authorization to write */
 #define MRT_GATT_SECURITY_ENCRY_WRITE   0x20 /* Need encryption to write */
 
+//UUID Lengths
 
 #define MRT_UUID_LEN_16 2
 #define MRT_UUID_LEN_32 4
 #define MRT_UUID_LEN_128 16
 
+//GATT Event types
 #define MRT_GATT_EVT_NONE          0x00 /* None/unknown */     
 #define MRT_GATT_EVT_VALUE_WRITE   0x01 /* Value is being written */
 #define MRT_GATT_EVT_VALUE_READ    0x02 /* Value is being read */
 #define MRT_GATT_EVT_CCCD_WRITE    0x03 /* Descriptor is being written (ususally to enable notifications)*/
 #define MRT_GATT_EVT_CCCD_READ     0x04  /* Descriptor is  being read*/
+
+//CCCD Values 
+#define MRT_CCCD_NOTIFY_ENABLED    0x01
+#define MRT_CCCD_INDICATE_ENABLED  0x02
 
 /* Exported types ------------------------------------------------------------*/
 

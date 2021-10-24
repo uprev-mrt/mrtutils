@@ -2,55 +2,89 @@
 name: sample
 author: Jason Berger
 created: 02/20/2020
-desc: GATT profile template
+desc: GATT profile example
 prefix: tp
 
 
 services: #list multiple services in file to create full profile
 
-  #########################################
-  #        Device Service                 #
-  #########################################
+  ##############################################################
+  #                      Device Service                        #
+  #                                                            #
+  #  Shows example of using Bluetoot SIG define Services       #
+  ##############################################################
   - Device:
-      uri: org.bluetooth.service.device_information #User URI of bluetooth sig standard service
-      prefix: ds
-      chars:
-        - {uri: org.bluetooth.characteristic.manufacturer_name_string , default: Up-Rev}  #list out uris of 'optional' desired chars
+      uri: org.bluetooth.service.device_information #User URI of bluetooth sig standard service. For a list of all standard services visit https://www.bluetooth.com/specifications/gatt/services
+      prefix: dvc
+      chars:  #list out uris of 'optional' desired chars for bluetooth SIG services
+        - {uri: org.bluetooth.characteristic.manufacturer_name_string , default: Up-Rev} #Set a default value
         - {uri: org.bluetooth.characteristic.serial_number_string}
         - {uri: org.bluetooth.characteristic.hardware_revision_string}
         - {uri: org.bluetooth.characteristic.firmware_revision_string, desc: Firmware revision} #You can override defaults from Bluetooth SIG (name,desc, perm, etc..)
   
-  #########################################
-  #        Battery Service                #
-  #########################################
-  - Battery: {uri: org.bluetooth.service.battery_service} #no need to list chars, because the only one is Mandatory
-
-  #########################################
-  #        Custom Service                 #
-  #########################################
-  - Sensor: 
-      prefix: cs
-      desc: Custom service for a sensor
-      uuid: 71a8-1b49-ce39-0088-6b62-c8ed-9e20-9a5b 
-      chars: 
-        - Value: { type: uint16, perm: RWN , desc: value of sensor A} # uuid: 0x9e21 if uuid is blank/auto for first char in service. it will increment from service 16bit
-        - Thresh: { uuid: 0x9e22, type: uint16, perm: RW , desc: Alert Thresh for sensor} #UUID can also be specified
-        - Name: { type: string, perm: RW , desc: String value for sensor name} #same convention as polypacket and mrt-device for arrays because brackets break yaml parsers
-        - Type: 
-            type: enum
-            perm: RW
-            desc: Type of sensor present 
-            vals:
-              - Humidity: {desc: humidity sensor }
-              - Temperature: {desc: Temperature sensor }
-              - Barometer: {desc: Barometric Pressure sensor }
+  ##############################################################
+  #                      Battery Service                       #
+  #                                                            #
+  #  Shows example of inline declaration for standard serivce  #
+  ##############################################################
+  - Battery: {uri: org.bluetooth.service.battery_service} 
+      #if a prefix isnt specified it will create one using the first 3 characters of the name.
+      #no need to list chars, because there is only one for the battery service and it is mandatory per the SIG spec
   
-  #########################################
-  #        Firmware OTA Service           #
-  #########################################
+  ##############################################################
+  #                        Sprinkler Servive                   #
+  #                                                            #
+  # Show example of creating a custom service to control an    #
+  # Automated sprinler system                                  #
+  #                                                            #
+  #  - Controls 6 valves and pump for sprinklers               #
+  #  - Temperature sensor                                      #
+  #  - 6 soil moisture sensors                                 #
+  ##############################################################
+  - Sprinkler: 
+      prefix: spr
+      desc: Custom service for a sprinkler system
+      uuid: 71a8-1b49-ce39-0088-6b62-c8ed-9e20-9a5b 
+      icon: fa-faucet # This adds an icon to the Live ICD for the service using Font-Awesome. Visit their site to view options: https://fontawesome.com/icons?d=gallery&m=free
+      chars: 
+        
+        - Thresh: { type: uint16, perm: RW , desc: Moisture Threshold to turn on the sprinklers} #if char uuid is blank, it will increment from previous char, or service uuid if it is the first in the service
+        
+        - Temperature: { type: uint16, perm: RN , desc: Temperature reading from sensor, unit: °f, coef: 0.01} #unit and coef have no affect on data, just how ther are displayed in the live ICD 
+        
+        - Moisture: {type: uint16*6, desc: Moisture readings from all 6 zones, unit: "%" } # Create an array of 6 uint16_t values. 
+        
+        - Relays:
+            type: flags #flags create an array of bits which are individualy controlled
+            perm: RWN   #Read Write and Notify permissions
+            desc: Controls Relays for pump and valves 
+            vals: 
+              - pump: {desc: pump control}  
+              - valve01: valve 1 control #For convenience values can be written in this shorthand. same as '- valve01: {desc: valve 1 control}'
+              - valve02: valve 2 control
+              - valve03: valve 3 control
+              - valve04: valve 4 control
+              - valve05: valve 5 control
+              - valve06: valve 6 control
+        
+        - SoilType: 
+            type: enum  #enums are treated as an unsigned int, but they have symbols defined and a switch case generated in the write handler
+            perm: RW 
+            desc: Soil type for the yard 
+            vals: 
+              - Peat: Peat soil 
+              - Sand: Peat soil 
+              - Clay: Peat soil 
+              - TopSoil
+
+  
+  ##############################################################
+  #                      Firmware OTA Service                  #
+  ##############################################################
   - FOTA:
       desc: sercive for performing over the air updates
       uuid: 71a8-1b49-ce39-0088-6b62-c8ed-9A10-9a5b
+      prefix: ota
       chars:
         - version:    { type: string,   perm: RW, desc: current Firmware version}  # uuid: 0x9A11
         - newVerion:  {type: string,   perm: RW, desc: version of new firmware being loaded}    

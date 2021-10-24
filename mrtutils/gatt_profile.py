@@ -16,6 +16,17 @@ import urllib.request
 from mrtutils.mrtYamlHelper import *
 import xml.etree.ElementTree as ET 
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 
 sizeDict = {
     "uint8" : 1,
@@ -106,7 +117,11 @@ class GattValue:
         self.desc = None
     
     def parseYaml(self, node):
+
         yamlGetAttributes(node, attrDict, self)
+
+        if self.desc == None:
+            self.desc = self.name
 
     def getDict(self):
 
@@ -235,6 +250,8 @@ class GattCharacteristic(object):
 
         yamlGetAttributes(node, attrDict, self)
 
+        self.type = self.type.replace("_t", "")
+
         if self.type in ['flag','flags','mask','bits']:
             self.isMask = True
 
@@ -246,6 +263,7 @@ class GattCharacteristic(object):
             if(m.group(1) != ''):
                 self.arrayLen = int(m.group(1))
             self.type = self.type[0:m.start()]
+        
 
         if 'vals' in node:
             valNodes = yamlNormalizeNodes( node['vals'], 'name','desc')
@@ -372,8 +390,8 @@ class GattService(object):
             uuidSplit = self.uuid.split('-')
             self.nextUuid = int(uuidSplit[1], 16) + 1
 
-        if self.prefix == "":
-            self.prefix = self.name[0:3]
+        
+
 
         self.prefix = self.prefix.lower()
         
@@ -464,7 +482,40 @@ class GattProfile(object):
         for serviceNode in serviceNodes:
             newService = GattService()
             newService.parseYaml(serviceNode)
+            print("Created " + newService.name)
             self.addService(newService)
+    
+    def validate(self):
+
+        names = [] 
+        pres = []
+
+        for idx,svc in enumerate(self.services):
+
+            if svc.prefix == "":
+                svc.prefix = svc.name[0:3].lower() 
+                print( bcolors.WARNING + "Prefix not provided for '{0}' Service, defaulting to '{1}'".format(svc.name, svc.prefix)+ bcolors.ENDC)
+
+            if svc.name in names: 
+                for name in names:
+                    if name == svc.name:
+                        print(bcolors.WARNING+"Duplicate Service names: {0}".format(svc.name)+ bcolors.ENDC)
+                return False
+
+            if svc.prefix in pres:
+                    for adx,pre in enumerate(pres):
+                        if pre == svc.prefix:
+                            print(bcolors.WARNING+"Duplicate Service prefix: \n{0} -> {1}\n{0} -> {1}".format(svc.name, svc.prefix, names[adx], svc.prefix)+ bcolors.ENDC)
+                            return False
+            
+            for adx, chr in enumerate(svc.chars):
+                if chr.perm == None:
+                    chr.perm = "R"
+                    print(bcolors.WARNING+"Permissions not provided for {0} Characteristic, defaulting to Read only".format(chr.name) + bcolors.ENDC)
+            names.append(svc.name)
+            pres.append(svc.prefix)
+        
+        return True
 
     def addService(self, service):
         service.profile = self

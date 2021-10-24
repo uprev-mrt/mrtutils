@@ -59,10 +59,7 @@ ${obj.prefix}_svc_t* ${obj.prefix}_svc_init(mrt_gatt_pro_t* pro);
 void ${obj.prefix}_svc_register();
 
 
-/**
- * @brief Called after server is intialized
- */
-void ${obj.prefix}_svc_post_init();
+
 
 
 /* Getters and Setters--------------------------------------------------------*/
@@ -96,8 +93,9 @@ ${"{0} {1}_get_{2}();".format(t.cTypeDict[char.type], obj.prefix,char.name.lower
 ${t.padAfter("#define {0}_{1}_cache_valid()".format(obj.prefix,char.name.lower()) , 65)}${"({0}_svc.m{1}.data.len != 0)".format(obj.prefix,  t.camelCase(char.name))}
 % endfor
 
+/* Handlers ------------------------------------------------------------------*/
+void ${obj.prefix}_svc_post_init_handler();
 
-/* Characteristic Event Handlers----------------------------------------------*/
 % for char in obj.chars:
 ${"mrt_status_t {0}_{1}_handler(mrt_gatt_evt_t* event);".format(obj.prefix,char.name.lower())}
 %endfor

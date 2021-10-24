@@ -22,7 +22,10 @@ extern "C"
 #include "esp_bt_main.h"
 
 /* Exported types ------------------------------------------------------------*/
-
+typedef struct{
+  esp_gatt_if_t gatts_if;  //Interface ID
+  uint16_t conn_id;       //Conn ID
+} mrt_profile_ctx_t;
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */

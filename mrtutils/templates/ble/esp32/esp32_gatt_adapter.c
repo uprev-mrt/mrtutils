@@ -173,12 +173,14 @@ mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t eve
       
   }
 
-   ESP_LOGE(GATT_ADAPTER_TAG, "Event Type: %04X", mrt_evt.type );
+  //ESP_LOGE(GATT_ADAPTER_TAG, "Event Type: %04X", mrt_evt.type );
 
   //If it is a 'Write' event, check if it is writing the CCCD and change event type if needed
   if((mrt_evt.type == MRT_GATT_EVT_VALUE_WRITE) && (mrt_evt.chr->handles.cccd_handle == mrt_evt.handle))
   {
+    //ESP_LOGE(GATT_ADAPTER_TAG, "CCCD Write: %d, %04X", mrt_evt.data.len, *((uint16_t*)mrt_evt.data.value));
     mrt_evt.type = MRT_GATT_EVT_CCCD_WRITE;
+    mrt_evt.chr->cccd = *((uint16_t*)mrt_evt.data.value);
   }
 
   /**
@@ -191,7 +193,7 @@ mrt_gatt_evt_t mrt_gatt_handle_evt(mrt_gatt_pro_t* pro, esp_gatts_cb_event_t eve
   //By default only call the event callback for write events because READ events are auto-response by default
   if((mrt_evt.chr != NULL) && (mrt_evt.type != MRT_GATT_EVT_NONE))
   {
-    ESP_LOGE(GATT_ADAPTER_TAG, "CALLBACK  Event Type: %04X", mrt_evt.type );
+    //ESP_LOGE(GATT_ADAPTER_TAG, "CALLBACK  Event Type: %04X", mrt_evt.type );
      mrt_evt.status = mrt_evt.chr->cbEvent(&mrt_evt);
   }
 
@@ -231,11 +233,23 @@ void mrt_gatt_print_uuid(esp_bt_uuid_t* esp_uuid, mrt_gatt_uuid_t* mrt_uuid)
  */
 mrt_status_t mrt_gatt_update_char_val(mrt_gatt_char_t* chr, uint8_t* data, int len)
 {
+
     //Update attribute
     esp_err_t error = esp_ble_gatts_set_attr_value(chr->handles.val_handle, len, data);
     if (error != ESP_OK) {
         ESP_LOGI(GATT_ADAPTER_TAG, "UPDATE: Failed to set handle: (%x): GATT Char, %x", chr->handles.val_handle, error);
         return MRT_STATUS_ERROR;
+    }
+
+    //Send notifications/indications if enabled 
+    if(chr->cccd & (MRT_CCCD_NOTIFY_ENABLED | MRT_CCCD_INDICATE_ENABLED ))
+    {
+      error = esp_ble_gatts_send_indicate(((mrt_profile_ctx_t*)chr->svc->pro->ctx)->gatts_if ,     
+                                          ((mrt_profile_ctx_t*)chr->svc->pro->ctx)->conn_id,
+                                          chr->handles.val_handle,
+                                          len,
+                                          data,
+                                          (chr->cccd & MRT_CCCD_INDICATE_ENABLED) >> 1);
     }
 
     //Read back the value to make sure cache is in sync

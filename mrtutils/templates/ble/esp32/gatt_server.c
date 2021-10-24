@@ -23,6 +23,7 @@
 
 /* Private Variables ---------------------------------------------------------*/
 MRT_GATT_DATA_ATTR ${obj.name.lower()}_profile_t ${obj.name.lower()}_profile;
+mrt_profile_ctx_t ${obj.name.lower()}_profile_ctx; 
 
 MRT_GATT_DATA_ATTR easyrider_profile_t easyrider_profile;
 static uint8_t adv_config_done       = 0;
@@ -86,11 +87,22 @@ static esp_ble_adv_params_t adv_params = {
 
 mrt_status_t ${obj.name.lower()}_profile_init(void)
 {
+    //initialize profile
     mrt_gatt_init_pro(&${obj.name.lower()}_profile.mPro, ${len(obj.services)}, 0, "${obj.name}");
+    ${obj.name.lower()}_profile.mPro.id = ${obj.name.upper()}_PROFILE_ID;
+
+    //Assign it a context to manage interface and connection ID
+    ${obj.name.lower()}_profile.mPro.ctx = (void*) &${obj.name.lower()}_profile_ctx; 
     
     /* Initialize all services */
     %for svc in obj.services:
     ${"{0}_profile.m{1} = {2}_svc_init(&{0}_profile.mPro);".format(obj.name.lower(),t.camelCase(svc.name), svc.prefix)}
+    %endfor
+
+
+    /* Call Post init handlers - These must be called or ESPs build system will not properly override the event handlers- */
+    %for svc in obj.services:
+    ${"{0}_svc_post_init_handler();".format(svc.prefix)}
     %endfor
     
     return MRT_STATUS_OK;
@@ -118,8 +130,9 @@ esp_err_t ${obj.name.lower()}_gatts_start(void)
 {
     esp_err_t ret;
 
+    //Initialize profile
     ${obj.name.lower()}_profile_init();
-    ${obj.name.lower()}_profile.mPro.id = ${obj.name.upper()}_PROFILE_ID;
+    
 
     adv_data.service_uuid_len = 16;
     scan_rsp_data.service_uuid_len = 16;
@@ -207,6 +220,9 @@ void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_
             }
             adv_config_done |= SCAN_RSP_CONFIG_FLAG;
 
+            //Set interface for profile
+            ${obj.name.lower()}_profile_ctx.gatts_if = gatts_if;
+
             //Register all of the services in our profile
             ${obj.name.lower()}_profile_register_services(gatts_if);
             break;
@@ -236,6 +252,9 @@ void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_
             break;
         case ESP_GATTS_CONNECT_EVT:
             ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "ESP_GATTS_CONNECT_EVT");
+
+            //Set connection id for context 
+            ${obj.name.lower()}_profile_ctx.conn_id = param->connect.conn_id;
             #ifdef ENABLE_SECURE_BT_PAIRING
 				ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "ESP_GATTS_CONNECT_EVT: Secure Pairing Enabled");
                 if(isInPairingMode) // Allow all incoming connections while in paring mode
