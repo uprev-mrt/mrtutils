@@ -197,6 +197,10 @@ def main():
 
         if not docPath == "":
             print("Generating Docs")
+
+            if not os.path.exists(docPath):
+                os.makedirs(docPath)
+
             buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html", False )
             buildTemplate(gatt, 'templates/ble/smart_icd.html', docPath +"/" + gatt.name+"_live_icd.html", False )
         
