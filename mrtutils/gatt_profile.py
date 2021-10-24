@@ -337,6 +337,7 @@ class GattService(object):
         self.uuidType ="MRT_UUID_LEN_128"
         self.profile = ''
         self.icon = ''
+        self.attrCount = 0
         
     
     def loadUri(self, uri):
@@ -425,6 +426,8 @@ class GattService(object):
 
             if 'n' in char.perm.lower():
                 count+=1        #each char gets an additional attribute for CCCD if it has notify permission
+        
+        return count
 
     def getDict(self):
         char_arr = []
@@ -435,6 +438,18 @@ class GattService(object):
         json_dict = { "name": self.name, "id": self.name.replace(' ', '_'), "uuid": uuidStr(self.uuid),  "short_uuid": uuidStr(self.uuid, True), "uuid_type": self.uuidType, "desc": self.desc, "icon" : self.icon, "uri": self.uri, "url": self.url, "characteristics": char_arr}
 
         return json_dict
+
+    def validate(self):
+
+        
+        if self.prefix == "":
+            self.prefix = self.name[0:3].lower() 
+            print( bcolors.WARNING + "Prefix not provided for '{0}' Service, defaulting to '{1}'".format(self.name, self.prefix)+ bcolors.ENDC)
+
+        for adx, chr in enumerate(self.chars):
+            if chr.perm == None:
+                chr.perm = "R"
+                print(bcolors.WARNING+"Permissions not provided for {0} Characteristic, defaulting to Read only".format(chr.name) + bcolors.ENDC)
              
 
 class GattProfile(object):
@@ -443,6 +458,8 @@ class GattProfile(object):
         self.services = []
         self.genTime = datetime.datetime.now().strftime("%m/%d/%y")
         self.platform = "mrt"
+        self.attrCount = 0
+
     
     def nrfServices(self, uuidType):
 
@@ -492,15 +509,11 @@ class GattProfile(object):
 
         for idx,svc in enumerate(self.services):
 
-            if svc.prefix == "":
-                svc.prefix = svc.name[0:3].lower() 
-                print( bcolors.WARNING + "Prefix not provided for '{0}' Service, defaulting to '{1}'".format(svc.name, svc.prefix)+ bcolors.ENDC)
-
             if svc.name in names: 
                 for name in names:
                     if name == svc.name:
                         print(bcolors.WARNING+"Duplicate Service names: {0}".format(svc.name)+ bcolors.ENDC)
-                return False
+                        return False
 
             if svc.prefix in pres:
                     for adx,pre in enumerate(pres):
@@ -508,18 +521,21 @@ class GattProfile(object):
                             print(bcolors.WARNING+"Duplicate Service prefix: \n{0} -> {1}\n{0} -> {1}".format(svc.name, svc.prefix, names[adx], svc.prefix)+ bcolors.ENDC)
                             return False
             
-            for adx, chr in enumerate(svc.chars):
-                if chr.perm == None:
-                    chr.perm = "R"
-                    print(bcolors.WARNING+"Permissions not provided for {0} Characteristic, defaulting to Read only".format(chr.name) + bcolors.ENDC)
             names.append(svc.name)
             pres.append(svc.prefix)
+
+
+        if self.platform == 'esp32' and self.attrCount > 100:
+            print(bcolors.FAIL+"WARNING: {0} contains {1} attributes. Some Versions of the ESP-IDF have a limit of 100 attributes".format(self.name, self.attrCount) + bcolors.FAIL)
         
         return True
 
     def addService(self, service):
+
+        service.validate()
         service.profile = self
         self.services.append(service)
+        self.attrCount += service.getAttrCount()
     
     def getDict(self):
         svc_arr = []
