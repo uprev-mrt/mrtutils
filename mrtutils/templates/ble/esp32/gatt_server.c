@@ -25,7 +25,6 @@
 MRT_GATT_DATA_ATTR ${obj.name.lower()}_profile_t ${obj.name.lower()}_profile;
 mrt_profile_ctx_t ${obj.name.lower()}_profile_ctx; 
 
-MRT_GATT_DATA_ATTR easyrider_profile_t easyrider_profile;
 static uint8_t adv_config_done       = 0;
 
 /* The length of adv data must be less than 31 bytes */
@@ -210,13 +209,13 @@ void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_
             //Set adv data
             ret = esp_ble_gap_config_adv_data(&adv_data);
             if (ret){
-                ESP_LOGE(EASYRIDER_PROFILE_TAG, "config adv data failed, error code = %x", ret);
+                ESP_LOGE(${obj.name.upper()}_PROFILE_TAG, "config adv data failed, error code = %x", ret);
             }
             adv_config_done |= ADV_CONFIG_FLAG;
             //config scan response data
             ret = esp_ble_gap_config_adv_data(&scan_rsp_data);
             if (ret){
-                ESP_LOGE(EASYRIDER_PROFILE_TAG, "config scan response data failed, error code = %x", ret);
+                ESP_LOGE(${obj.name.upper()}_PROFILE_TAG, "config scan response data failed, error code = %x", ret);
             }
             adv_config_done |= SCAN_RSP_CONFIG_FLAG;
 
@@ -306,7 +305,7 @@ void ${obj.name.lower()}_gatts_evt_handler(esp_gatts_cb_event_t event, esp_gatt_
             {   
                 //Convert UUID to mrt format, and lookup service
                 mrt_uuid = mrt_gatt_convert_uuid(&param->add_attr_tab.svc_uuid );
-                svc = mrt_gatt_lookup_svc_uuid(&easyrider_profile.mPro, &mrt_uuid );
+                svc = mrt_gatt_lookup_svc_uuid(&${obj.name.lower()}_profile.mPro, &mrt_uuid );
 
                 ESP_LOGI(${obj.name.upper()}_PROFILE_TAG , "Create attr table for %s, Handle: %x", svc->name, param->add_attr_tab.num_handle);
                 

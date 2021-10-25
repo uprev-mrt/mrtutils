@@ -8,7 +8,12 @@
 /*user-block-includes-start -------------------------------------------------*/
 #include "svc/${obj.prefix}_svc.h"
 
+/* Private Variables ---------------------------------------------------------*/   
+
+
+
 /*user-block-includes-end*/
+
 
 
 /* Post Init -----------------------------------------------------------------*/
@@ -18,6 +23,15 @@
  */
 void ${obj.prefix}_svc_post_init_handler(void)
 {
+% for char in obj.chars:
+    %if hasattr(char, 'default'):
+    %if char.type == 'string':
+    ${ "{0}_set_{1}(\"{2}\");".format(obj.prefix,char.name.lower(), char.default) }
+    %else:
+    ${ "#define {0}_set_{1}({2});".format(obj.prefix,char.name.lower(), char.default )}
+    %endif
+    %endif
+%endfor
     //TODO initialize characteristic values 
 }
 

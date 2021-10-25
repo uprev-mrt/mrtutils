@@ -112,7 +112,7 @@ def buildProfileSourceEsp32(gatt , outputPath, baseName =''):
     buildTemplate(gatt, 'templates/ble/esp32/gatt_server.h', outputPath +"/{0}_gatt_server.h".format(gatt.name.lower()) )
     buildTemplate(gatt, 'templates/ble/esp32/gatt_server.c', outputPath +"/{0}_gatt_server.c".format(gatt.name.lower() ))
     buildTemplate(gatt, 'templates/ble/esp32/component.mk', outputPath +"/component.mk")
-    buildTemplate(gatt, 'templates/ble/esp32/kconfig', outputPath +"/kconfig")
+    #buildTemplate(gatt, 'templates/ble/esp32/kconfig', outputPath +"/kconfig")
     buildTemplate(gatt, 'templates/ble/esp32/CMakeLists.txt', outputPath +"/CMakeLists.txt")
 
     for service in gatt.services:

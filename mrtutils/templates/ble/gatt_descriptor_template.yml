@@ -48,9 +48,9 @@ services: #list multiple services in file to create full profile
       icon: fa-faucet # This adds an icon to the Live ICD for the service using Font-Awesome. Visit their site to view options: https://fontawesome.com/icons?d=gallery&m=free
       chars: 
         
-        - Thresh: { type: uint16, perm: RW , desc: Moisture Threshold to turn on the sprinklers} #if char uuid is blank, it will increment from previous char, or service uuid if it is the first in the service
+        - Thresh: { type: uint16, perm: RW , desc: Moisture Threshold to turn on the sprinklers, default: 50} #if char uuid is blank, it will increment from previous char, or service uuid if it is the first in the service
         
-        - Temperature: { type: uint16, perm: RN , desc: Temperature reading from sensor, unit: °f, coef: 0.01} #unit and coef have no affect on data, just how ther are displayed in the live ICD 
+        - Temperature: { type: uint16, perm: RN , desc: Temperature reading from sensor, unit: °f, coef: 100} #unit and coef have no affect on data, just how ther are displayed in the live ICD 
         
         - Moisture: {type: uint16*6, desc: Moisture readings from all 6 zones, unit: "%" } # Create an array of 6 uint16_t values. 
         
