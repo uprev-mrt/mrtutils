@@ -28,6 +28,8 @@ from threading import Thread
 from urllib.request import urlopen
 import yaml
 
+devObjBlacklist= ['registers', 'fields', 'packages', 'configs', 'variants', 'pins']
+
 def getGitFileText(url, file):
     txt=""
     try:
@@ -116,12 +118,73 @@ class Submodule:
         
         self.mrtprops = yamlObj
 
+    def getOtherYaml(self, file):
+
+        yamlText = ""
+        ret = {}
+        yamlObj = {}
+
+        ret['url'] = self.url
+        ret['path'] = self.path 
+        ret['name'] = self.name
+
+        if os.path.isfile(self.path+"/README.rst"):
+            ret['doc'] = self.path+"/README.md"
+        
+        elif os.path.isfile(self.path+"/README.md"):
+            ret['doc'] = self.path+"/README.md"
+
+
+
+        if self.repo.isRemote:
+            try:
+                if self.url.find("bitbucket"):
+                    yamlText = getBitbucketFile('uprev',self.repo_name, file)
+                else:
+                    yamlText = getGitFileText('ssh://' + self.url.replace(':','/'), file)
+
+            except:
+                print("couldnt load yaml")
+
+            #Get device file if it exists
+            try:
+                if self.url.find("bitbucket"):
+                    devText = getBitbucketFile('uprev',self.repo_name, file)
+                else:
+                    devText = getGitFileText('ssh://' + self.url.replace(':','/'), file)
+            except:
+                print("couldnt load yaml")
+        else:
+            try:
+                f = open(self.path + '/' + file, 'r')
+                yamlText = f.read()
+            except:
+                print("No " +file +" for " + self.name) 
+        
+        try:
+            yamlText = yamlText.replace('\t',' ')
+            yamlObj = yaml.load(yamlText,  Loader=yaml.FullLoader)
+        except:
+            print("Parsing error: " +self.name )
+
+        
+
+        if not yamlObj is None:
+            for key, value in yamlObj.items():
+                if not key == 'name':
+                    ret[key] = value
+        
+        return ret
+
 
     def getYaml(self):
 
         yamlText = ""
         ret = {}
         yamlObj = {}
+
+        devText =""
+        devObj = {}
 
         ret['url'] = self.url
         ret['path'] = self.path 
@@ -144,12 +207,21 @@ class Submodule:
 
             except:
                 print("couldnt load yaml")
+
+            #Get device file if it exists
+            try:
+                if self.url.find("bitbucket"):
+                    devText = getBitbucketFile('uprev',self.repo_name, 'device.yml')
+                else:
+                    devText = getGitFileText('ssh://' + self.url.replace(':','/'), 'device.yml')
+            except:
+                print("couldnt load yaml")
         else:
             try:
                 f = open(self.path + '/mrt.yml', 'r')
                 yamlText = f.read()
             except:
-                print("No mrt.yml for " + self.name)
+                print("No mrt.yml for " + self.name) 
         
         try:
             yamlText = yamlText.replace('\t',' ')
@@ -157,10 +229,22 @@ class Submodule:
         except:
             print("Parsing error: " +self.name )
 
+        
+
         if not yamlObj is None:
             for key, value in yamlObj.items():
                 if not key == 'name':
                     ret[key] = value
+        
+
+        if 'Devices' in self.path:
+            devObj = self.getOtherYaml("device.yml")
+            for key, value in devObj.items():
+                if not key in ret and not key in devObjBlacklist:
+                    ret[key] = value
+                    
+
+        #get other yaml files 
 
         
         return ret

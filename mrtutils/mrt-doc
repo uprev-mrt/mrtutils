@@ -7,6 +7,7 @@ from mrtutils.mrtDocHelper import DocHelper
 import argparse
 import tempfile
 import shutil
+import csv
 
 from kconfiglib import Kconfig, \
                        Symbol, MENU, COMMENT, \
@@ -30,6 +31,7 @@ def init_args():
     parser = argparse.ArgumentParser("Tool to Manage MrT modules")
     parser.add_argument('localRoot', type=str, nargs='?', help='Local Root of MrT modules', default=".")
     parser.add_argument('-d', '--doc', type=str, help='path to store doc index', default="doc")
+    parser.add_argument('-c', '--device-csv', action='store_true', help='creates csv file of devices', default= False)
 
 
 
@@ -56,6 +58,23 @@ def main():
         info = localRepo.gatherModuleYamls()
         doc = yaml.dump(info, file)
 
+    if args.device_csv:
+        headers = ["Date Added","Category", "Author", "Manufacturer", "MFR_PN", "Interface", "Verified", "Description","Repo"]
+        fields = ["created", "category", "author", "mfr", "mfr_pn", "bus", "validated", "description", "url"]
+        with open('devices.csv', 'w') as f: 
+            write = csv.writer(f) 
+            write.writerow(headers)
+            for key, value in info.items():
+                if "Devices" in value["path"]:
+                    row = []
+                    for x in fields:
+                        if x in value:
+                            row.append(value[x])
+                        else:
+                            row.append("")
+                        
+                    write.writerow(row) 
+            f.close()
 
     if not os.path.isdir(args.doc):
         d = DocHelper()
