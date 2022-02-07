@@ -27,11 +27,13 @@ def init_args():
     global parser
     parser = argparse.ArgumentParser("Tool to generate code for ble profile")
     parser.add_argument('-i', '--input', type=str, help='input file to parse', default="")
-    parser.add_argument('-o', '--output', type=str, help='Output path', default=".")
+    parser.add_argument('-o', '--output', type=str, help='Output path', default="")
     parser.add_argument('-d', '--document', type=str, help='documentation path', default="")
     parser.add_argument('-t', '--template', type=str, help='path to create template', default="")
     parser.add_argument('-p', '--platform', type=str, help='platform of target', default="mrt")
     parser.add_argument('-n', '--nrf', action='store_true', help='Generates definition file for nrf connect', default=False)
+    parser.add_argument('-m', '--html', action='store_true', help='Generates html ICD', default=False)
+    parser.add_argument('-r', '--rst', action='store_true', help='Generates rst ICD', default=False)
     
 
 def buildTemplate(object, templateFile, outputFile, userBlocks = True, overwrite= True):
@@ -178,12 +180,16 @@ def main():
             print("Error found in Descriptor file")
             sys.exit()
 
-        print("Generating Source")
-        
-        if gatt.platform == 'mrt':
-            buildProfileSource(gatt, path)
-        elif gatt.platform == 'esp32':
-            buildProfileSourceEsp32(gatt, path)
+        if not path == "":
+            print("Generating Source")
+
+            if not os.path.exists(path):
+                os.makedirs(path)
+            
+            if gatt.platform == 'mrt':
+                buildProfileSource(gatt, path)
+            elif gatt.platform == 'esp32':
+                buildProfileSourceEsp32(gatt, path)
 
 
 
@@ -201,7 +207,12 @@ def main():
             if not os.path.exists(docPath):
                 os.makedirs(docPath)
 
-            buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html", False )
+            if args.html :
+                buildTemplate(gatt, 'templates/ble/gatt_icd.html', docPath +"/" + gatt.name+"_gatt_icd.html", False )
+            
+            if args.rst:
+                buildTemplate(gatt, 'templates/ble/gatt_icd.rst', docPath +"/" + gatt.name+"_gatt_icd.rst" )
+
             buildTemplate(gatt, 'templates/ble/smart_icd.html', docPath +"/" + gatt.name+"_live_icd.html", False )
         
 

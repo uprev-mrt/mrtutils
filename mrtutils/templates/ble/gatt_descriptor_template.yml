@@ -73,8 +73,8 @@ services: #list multiple services in file to create full profile
             desc: Soil type for the yard 
             vals: 
               - Peat: Peat soil 
-              - Sand: Peat soil 
-              - Clay: Peat soil 
+              - Sand: sandy sand
+              - Clay: clay
               - TopSoil
 
   
@@ -82,7 +82,7 @@ services: #list multiple services in file to create full profile
   #                      Firmware OTA Service                  #
   ##############################################################
   - FOTA:
-      desc: sercive for performing over the air updates
+      desc: service for performing over the air updates
       uuid: 71a8-1b49-ce39-0088-6b62-c8ed-9A10-9a5b
       prefix: ota
       chars:
