@@ -8,7 +8,7 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
      name='mrtutils',
-     version='0.2.11',
+     version='0.2.12',
      author="Jason Berger",
      author_email="JBerger@up-rev.com",
      description="Utilities for MrT",
@@ -18,7 +18,7 @@ setuptools.setup(
      url="https://mrt.readthedocs.io/en/latest/index.html",
      packages=setuptools.find_packages(),
      package_data={
-     'mrtutils':['templates/*', 'templates/*/*','templates/*/*/*']
+     'mrtutils':['templates/*', 'templates/*/*','templates/*/*/*','templates/*/*/*/*']
      },
      install_requires=[
         'markdown',

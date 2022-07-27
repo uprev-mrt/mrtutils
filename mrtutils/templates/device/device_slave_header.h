@@ -12,9 +12,10 @@ extern "C"
 {
 #endif
 
+/*user-block-top-start*/
 #include <stdint.h>
 #include "${obj.name.lower()}_regs.h"
-/*user-block-top-start*/
+
 /*user-block-top-end*/
 
 #define SLAVE_REG_PERM_R    0x01
@@ -32,6 +33,7 @@ extern "C"
   Struct                                                                                
 *******************************************************************************/
 
+/*user-block-reg-struct-start*/
 typedef uint8_t addr_t;
 
 
@@ -45,6 +47,7 @@ typedef struct{
     addr_t mAddr;
 } slave_reg_t;
 
+/*user-block-reg-struct-end*/
 
 
 
@@ -62,23 +65,19 @@ typedef struct{
     addr_t mAddress;        //Current address
     uint8_t mState;         //state of register server
     uint8_t mFlags;         //flags for handling
-/*user-block-struct-start*/
-/*user-block-struct-end*/
+/*user-block-dev-struct-start*/
+/*user-block-dev-struct-end*/
 }${obj.name.lower()}_slave_t;
 
 #pragma pack(pop)
+
+/*user-block-functions-start*/
 
 /**
  * @brief initializes ${obj.name} slave registers
  * @param fifoDepth size of rxFifo to use
  */
 void ${obj.prefix.lower()}_slave_init();
-
-/**
- * @brief initializes ${obj.name} slave registers
- * @param dev ptr to ${obj.name} device
- */
-void ${obj.prefix.lower()}_slave_process();
 
 /**
  * @brief feed byte into device
@@ -99,10 +98,8 @@ uint8_t ${obj.prefix.lower()}_slave_get(void);
 void ${obj.prefix.lower()}_slave_end_transaction(void);
 
 
+/*user-block-functions-end*/
 
-
-/*user-block-bottom-start*/
-/*user-block-bottom-end*/
 
 #ifdef __cplusplus
 }

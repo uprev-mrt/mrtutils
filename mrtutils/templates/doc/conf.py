@@ -20,6 +20,9 @@
 project = 'My Project'
 author = '${obj.user}'
 
+html_favicon = 'assets/images/favicon.ico'
+
+
 
 
 # -- General configuration ---------------------------------------------------
@@ -46,15 +49,19 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 html_theme = 'sphinx_rtd_theme'
 
 latex_elements = {
-  'extraclassoptions': 'openany,oneside'
+  'extraclassoptions': 'openany,oneside',
+  'preamble' : '\\renewcommand\FmN[1]{}'
+  
 }
+
+
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 #html_static_path = ['_static']
 
-#html_logo = "images/logo.png"
+html_logo = "assets/images/logo.png"
 
 html_theme_options = {
     "collapse_navigation" : False
@@ -74,4 +81,3 @@ html_sidebars = {
             ]
 
         }
-

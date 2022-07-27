@@ -8,6 +8,8 @@
 
 #include "${obj.name.lower()}_slave.h"
 
+/*user-block-top-start*/
+
 ${obj.name.lower()}_slave_t REGS; 
 
 uint8_t* DATA = (uint8_t*)&REGS.mData;
@@ -35,6 +37,8 @@ static void slave_reg_init(slave_reg_t* reg, addr_t addr, addr_t size, uint8_t f
     reg->mFlags = flags;
 }
 
+/*user-block-top-end*/
+
 /**
  * @brief initializes ${obj.name} slave registers
  * @param fifoDepth size of rxFifo to use
@@ -54,6 +58,8 @@ void ${obj.prefix.lower()}_slave_init( )
     REGS.mState = SLAVE_STATE_ADDRESS;
     REGS.mFlags = 0;
 }
+
+/*user-block-functions-start*/
 
 /**
  * @brief feed byte into fifo
@@ -109,7 +115,6 @@ void ${obj.prefix.lower()}_slave_end_transaction(void)
     REGS.mAddrBytes = 0;
 }
 
+/*user-block-functions-end*/
 
-/*user-block-bottom-start*/
-/*user-block-bottom-end*/
 

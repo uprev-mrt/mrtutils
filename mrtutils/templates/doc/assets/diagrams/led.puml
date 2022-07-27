@@ -1,0 +1,48 @@
+@startuml
+
+hide time-axis
+scale 1000 as 100 pixels
+
+' clock "1 second" as c0 with period 2000
+concise "Pairing" as p 
+concise "Low Battery" as l
+concise "Reading" as r
+
+@r
+0 is green #palegreen
++2000 is {-}
++1000 is green #palegreen
++2000 is {-}
+
+@p
+0 is red #tomato
++500 is  blue #royalblue
++500 is  red #tomato
++500 is  blue #royalblue
++500 is  red #tomato
++500 is  blue #royalblue
++500 is  red #tomato
++500 is  blue #royalblue
++500 is  red #tomato
++500 is  blue #royalblue
++500 is {-}
+@1000 <-> @2000 : 1 second
+
+@l
+0 is red #tomato 
++300 is {-} 
++700 is red #tomato 
++300 is {-} 
++700 is red #tomato 
++300 is {-} 
++700 is red #tomato 
++300 is {-} 
++700 is red #tomato 
++300 is {-} 
+
+
+
+
+
+
+@enduml

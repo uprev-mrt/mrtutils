@@ -101,24 +101,39 @@ class TemplateHelper:
 
     def getDate(self):
         return date.today().strftime("%m/%d/%y")
-
-
-    def buildTemplate(object, templateFile, outputFile, replacePattern = r"@file (.*?\.)(.*?) \*/"):
+            
+    #
+    # build template
+    # @param object - object to pass to template 
+    # @param templateFile - template file to render
+    # @param replacePattern - extra replace pattern for blocks 
+    # @param reverse - Use this to reverse code blocks (i.e. update generated blocks instead of keeping user-blocks)
+    #
+    def buildTemplate(object, templateFile, outputFile, replacePattern = r"@file (.*?\.)(.*?) \*/", reverse = False):
         exists= False
         cr = CodeReplacer()
+        existingContent = ""
         newContents =""
         if os.path.isfile(outputFile):
             exists = True
             curFile = open(outputFile, "r")
-            text = curFile.read()
-            cr.loadText(text,replacePattern)
-            cr.loadText(text)
+            existingContent = curFile.read()
+            
 
         template = Template(pkgutil.get_data('mrtutils',templateFile) )
         newContents = "\n".join(template.render(obj = object, t = TemplateHelper()).splitlines())
-        newContents = cr.insertBlocks(newContents,replacePattern)
-        newContents = cr.insertBlocks(newContents)
-        cr.printDrops()
+
+        if(reverse):            
+            cr.loadText(newContents,r"\*gen-block-(.*?)-start(.*?)\*?gem-block-\1-end\*")
+            newContents = cr.insertBlocks(existingContent,r"\*gen-block-(.*?)-start(.*?)\*?gem-block-\1-end\*")
+        else: 
+            cr.loadText(existingContent,replacePattern)
+            cr.loadText(text)
+            newContents = cr.insertBlocks(newContents,replacePattern)
+            newContents = cr.insertBlocks(newContents)
+            cr.printDrops()
+
+
         text_file = open( outputFile , "w")
         text_file.write(newContents)
         text_file.close()

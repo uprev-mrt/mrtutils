@@ -63,12 +63,22 @@ class DocHelper:
 
 
         os.mkdir(obj.path) 
+        os.mkdir(obj.path +"/_templates") 
         os.mkdir(obj.path +"/pages") 
         os.mkdir(obj.path +"/assets") 
         os.mkdir(obj.path +"/assets/diagrams") 
+        os.mkdir(obj.path +"/assets/images") 
+        self.buildTemplate(obj, "templates/doc/layout.html", obj.path +"/_templates/layout.html")
         self.buildTemplate(obj, "templates/doc/Makefile", obj.path +"/Makefile")
         self.buildTemplate(obj, "templates/doc/index.rst", obj.path +"/index.rst")
         self.buildTemplate(obj, "templates/doc/conf.py", obj.path +"/conf.py")
-        self.buildTemplate(obj, "templates/doc/samplepage.rst", obj.path +"/pages/samplepage.rst")
-        self.copyFile( "templates/doc/samplediagram.dio.png", obj.path +"/assets/diagrams/samplediagram.dio.png")
+        self.buildTemplate(obj, "templates/doc/pages/examples.rst", obj.path +"/pages/examples.rst")
+        self.copyFile( "templates/doc/assets/diagrams/system.dio.png", obj.path +"/assets/diagrams/system.dio.png")
+        self.copyFile( "templates/doc/assets/diagrams/button.puml", obj.path +"/assets/diagrams/button.puml")
+        self.copyFile( "templates/doc/assets/diagrams/led.puml", obj.path +"/assets/diagrams/led.puml")
+        self.copyFile( "templates/doc/assets/diagrams/mockup.dio.png", obj.path +"/assets/diagrams/mockup.dio.png")
+        self.copyFile( "templates/doc/assets/images/logo.png", obj.path +"/assets/images/logo.png")
+        self.copyFile( "templates/doc/assets/images/favicon.ico", obj.path +"/assets/images/favicon.ico")
+        self.copyFile( "templates/doc/assets/images/remote_button.png", obj.path +"/assets/images/remote_button.png")
+
 

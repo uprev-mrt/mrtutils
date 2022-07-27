@@ -505,6 +505,7 @@ class Device:
         self.defaults = {}
         self.nextAddr = 0
         self.storageSize = 0
+        self.slave = False
 
     def addReg(self, reg):
         reg.device = self

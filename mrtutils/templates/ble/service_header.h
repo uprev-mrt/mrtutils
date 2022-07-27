@@ -68,11 +68,11 @@ void ${obj.prefix}_svc_register();
 % for char in obj.chars:
 % if char.perm.lower() != 'w':
 %if char.type == 'string':
-${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*)(val), strlen(val))".format(obj.prefix, t.camelCase(char.name))}
+${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*) val, strlen(val))".format(obj.prefix, t.camelCase(char.name))}
 %if  (char.arrayLen > 1):
-${ t.padAfter("#define {0}_set_{1}(val,len)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*)(val), len)".format(obj.prefix, t.camelCase(char.name))}
+${ t.padAfter("#define {0}_set_{1}(val,len)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*) val, len)".format(obj.prefix, t.camelCase(char.name))}
 %else:
-${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*)(&({0}_{3}_t){val}), {2})".format(obj.prefix, t.camelCase(char.name),char.size(), char.name.lower())}
+${ t.padAfter("#define {0}_set_{1}(val)".format(obj.prefix,char.name.lower()) , 45)}${"mrt_gatt_update_char_val(&{0}_svc.m{1}, (uint8_t*) val, {2})".format(obj.prefix, t.camelCase(char.name),char.size(), char.name.lower())}
 %endif
 %endif
 %endif

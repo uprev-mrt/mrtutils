@@ -1,0 +1,10 @@
+@startuml
+
+[*] -> Idle
+Idle --> Reading: Short Press
+Idle --> Pairing: Long Press
+Pairing --> Idle: complete
+Reading : 5 Seconds
+Reading --> Idle: timeout
+
+@enduml
