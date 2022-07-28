@@ -5,6 +5,7 @@
   * @brief Device driver for ${obj.name} device
   *
   *
+  *  ***CODE BETWEEN gen-block-x-* TAGS ARE OVERWRITTEN ON UPDATES***
   */
 
 #ifdef __cplusplus
@@ -12,11 +13,9 @@ extern "C"
 {
 #endif
 
-/*user-block-top-start*/
 #include <stdint.h>
 #include "${obj.name.lower()}_regs.h"
 
-/*user-block-top-end*/
 
 #define SLAVE_REG_PERM_R    0x01
 #define SLAVE_REG_PERM_W    0x02
@@ -33,7 +32,7 @@ extern "C"
   Struct                                                                                
 *******************************************************************************/
 
-/*user-block-reg-struct-start*/
+
 typedef uint8_t addr_t;
 
 
@@ -47,17 +46,18 @@ typedef struct{
     addr_t mAddr;
 } slave_reg_t;
 
-/*user-block-reg-struct-end*/
 
 
 
 typedef struct{
+    /*gen-block-mdata-start*/
     struct
     {
 % for key,reg in obj.regs.items():
         ${t.padAfter(t.cTypeDict[reg.type] + " m" + obj.camelCase(reg.name)+";" + (" "*(20 - len(obj.camelCase(reg.name))) ), 45)} //${reg.desc}
 % endfor
     } mData;    
+    /*gen-block-mdata-end*/
     slave_reg_t mRegs[${obj.name.upper()}_REG_COUNT];
     slave_reg_t* mCurrentReg;
     uint8_t mCursor;        //Register cursor
@@ -65,13 +65,10 @@ typedef struct{
     addr_t mAddress;        //Current address
     uint8_t mState;         //state of register server
     uint8_t mFlags;         //flags for handling
-/*user-block-dev-struct-start*/
-/*user-block-dev-struct-end*/
 }${obj.name.lower()}_slave_t;
 
 #pragma pack(pop)
 
-/*user-block-functions-start*/
 
 /**
  * @brief initializes ${obj.name} slave registers
@@ -97,8 +94,6 @@ uint8_t ${obj.prefix.lower()}_slave_get(void);
  */
 void ${obj.prefix.lower()}_slave_end_transaction(void);
 
-
-/*user-block-functions-end*/
 
 
 #ifdef __cplusplus

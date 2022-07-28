@@ -48,7 +48,7 @@ Registers
 
 
 %for key,reg in obj.regs.items():
-
+%if (reg.pattern == "") : 
 ----------
 
 .. _${reg.name}:
@@ -98,6 +98,62 @@ ${field.getRstTable()}
 
 %endif
 %endfor
+%endif
+
+%else:
+%if reg.nIdx == 0:
+----------
+
+.. _${reg.pattern}:
+
+${reg.pattern.replace('$n','n')}
+%for c in reg.pattern.replace('$n','n'):
+-\
+%endfor
+
+
+:Address: **[----]**
+    %if reg.hasDefault:
+:Default: **[${reg.formatHex(reg.default)}]**
+    %endif
+
+${reg.descPattern.replace('$n','n')}
+
+.. *user-block-${reg.pattern.lower()}-start*
+
+.. *user-block-${reg.pattern.lower()}-end*
+
+${reg.getRstTable()}
+
+%if reg.hasFlags:
+Flags
+~~~~~
+
+%for field in reg.fields:
+%if field.isFlag:
+:${field.name}: ${field.desc}
+%endif
+%endfor
+%endif
+
+%if reg.hasFields:
+Fields
+~~~~~~
+%for field in reg.fields:
+%if not field.isFlag:
+
+:${field.name}: ${field.desc}
+%if len(field.vals) > 0:
+
+${field.getRstTable()}
+
+%endif
+
+%endif
+%endfor
+%endif
+
+%endif
 %endif
 
 %endfor

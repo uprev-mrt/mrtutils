@@ -16,6 +16,8 @@ from mrtutils.mrtTemplateHelper import *
 from mrtutils.device import Device as Device
 from mrtutils.updates import *
 
+th = TemplateHelper()
+
 
 # Initialize the argument parser
 def init_args():
@@ -26,6 +28,7 @@ def init_args():
     parser.add_argument('-d', '--document', type=str, help='documentation path', default="")
     parser.add_argument('-t', '--template', type=str, help='path to create template', default="")
     parser.add_argument('-s', '--slave', action='store_true', help='Generates slave driver', default=False)
+    parser.add_argument('-c', '--consolidate', action='store_false', help='Consolidate repeat registers in documentation', default=True)
     
 
 def buildTemplate(object, templateFile, outputFile, replacePattern = r"@file (.*?\.)(.*?) \*/"):
@@ -77,13 +80,15 @@ def buildDeviceSource(device , outputPath, baseName ='', slave = False):
     device.slave = slave
 
     if slave:
-        buildTemplate(device, 'templates/device/device_slave_header.h', outputPath +"/"+baseName + "_slave.h" )
-        buildTemplate(device, 'templates/device/device_slave_source.c', outputPath +"/"+baseName + "_slave.c" )
-        buildTemplate(device, 'templates/device/device_regs_header.h', outputPath +"/"+baseName + "_regs.h" )
+        #Slave source uses reverse-replacement on templates
+        #this means instead of only preserving user-code blocks, we only update gen-code blocks
+        th.buildTemplate(device, 'templates/device/device_slave_header.h', outputPath +"/"+baseName + "_slave.h" ,True)
+        th.buildTemplate(device, 'templates/device/device_slave_source.c', outputPath +"/"+baseName + "_slave.c", True )
+        th.buildTemplate(device, 'templates/device/device_regs_header.h', outputPath +"/"+baseName + "_regs.h" )
     else:
-        buildTemplate(device, 'templates/device/device_header_template.h', outputPath +"/"+baseName + ".h" )
-        buildTemplate(device, 'templates/device/device_source_template.c', outputPath +"/"+baseName + ".c" )
-        buildTemplate(device, 'templates/device/device_regs_header.h', outputPath +"/"+baseName + "_regs.h" )
+        th.buildTemplate(device, 'templates/device/device_header_template.h', outputPath +"/"+baseName + ".h" )
+        th.buildTemplate(device, 'templates/device/device_source_template.c', outputPath +"/"+baseName + ".c" )
+        th.buildTemplate(device, 'templates/device/device_regs_header.h', outputPath +"/"+baseName + "_regs.h" )
 
 
 def main():
@@ -122,6 +127,8 @@ def main():
     # if os.path.isfile(inputFile):
     print("parsing " + inputFile )
     device.parseYAML(inputFile)
+
+    device.consolidateDuplicates = args.consolidate
     
 
     print(" Generating Register files for " + device.name)

@@ -109,7 +109,7 @@ class TemplateHelper:
     # @param replacePattern - extra replace pattern for blocks 
     # @param reverse - Use this to reverse code blocks (i.e. update generated blocks instead of keeping user-blocks)
     #
-    def buildTemplate(object, templateFile, outputFile, replacePattern = r"@file (.*?\.)(.*?) \*/", reverse = False):
+    def buildTemplate(self, object, templateFile, outputFile,reverse = False, replacePattern = r"@file (.*?\.)(.*?) \*/"):
         exists= False
         cr = CodeReplacer()
         existingContent = ""
@@ -124,11 +124,11 @@ class TemplateHelper:
         newContents = "\n".join(template.render(obj = object, t = TemplateHelper()).splitlines())
 
         if(reverse):            
-            cr.loadText(newContents,r"\*gen-block-(.*?)-start(.*?)\*?gem-block-\1-end\*")
-            newContents = cr.insertBlocks(existingContent,r"\*gen-block-(.*?)-start(.*?)\*?gem-block-\1-end\*")
+            cr.loadText(newContents,r"\*gen-block-(.*?)-start(.*?)\*?gen-block-\1-end\*")
+            newContents = cr.insertBlocks(existingContent,r"\*gen-block-(.*?)-start(.*?)\*?gen-block-\1-end\*")
         else: 
             cr.loadText(existingContent,replacePattern)
-            cr.loadText(text)
+            cr.loadText(existingContent)
             newContents = cr.insertBlocks(newContents,replacePattern)
             newContents = cr.insertBlocks(newContents)
             cr.printDrops()

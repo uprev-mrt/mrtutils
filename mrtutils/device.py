@@ -10,6 +10,7 @@ import sys
 import os
 import yaml
 import json
+import copy
 from mrtutils.mrtYamlHelper import *
 from mrtutils.mrtTemplateHelper import *
 
@@ -208,7 +209,7 @@ class RegField:
         if 'desc' in node:
             self.desc = node['desc']
         
-        if self.getSize() == 1:
+        if (self.getSize() == 1) and (len(self.vals) == 0):
             self.isFlag = True
         
         self.bitCount = self.getSize()
@@ -295,7 +296,7 @@ class RegField:
         lDesc +=2
 
         divLine = "+" + ("-"* lName) + "+" + ("-"* lVal) + "+" + ("-"* lDesc)  + "+"
-        titleLine = "|" + t.padAfter("Name", lName) + "|" + t.padAfter("Address", lVal) + "|" + t.padAfter("Description", lDesc)  + "|"
+        titleLine = "|" + t.padAfter("Name", lName) + "|" + t.padAfter("Value", lVal) + "|" + t.padAfter("Description", lDesc)  + "|"
         headLine = divLine.replace("-","=")
 
         lines.append(divLine)
@@ -339,6 +340,9 @@ class DeviceReg:
         self.hasFlags = False
         self.hasFields = False
         self.configs = {}
+        self.pattern = ""
+        self.nIdx = 0
+        self.descPattern = ""
     
     def addField(self, field):
         field.reg = self
@@ -506,6 +510,7 @@ class Device:
         self.nextAddr = 0
         self.storageSize = 0
         self.slave = False
+        self.consolidateDuplicates = False
 
     def addReg(self, reg):
         reg.device = self
@@ -641,48 +646,98 @@ class Device:
 
         if 'registers' in objDevice:
             regs = yamlNormalizeNodes( objDevice['registers'], 'reg_name','addr')
-            for regItem in regs:
-                newReg = DeviceReg(regItem['reg_name'])
-                
-                if 'type' in regItem:
-                    newReg.type = regItem['type'].replace("_t","")
-                    newReg.size = sizeDict[newReg.type.replace("_t","")]
-                if 'size' in regItem:
-                    newReg.size = regItem['size']
-                if 'perm' in regItem:
-                    newReg.perm = regItem['perm'].upper()
-                if 'desc' in regItem:
-                    newReg.desc = regItem['desc']
-                if 'name' in regItem:
-                    newReg.desc = regItem['name']
-                if 'default' in regItem:
-                    newReg.default = regItem['default']
-                    newReg.hasDefault = True
-                
-                
-                if 'addr' in regItem:
-                    newReg.addr = regItem['addr'] #int(regItem['addr'],0) 
+            for regItemRaw in regs:
+
+                count = 1 
+                start = 0
+                expandedRegs = [] 
+
+
+                #If reg name has an expansion pattern '$n' create multiple instances
+                if '$n' in regItemRaw['reg_name']:
+
+                    if 'count' in regItemRaw:
+                        count = regItemRaw['count']
+
+                    if 'n' in regItemRaw:
+                        start = regItemRaw['n']
+
+
+                    for i in range(start, count ):
+                        expandedItem = copy.deepcopy(regItemRaw)
+                        expandedItem['reg_name'] = expandedItem['reg_name'].replace('$n', str(i))
+                        expandedItem['descPattern'] = expandedItem['desc'];
+                        expandedItem['desc'] = expandedItem['desc'].replace('$n', str(i))
+                        expandedItem['pattern'] = regItemRaw['reg_name']
+                        expandedRegs.append(expandedItem)
+
                 else:
-                    newReg.addr = self.nextAddr
+                    expandedRegs.append(regItemRaw)
+                    
+                for idx, regItem in enumerate(expandedRegs): 
+                    newReg = DeviceReg(regItem['reg_name'])
+                    newReg.nIdx = idx
+                    
+                    if 'type' in regItem:
+                        newReg.type = regItem['type'].replace("_t","")
+                        newReg.size = sizeDict[newReg.type.replace("_t","")]
+                    if 'size' in regItem:
+                        newReg.size = regItem['size']
+                    if 'perm' in regItem:
+                        newReg.perm = regItem['perm'].upper()
+                    if 'desc' in regItem:
+                        newReg.desc = regItem['desc']
+                    if 'name' in regItem:
+                        newReg.desc = regItem['name']
+                    if 'pattern' in regItem:
+                        newReg.pattern = regItem['pattern']
+                    if 'descPattern' in regItem:
+                        newReg.descPattern = regItem['descPattern']
+                    if 'default' in regItem:
+                        newReg.default = regItem['default']
+                        newReg.hasDefault = True
+                    
+                    
+                    
+                    if 'addr' in regItem:
+                        newReg.addr = regItem['addr'] #int(regItem['addr'],0) 
+                    else:
+                        newReg.addr = self.nextAddr
 
-                self.nextAddr = newReg.addr +  newReg.size
+                    self.nextAddr = newReg.addr +  newReg.size
 
-                self.storageSize += newReg.size
-                self.addReg(newReg)      
+                    self.storageSize += newReg.size
+                    self.addReg(newReg)      
         
         if 'fields' in objDevice:
             for propNode in objDevice['fields']:
                 if type(propNode) is dict:
                     regName = list(propNode.keys())[0]
                     propItem = list(propNode.values())[0]
+
+                    fieldNodes = yamlNormalizeNodes(propItem, 'name', 'mask')
+
+                    if '$n' in regName:
+                        for key in self.regs:   
+                            if self.regs[key].pattern == regName:
+                                for fieldNode in fieldNodes:
+                                    newField = RegField(fieldNode)
+                                    self.regs[key].addField(newField)
+
+
                     if regName in self.regs:
                         curReg = self.regs[regName]  
-                        fieldNodes = yamlNormalizeNodes(propItem, 'name', 'mask')
                         for fieldNode in fieldNodes:
                             newField = RegField(fieldNode)
                             curReg.addField(newField)
                 else:
                     regName = propNode
+
+                    if '$n' in regName:
+                        for key in self.regs:   
+                            if self.regs[key].pattern == regName:
+                                self.regs[key].addDefaultField()
+
                     if regName in self.regs:
                         self.regs[regName].addDefaultField()
         

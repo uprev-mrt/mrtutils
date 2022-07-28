@@ -8,8 +8,6 @@
 
 #include "${obj.name.lower()}_slave.h"
 
-/*user-block-top-start*/
-
 ${obj.name.lower()}_slave_t REGS; 
 
 uint8_t* DATA = (uint8_t*)&REGS.mData;
@@ -37,7 +35,6 @@ static void slave_reg_init(slave_reg_t* reg, addr_t addr, addr_t size, uint8_t f
     reg->mFlags = flags;
 }
 
-/*user-block-top-end*/
 
 /**
  * @brief initializes ${obj.name} slave registers
@@ -45,12 +42,17 @@ static void slave_reg_init(slave_reg_t* reg, addr_t addr, addr_t size, uint8_t f
  */
 void ${obj.prefix.lower()}_slave_init( )
 {
+
+    /*gen-block-init-start*/
+
  % for key,reg in obj.regs.items():
     slave_reg_init(&REGS.mRegs[${loop.index}],${reg.addr},${reg.size}, SLAVE_REG_PERM_${reg.perm} ); //${key}
     % if reg.hasDefault:
     REGS.mData.${"m" + obj.camelCase(reg.name)} = ${reg.getDefaultMacro(58)}; 
     % endif
 % endfor    
+
+    /*gen-block-init-end*/
 
     REGS.mCurrentReg = 0;
     REGS.mCursor = 0;
@@ -59,7 +61,6 @@ void ${obj.prefix.lower()}_slave_init( )
     REGS.mFlags = 0;
 }
 
-/*user-block-functions-start*/
 
 /**
  * @brief feed byte into fifo
@@ -115,6 +116,5 @@ void ${obj.prefix.lower()}_slave_end_transaction(void)
     REGS.mAddrBytes = 0;
 }
 
-/*user-block-functions-end*/
 
 
