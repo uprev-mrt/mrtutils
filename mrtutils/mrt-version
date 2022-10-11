@@ -16,6 +16,8 @@ parser = None
 
 #def filter_commits:
 
+th = TemplateHelper()
+
 
 class VersionStruct:
     def __init__(self):
@@ -186,6 +188,7 @@ def main():
         vs.setBuild(args.build)
 
     th.buildTemplate(vs, 'templates/version/version.h' , args.versionFile)
+
 
 
     vs.print(args.full)

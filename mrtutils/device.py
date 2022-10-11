@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 #@file device.py
-#@brief device descripto
+#@brief device descriptor
 #@author Jason Berger
 #@date 02/19/2019
 #
@@ -137,7 +137,7 @@ class DevConfig:
 
 
 
-class FieldVal:
+class FieldValSpec:
     def __init__(self, node):
         self.field = 0
         self.val = 0 
@@ -153,14 +153,14 @@ class FieldVal:
             self.desc = valItem['name']
 
     def getFieldValMacro(self, spacing = 0):
-        ret = self.field.reg.device.prefix.upper() +"_"+self.field.reg.name.upper()+"_"+self.field.name.upper() +"_" + self.name.upper()
+        ret = self.field.reg.device.prefix.upper() +"_"+self.field.reg.pattern.replace('$n','X').upper()+"_"+self.field.name.upper() +"_" + self.name.upper()
         if spacing > 0:
             spaces = spacing - len(ret)
             ret = ret + (" " * spaces)
         return ret
     
     def getFieldValMaskMacro(self, spacing = 0):
-        ret = self.field.reg.device.prefix.upper() +"_"+self.field.reg.name.upper()+"_"+self.field.name.upper() +"_" + self.name.upper() + "_MASK"
+        ret = self.field.reg.device.prefix.upper() +"_"+self.field.reg.pattern.replace('$n','X').upper()+"_"+self.field.name.upper() +"_" + self.name.upper() + "_MASK"
         if spacing > 0:
             spaces = spacing - len(ret)
             ret = ret + (" " * spaces)
@@ -180,7 +180,7 @@ class FieldVal:
             return "b"+format(self.val, '0'+str(self.field.bitCount)+'b')
 
  
-class RegField:
+class RegFieldSpec:
     def __init__(self, node):
         self.reg = 0
         self.mask = 0XFFFFFFFF
@@ -200,11 +200,11 @@ class RegField:
             self.mask = 1 << node['bit']
         if 'values' in node:
             for valNode in node['values']:
-                newVal = FieldVal(valNode)
+                newVal = FieldValSpec(valNode)
                 self.addVal(newVal)
         if 'vals' in node:
             for valNode in node['vals']:
-                newVal = FieldVal(valNode)
+                newVal = FieldValSpec(valNode)
                 self.addVal(newVal)
         if 'desc' in node:
             self.desc = node['desc']
@@ -214,7 +214,7 @@ class RegField:
         
         self.bitCount = self.getSize()
         self.offset = self.getOffset()
-        self.startBit = self.bitCount + self.offset
+        self.startBit = self.bitCount + self.offset -1
 
     def getSize(self):
         count = 0
@@ -239,7 +239,7 @@ class RegField:
         self.valDict[fieldVal.name] = fieldVal
 
     def getFieldMaskMacro(self, spacing = 0):
-        ret = self.reg.device.prefix.upper() +"_"+self.reg.name.upper()+"_"+self.name.upper() +"_FIELD_MASK"
+        ret = self.reg.device.prefix.upper() +"_"+self.reg.pattern.replace('$n','X').upper()+"_"+self.name.upper() +"_FIELD_MASK"
 
         if spacing > 0:
             spaces = spacing - len(ret)
@@ -247,7 +247,7 @@ class RegField:
         return ret
     
     def getFieldOffsetkMacro(self, spacing = 0):
-        ret = self.reg.device.prefix.upper() +"_"+self.reg.name.upper()+"_"+self.name.upper() +"_FIELD_OFFSET"
+        ret = self.reg.device.prefix.upper() +"_"+self.reg.pattern.replace('$n','X').upper()+"_"+self.name.upper() +"_FIELD_OFFSET"
 
         if spacing > 0:
             spaces = spacing - len(ret)
@@ -255,7 +255,7 @@ class RegField:
         return ret
 
     def getFieldFlagMacro(self, spacing = 0):
-        ret = self.reg.device.prefix.upper() +"_"+ self.reg.name.upper()+"_"+self.name.upper()
+        ret = self.reg.device.prefix.upper() +"_"+ self.reg.pattern.replace('$n','X').upper()+"_"+self.name.upper()
 
         if spacing > 0:
             spaces = spacing - len(ret)
@@ -323,7 +323,7 @@ class RegField:
     
         
 
-class DeviceReg:
+class DeviceRegSpec:
     def __init__(self,name):
         self.name = name
         self.addr = 0
@@ -368,7 +368,7 @@ class DeviceReg:
         if self.size == 4: 
             fieldNode['mask'] = 0xFFFFFFFF
 
-        field = RegField(fieldNode)
+        field = RegFieldSpec(fieldNode)
         field.flat = True
         self.addField(field)
     
@@ -445,6 +445,7 @@ class DeviceReg:
             if len(field.name) > cellWidth:
                 cellWidth = len(field.name)
         
+        
         lines = ["+------------","|Bit         ", "+============", "| **Field**  ","+------------"]
 
         for i in range(bits,-1,-1):
@@ -491,7 +492,7 @@ class DeviceReg:
 
 
 
-class Device:
+class DeviceSpec:
     def __init__(self, name):
         self.name = name
         self.prefix = ""
@@ -606,8 +607,13 @@ class Device:
         return out
 
     def parseYAML(self,yamlFile):
-        data = open(yamlFile)
-        objDevice = yaml.load(data , Loader=yaml.FullLoader)
+
+        if type(yamlFile) is str:
+
+            data = open(yamlFile)
+            objDevice = yaml.load(data , Loader=yaml.FullLoader)
+        else:
+            objDevice = yamlFile
 
         if 'name' in objDevice:
             self.name = objDevice['name']
@@ -675,7 +681,7 @@ class Device:
                     expandedRegs.append(regItemRaw)
                     
                 for idx, regItem in enumerate(expandedRegs): 
-                    newReg = DeviceReg(regItem['reg_name'])
+                    newReg = DeviceRegSpec(regItem['reg_name'])
                     newReg.nIdx = idx
                     
                     if 'type' in regItem:
@@ -721,14 +727,14 @@ class Device:
                         for key in self.regs:   
                             if self.regs[key].pattern == regName:
                                 for fieldNode in fieldNodes:
-                                    newField = RegField(fieldNode)
+                                    newField = RegFieldSpec(fieldNode)
                                     self.regs[key].addField(newField)
 
 
                     if regName in self.regs:
                         curReg = self.regs[regName]  
                         for fieldNode in fieldNodes:
-                            newField = RegField(fieldNode)
+                            newField = RegFieldSpec(fieldNode)
                             curReg.addField(newField)
                 else:
                     regName = propNode
