@@ -30,44 +30,16 @@ import yaml
 
 devObjBlacklist= ['registers', 'fields', 'packages', 'configs', 'variants', 'pins']
 
-def getGitFileText(url, file):
+def getRemoteFileText(url, file):
     txt=""
-    try:
-        str = 'git archive --remote=' + url +' HEAD '+ file + ' | tar -xOf - ' + file
-        txt = subprocess.check_output(str,shell=True, encoding='utf8')
-    except subprocess.CalledProcessError as e:
-        print(" Repo at " + url+ " does not contain " + file)
 
-    return txt
+    repo= Repo(url, True, False)
+    return repo.getFileText(file)
 
-def getBitbucketFile(account, repo, file):
-    txt=""
-    try:
-        response = urlopen("https://bitbucket.org/" + account + "/" + repo + "/raw/master/" + file)
-        html_content = response.read()
-        encoding = response.headers.get_content_charset('utf-8')
-        txt = html_content.decode(encoding)
-    except:
-        print("bitbucket.org/" + account + "/" + repo + "/raw/master/" + file + "  not found")
-    
-    return txt
 
-def getRepoFile(url, file):
-    ret = ""
-    #https://bitbucket.org/uprev/utility-fifo.git
-    if url.find("bitbucket"):
-        nodes = url.split('/')
-        account = nodes[3]
-        repo_name = nodes[4].replace(".git","")
-
-        ret = getBitbucketFile('uprev',repo_name, file)
-    else:
-        ret = getGitFileText('ssh://' + url.replace(':','/'), file)
-
-    return ret
 
 def copyRepoFile(url, file, outfile):
-    txt = getRepoFile(url,file)
+    txt = getRemoteFileText(url,file)
     dst = open( outfile , "w")
     dst.write(txt)
     dst.close()
@@ -88,6 +60,7 @@ class Submodule:
         self.repo_name = url.split('/')[-1].replace(".git","")
         self.yaml = {}  
         self.repo = None
+        self.submodrepo = Repo(self.url, True, False)
 
 
     def checkFor(self,mods):
@@ -99,13 +72,9 @@ class Submodule:
 
 
     def getReadMe(self):
-        if self.url.find("bitbucket"):
-            self.readme = getBitbucketFile('uprev',self.repo_name, 'README.md')
-        else:
-            self.readme = getGitFileText('ssh://' + self.url.replace(':','/'), 'README.md')
 
-        if(self.readme == ""):
-            self.readme = "# No README.md is available for this module"
+        return self.submodrepo.getReadMe()
+
 
     def loadYaml(self, yamlObj):
 
@@ -135,31 +104,18 @@ class Submodule:
             ret['doc'] = self.path+"/README.md"
 
 
+        try:
+            yamlText = self.submodrepo.getFileText(file)
 
-        if self.repo.isRemote:
-            try:
-                if self.url.find("bitbucket"):
-                    yamlText = getBitbucketFile('uprev',self.repo_name, file)
-                else:
-                    yamlText = getGitFileText('ssh://' + self.url.replace(':','/'), file)
+        except:
+            print("couldnt load yaml")
 
-            except:
-                print("couldnt load yaml")
+        #Get device file if it exists
+        try:
+            devText = self.submodrepo.getFileText(file)
+        except:
+            print("couldnt load yaml")
 
-            #Get device file if it exists
-            try:
-                if self.url.find("bitbucket"):
-                    devText = getBitbucketFile('uprev',self.repo_name, file)
-                else:
-                    devText = getGitFileText('ssh://' + self.url.replace(':','/'), file)
-            except:
-                print("couldnt load yaml")
-        else:
-            try:
-                f = open(self.path + '/' + file, 'r')
-                yamlText = f.read()
-            except:
-                print("No " +file +" for " + self.name) 
         
         try:
             yamlText = yamlText.replace('\t',' ')
@@ -197,31 +153,8 @@ class Submodule:
             ret['doc'] = self.path+"/README.md"
 
 
-
-        if self.repo.isRemote:
-            try:
-                if self.url.find("bitbucket"):
-                    yamlText = getBitbucketFile('uprev',self.repo_name, 'mrt.yml')
-                else:
-                    yamlText = getGitFileText('ssh://' + self.url.replace(':','/'), 'mrt.yml')
-
-            except:
-                print("couldnt load yaml")
-
-            #Get device file if it exists
-            try:
-                if self.url.find("bitbucket"):
-                    devText = getBitbucketFile('uprev',self.repo_name, 'device.yml')
-                else:
-                    devText = getGitFileText('ssh://' + self.url.replace(':','/'), 'device.yml')
-            except:
-                print("couldnt load yaml")
-        else:
-            try:
-                f = open(self.path + '/mrt.yml', 'r')
-                yamlText = f.read()
-            except:
-                print("No mrt.yml for " + self.name) 
+        yamlText = self.submodrepo.getFileText('mrt.yml')
+        
         
         try:
             yamlText = yamlText.replace('\t',' ')
@@ -416,19 +349,28 @@ class RepoDirectory:
 
 
 class Repo:
-    def __init__(self, path, remote = False):
+    def __init__(self, path, remote = False, createdir=True):
+
         self.url = path
         self.path = path
         self.mods =[]
         self.isRemote = remote
-        self.dir = RepoDirectory("root",0)
-        self.isBitbucket = False
         self.rootYaml = {}
-        nodes = self.url.split('/')
-        self.account = nodes[-2]
+        normalUrl = path.replace(':','/')
+        nodes = normalUrl.split('/')
         self.name = nodes[-1].replace(".git","")
+        self.host = ''
+
         if "bitbucket" in path:
-            self.isBitbucket = True
+            self.host = 'bitbucket'
+            self.account =  nodes[-2]
+        if "github" in path:
+            self.host = 'github'
+            self.account =  nodes[-2]
+
+        self.dir = None 
+        if createdir:
+            self.dir = RepoDirectory("root",0)
 
     def setRelativePath(self,path):
         self.relativePath = path
@@ -454,22 +396,9 @@ class Repo:
         
         yamlText = ""
         yamlObj = {}
-        
-        if self.isRemote:
-            try:
-                if self.url.find("bitbucket"):
-                    yamlText = getBitbucketFile('uprev',self.name, 'mrt.yml')
-                else:
-                    yamlText = getGitFileText('ssh://' + self.url.replace(':','/'), 'mrt.yml')
 
-            except:
-                print("couldnt load yaml")
-        else:
-            try:
-                f = open(self.path + '/mrt.yml', 'r')
-                yamlText = f.read()
-            except:
-                print("No mrt.yml for " + self.name)
+        yamlText = self.getFileText('mrt.yml')
+        
         
         try:
             yamlText = yamlText.replace('\t',' ')
@@ -495,11 +424,8 @@ class Repo:
         self.rootYaml = self.getRootYaml()
 
         if self.isRemote:
-            if(self.isBitbucket):
-                data = getBitbucketFile(self.account, self.name, '.gitmodules').replace('\r', '').replace('\n', '').replace('\t', '')
-            else:
-                data = getGitFileText(self.url,'.gitmodules').replace('\r', '').replace('\n', '').replace('\t', '')
-            
+
+            data = self.getFileText('.gitmodules').replace('\r', '').replace('\n', '').replace('\t', '')
             #read in all modules
             regex = re.compile(r'\[(.*?)].*?path = (.*?)url = (.*?\.git)')
             modules = regex.findall(data)
@@ -522,21 +448,50 @@ class Repo:
                 if mod.name in self.rootYaml:
                     mod.loadYaml(self.rootYaml[mod.name])
             self.dir.add(mod, 0)
-        
+    
+    def getFileText(self,file):
+
+        ret = ""
+        if self.isRemote:
+
+            req_url = ""
+
+            if(self.host== 'github'):
+                req_url = "https://raw.githubusercontent.com/" + self.account + "/" + self.name + "/master/" + file
+            elif(self.host == 'bitbucket'):
+                req_url = "https://bitbucket.org/" + self.account + "/" + self.name + "/raw/master/" + file
+  
+            
+            try:
+                response = urlopen(req_url)
+                html_content = response.read()
+                encoding = response.headers.get_content_charset('utf-8')
+                ret = html_content.decode(encoding)
+            except:
+                print(req_url +"  not found")
+        else:
+
+            path = self.path + '/' + file
+            if os.path.isfile(path):
+                try:
+                    file = open(path)
+                    ret = file.read()
+                    file.close()
+                except:
+                    file.close()
+                    print( "Error reading " + path)
+
+        return ret
+
 
     def getReadMe(self):
 
-        data = ""
-        if self.isRemote:
-            if(self.isBitbucket):
-                nodes = self.url.split('/')
-                name = nodes[-1]
-                account = nodes[-2]
-                data = getBitbucketFile(self.account, self.name, 'README.md')
-            else:
-                data = getGitFileText(self.url, 'README.md')
+        ret = self.getFileText('README.md')
 
-        return data
+        if(ret == ""):
+            ret = self.getFileText('README.rst')
+        
+        return ret
 
     def findMod(self, name):
         for mod in self.mods: 

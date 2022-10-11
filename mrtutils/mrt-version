@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from pickle import FALSE
 import sys
 import os
 import argparse
@@ -163,6 +164,7 @@ def main():
     init_args()
     args = parser.parse_args() 
     vs = VersionStruct()
+    th = TemplateHelper()
     
     if args.tags :
         vs.useTags = True 
@@ -183,9 +185,7 @@ def main():
     if not args.build == "":
         vs.setBuild(args.build)
 
-
-        
-    TemplateHelper.buildTemplate(vs,'templates/version/version.h',args.versionFile)
+    th.buildTemplate(vs, 'templates/version/version.h' , args.versionFile)
 
 
     vs.print(args.full)

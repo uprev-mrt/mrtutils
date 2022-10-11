@@ -90,7 +90,7 @@ def init_args():
     parser = argparse.ArgumentParser("Tool to import submodules from MrT registry")
     parser.add_argument('localRoot', type=str, nargs='?', help='Local Root of MrT modules', default="MrT")
     parser.add_argument('-g', '--gather', action='store_true', help='Gathers the mrt.yml files and creates a single structure', default= False)
-    parser.add_argument('-r', '--remote', type=str, help='remote repo to sync from', default="git@bitbucket.org/uprev/uprev-mrt.git")
+    parser.add_argument('-r', '--remote', type=str, help='remote repo to sync from', default="git@github.com:uprev-mrt/MrT-Meta.git")
 
 
 def main():
@@ -111,6 +111,8 @@ def main():
     if 'bitbucket' in args.remote:
         remoteRepo.isBitbucket = True
     localRepo = Repo(os.getcwd())
+
+    print(remoteRepo.url)
 
     remoteRepo.getSubModules()
     localRepo.getSubModules()

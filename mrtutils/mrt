@@ -8,7 +8,7 @@ from mrtutils.updates import *
 args = None
 parser = None
 
-remoteUrl = "git@bitbucket.org/uprev/uprev-mrt.git"
+remoteUrl = "git@github.com:uprev-mrt/MrT-Meta.git"
 remoteRepo = Repo(remoteUrl)
 remoteRepo.isBitbucket = True
 localRepo = Repo(os.getcwd())
