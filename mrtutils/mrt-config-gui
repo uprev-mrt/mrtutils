@@ -22,7 +22,7 @@ markdownView = QTextEdit() #QWebEngineView()
 tree    = QTreeWidget()
 
 
-remoteUrl = "git@bitbucket.org/uprev/uprev-mrt.git"
+remoteUrl = "https://github.com/uprev-mrt/MrT-Meta.git"
 remoteRepo = Repo(remoteUrl)
 remoteRepo.isBitbucket = True
 localRepo = Repo(os.getcwd())

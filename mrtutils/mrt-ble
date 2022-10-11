@@ -105,11 +105,11 @@ def buildProfileSourceEsp32(gatt , outputPath, baseName =''):
 
 
 
-    copyRepoFile("https://bitbucket.org/uprev/platform-esp32.git", "/ble/esp32_gatt_adapter.h", outputPath +"/interface/esp32_gatt_adapter.h")
-    copyRepoFile("https://bitbucket.org/uprev/platform-esp32.git", "/ble/esp32_gatt_adapter.c", outputPath +"/interface/esp32_gatt_adapter.c")
+    copyRepoFile("https://github.com/uprev-mrt/platform-esp32.git", "/ble/esp32_gatt_adapter.h", outputPath +"/interface/esp32_gatt_adapter.h")
+    copyRepoFile("https://github.com/uprev-mrt/platform-esp32.git", "/ble/esp32_gatt_adapter.c", outputPath +"/interface/esp32_gatt_adapter.c")
 
-    copyRepoFile("https://bitbucket.org/uprev/utility-gatt-interface.git", "mrt_gatt_interface.c", outputPath +"/interface/mrt_gatt_interface.c")
-    copyRepoFile("https://bitbucket.org/uprev/utility-gatt-interface.git", "mrt_gatt_interface.h", outputPath +"/interface/mrt_gatt_interface.h")
+    copyRepoFile("https://github.com/uprev-mrt/utility-gatt-interface.git", "mrt_gatt_interface.c", outputPath +"/interface/mrt_gatt_interface.c")
+    copyRepoFile("https://github.com/uprev-mrt/utility-gatt-interface.git", "mrt_gatt_interface.h", outputPath +"/interface/mrt_gatt_interface.h")
 
     buildTemplate(gatt, 'templates/ble/esp32/gatt_server.h', outputPath +"/{0}_gatt_server.h".format(gatt.name.lower()) )
     buildTemplate(gatt, 'templates/ble/esp32/gatt_server.c', outputPath +"/{0}_gatt_server.c".format(gatt.name.lower() ))
