@@ -13,7 +13,7 @@ import yaml
 import argparse
 import pkgutil
 from mrtutils.mrtTemplateHelper import *
-from mrtutils.device import Device as Device
+from mrtutils.device import DeviceSpec as DeviceSpec
 from mrtutils.updates import *
 
 th = TemplateHelper()
@@ -28,7 +28,6 @@ def init_args():
     parser.add_argument('-d', '--document', type=str, help='documentation path', default="")
     parser.add_argument('-t', '--template', type=str, help='path to create template', default="")
     parser.add_argument('-s', '--slave', action='store_true', help='Generates slave driver', default=False)
-    parser.add_argument('-c', '--consolidate', action='store_false', help='Consolidate repeat registers in documentation', default=True)
     
 
 def buildTemplate(object, templateFile, outputFile, replacePattern = r"@file (.*?\.)(.*?) \*/"):
@@ -108,7 +107,7 @@ def main():
     docPath = args.document
     templatePath = args.template
 
-    device = Device('unnamed')
+    device = DeviceSpec('unnamed')
 
     if not templatePath =="":
         templatePath.replace("yml","") 
@@ -128,8 +127,6 @@ def main():
     print("parsing " + inputFile )
     device.parseYAML(inputFile)
 
-    device.consolidateDuplicates = args.consolidate
-    
 
     print(" Generating Register files for " + device.name)
     buildDeviceSource(device, path, slave = slave)

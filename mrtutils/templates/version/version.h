@@ -13,4 +13,5 @@
 #define ${obj.prefix.upper()}VERSION_COMMIT     "${obj.hash}"
 
 #define ${obj.prefix.upper()}VERSION_STRING "${obj.major}.${obj.minor}.${obj.patch}.${obj.build}"
+#define ${obj.prefix.upper()}VERSION_UINT32 ((${obj.prefix.upper()}VERSION_MAJOR & 0xFF) << 24) | ((${obj.prefix.upper()}VERSION_MINOR & 0xFF) << 16) | ((${obj.prefix.upper()}VERSION_PATCH & 0xFF) << 8) | (${obj.prefix.upper()}VERSION_BUILD & 0xFF)
 

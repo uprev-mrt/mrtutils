@@ -38,7 +38,6 @@ static void slave_reg_init(slave_reg_t* reg, addr_t addr, addr_t size, uint8_t f
 
 /**
  * @brief initializes ${obj.name} slave registers
- * @param fifoDepth size of rxFifo to use
  */
 void ${obj.prefix.lower()}_slave_init( )
 {
@@ -81,15 +80,18 @@ void ${obj.prefix.lower()}_slave_put( uint8_t data )
             }
             break;
         case SLAVE_STATE_DATA:
-            if(REGS.mCurrentReg->mFlags & SLAVE_REG_PERM_W)
+             if(REGS.mCurrentReg->mFlags & SLAVE_REG_PERM_W)
             {
                 DATA[REGS.mCursor] = data;
                 REGS.mCurrentReg->mFlags |= SLAVE_REG_ACESS_W;
-                REGS.mFlags |= SLAVE_REG_ACESS_W;
                 REGS.mCursor++;
                 if(REGS.mCursor == REGS.mCurrentReg->mAddr + REGS.mCurrentReg->mSize)
                 {
-                    REGS.mCurrentReg += sizeof(slave_reg_t);
+                    REGS.mCurrentReg->mFlags |= SLAVE_REG_ACESS_W_COMPLETE;  //mark that register write is complete
+                    REGS.mFlags |= SLAVE_REG_ACESS_W;                        //Mark that a register has been written
+                    ${obj.prefix.lower()}_slave_handle_write( REGS.mCurrentReg)
+                    go_to_register(REGS.mCursor);
+
                 }
             }
         default:
@@ -118,3 +120,17 @@ void ${obj.prefix.lower()}_slave_end_transaction(void)
 
 
 
+void ${obj.prefix.lower()}_slave_handle_write( slave_reg_t* reg)
+{
+
+    switch(reg->mAddr)
+    {
+% for key,reg in obj.regs.items():
+%if 'W' in reg.perm:
+        case ${reg.getAddrMacro(58)}:
+            break;
+%endif
+% endfor
+    }
+
+}

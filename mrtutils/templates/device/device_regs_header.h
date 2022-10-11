@@ -27,7 +27,8 @@
 *******************************************************************************/
 
 % for key,reg in obj.regs.items():
-% if len(reg.fields) > 0 :
+% if len(reg.fields) > 0:
+%if reg.nIdx == 0:
 /* ${reg.name} Register Fields */
     %if reg.hasFlags:
     /* ${reg.name} -> Flags */
@@ -47,7 +48,7 @@
     %endfor
     %endif
     %endfor
-
+% endif
 % endif
 % endfor
 

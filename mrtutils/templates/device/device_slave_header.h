@@ -22,8 +22,9 @@ extern "C"
 #define SLAVE_REG_PERM_X    0x04
 #define SLAVE_REG_PERM_RW   0x03
 
-#define SLAVE_REG_ACESS_R    0x80
-#define SLAVE_REG_ACESS_W    0x40
+#define SLAVE_REG_ACESS_R             0x80
+#define SLAVE_REG_ACESS_W             0x40
+#define SLAVE_REG_ACESS_W_COMPLETE    0x20
 
 #define SLAVE_STATE_ADDRESS  0x00
 #define SLAVE_STATE_DATA     0x01
@@ -31,20 +32,17 @@ extern "C"
 /*******************************************************************************
   Struct                                                                                
 *******************************************************************************/
-
-
 typedef uint8_t addr_t;
 
+typedef struct slave_reg_t slave_reg_t;
 
+typedef uint8_t (*regOpHandler)(slave_reg_t* reg); 
 
-#pragma pack(push)
-#pragma pack(1)
-
-typedef struct{
+struct slave_reg_t{
     uint8_t mFlags;
     uint8_t mSize;
     addr_t mAddr;
-} slave_reg_t;
+} ;
 
 
 
@@ -94,7 +92,11 @@ uint8_t ${obj.prefix.lower()}_slave_get(void);
  */
 void ${obj.prefix.lower()}_slave_end_transaction(void);
 
-
+/**
+ * @brief write handler
+ * 
+ */
+void ${obj.prefix.lower()}_slave_handle_write( slave_reg_t* reg);
 
 #ifdef __cplusplus
 }
