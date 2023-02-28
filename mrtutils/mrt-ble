@@ -34,6 +34,7 @@ def init_args():
     parser.add_argument('-n', '--nrf', action='store_true', help='Generates definition file for nrf connect', default=False)
     parser.add_argument('-m', '--html', action='store_true', help='Generates html ICD', default=False)
     parser.add_argument('-r', '--rst', action='store_true', help='Generates rst ICD', default=False)
+    parser.add_argument('-x', '--external_template', type=str, help='path or url to external template to execute', default="")
     
 
 def buildTemplate(object, templateFile, outputFile, userBlocks = True, overwrite= True):
@@ -179,6 +180,11 @@ def main():
         if not gatt.validate():
             print("Error found in Descriptor file")
             sys.exit()
+
+        if not args.external_template =="":
+            templateSet = TemplateSet(args.external_template, args.output)
+            templateSet.execute()
+
 
         if not path == "":
             print("Generating Source")

@@ -33,7 +33,7 @@ devObjBlacklist= ['registers', 'fields', 'packages', 'configs', 'variants', 'pin
 def getRemoteFileText(url, file):
     txt=""
 
-    repo= Repo(url, True, False)
+    repo= Repo(url, False)
     return repo.getFileText(file)
 
 
@@ -349,12 +349,17 @@ class RepoDirectory:
 
 
 class Repo:
-    def __init__(self, path, remote = False, createdir=True):
+    def __init__(self, path : str, createdir=True):
 
         self.url = path
         self.path = path
         self.mods =[]
-        self.isRemote = remote
+        self.isRemote = False
+
+        if path.startswith("https:") or path.startswith("git@"):
+            self.isRemote = True
+
+
         self.rootYaml = {}
         normalUrl = path.replace(':','/')
         nodes = normalUrl.split('/')

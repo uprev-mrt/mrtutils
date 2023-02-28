@@ -6,6 +6,8 @@ from sys import platform
 from mako.template import Template
 import pkgutil
 from datetime import date
+from mrtutils.mrtYamlHelper import *
+from mrtutils.modsync import *
 
 import re
 
@@ -40,6 +42,7 @@ cTypeDict = {
      "enum" : "uint8_t",
      "flag" : "uint8_t"
  }
+
 
 class bcolors:
     HEADER = '\033[95m'
@@ -94,6 +97,7 @@ class CodeReplacer:
                 print( bcolors.WARNING +" ******************************** Code block dropped:" + token+ " *************************************" + bcolors.ENDC)
                 print( bcolors.OKCYAN + self.blocks[token] + bcolors.ENDC )
 
+        
 class TemplateHelper:
     def __init__(self):
         self.sizeDict = sizeDict
@@ -101,6 +105,7 @@ class TemplateHelper:
 
     def getDate(self):
         return date.today().strftime("%m/%d/%y")
+    
             
     #
     # build template
@@ -161,7 +166,56 @@ class TemplateHelper:
             ret = ret + (" " * spaces)
         return ret 
 
+class TemplateFile:
+    def __init__(self, parent)
+        self.path = ""
+        self.replacePattern = ""
+        self.target = ""
+        self.output = ""
+        self.reverse = False
+        self.parent = parent
+        self.data = ""
 
+    def parseYaml(self, obj):
+        yamlGetAttributes(obj, {}, self)
+
+    def execute(self, obj):
+        self.data = self.parent.getFileText(self.name)
+        templateHelper = TemplateHelper()
+
+
+
+
+
+class TemplateSet:
+    def __init__(self, templateRootPath, outputPath):
+        self.path = templateRootPath
+        self.outputPath = outputPath
+        self.files = []
+        self.repo = Repo(templateRootPath)
+        self.parseYaml()
+
+        
+
+    def execute(self, obj):
+
+        for template in self.files:
+            template.execute(obj)
+        
+
+    def getFileText(self, path):
+        return self.repo.getFileText(path)
+
+    def parseYaml(self):
+        #TODO get text from template.yml 
+        strYaml = self.getFileText('template.yml')
+
+        tSet = yaml.load(strYaml, Loader=yaml.FullLoader)
+
+        for fileNode in tSet['files']:
+            newFile = TemplateFile() 
+            newFile.parseYaml(fileNode)
+        
 
 
 
