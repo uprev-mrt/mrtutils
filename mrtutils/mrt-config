@@ -17,7 +17,7 @@ from mrtutils.menuconfig import menuconfig
 remoteRepo = None #Repo("git@bitbucket.org/uprev/uprev-mrt.git") 
 localRepo = None #Repo(os.getcwd())
 
-metaRepoDefault = "git@github.com:uprev-mrt/MrT-Meta.git"
+metaRemoteDefault =   "https://gitlab.com/uprev-public/mrt" #"git@github.com/uprev-mrt/MrT-Meta.git"
 
 
 args = None
@@ -91,8 +91,9 @@ def init_args():
     global parser
     parser = argparse.ArgumentParser("Tool to import submodules from MrT registry")
     parser.add_argument('localRoot', type=str, nargs='?', help='Local Root of MrT modules', default="MrT")
+    parser.add_argument('-a', '--all', action='store_true', help='Skips the UI and just pulls all submodules (used for CI/CD Unit testing)', default= False)
     parser.add_argument('-g', '--gather', action='store_true', help='Gathers the mrt.yml files and creates a single structure', default= False)
-    parser.add_argument('-r', '--remote', type=str, help='remote repo to sync from. Overrides $\{MRT_MET_REPO\}', default="")
+    parser.add_argument('-r', '--remote', type=str, help='remote repo or group to sync from. Overrides $\{MRT_MET_REPO\}', default="")
 
 
 def main():
@@ -109,7 +110,7 @@ def main():
     conf_file = tempfile.NamedTemporaryFile(mode = "w")
 
 
-    metaRepo_path = metaRepoDefault 
+    metaRepo_path = metaRemoteDefault 
 
     if args.remote != "":
         metaRepo_path = args.remote 
@@ -120,6 +121,11 @@ def main():
 
 
     remoteRepo = Repo(metaRepo_path)
+
+    if remoteRepo.isGroup:
+        print("Gathering modules from Groupd at " + metaRepo_path)
+    else: 
+        print("Gathering modules from Meta-Repo at " + metaRepo_path)
 
     if 'bitbucket' in args.remote:
         remoteRepo.isBitbucket = True
@@ -143,27 +149,36 @@ def main():
         
         exit(0)
 
-    remoteRepo.crossCheckMods(localRepo)
-    fileText = remoteRepo.dir.dirs['Modules'].getKConfigString(0)
-    conf_file_txt = remoteRepo.getConfigString()
+    if not args.all:
 
-    kconf_file.write(fileText)
-    conf_file.write(conf_file_txt)
-    conf_file.seek(0,0)
-    kconf_file.seek(0,0)
-    kconf = MrtKConfig(kconf_file.name)
-    temp_config_file = conf_file.name
+        remoteRepo.crossCheckMods(localRepo)
 
-    
-    menuconfig(kconf)
-    kconf_file.close()
-    conf_file.close()
 
-    for mod in mods_to_add:
-        localRepo.addSubModule(mod)
+        fileText = remoteRepo.dir.dirs['Modules'].getKConfigString(0)
+        conf_file_txt = remoteRepo.getConfigString()
 
-    for mod in mods_to_remove:
-        localRepo.removeSubModule(mod)
+
+        kconf_file.write(fileText)
+        conf_file.write(conf_file_txt)
+        conf_file.seek(0,0)
+        kconf_file.seek(0,0)
+        kconf = MrtKConfig(kconf_file.name)
+        temp_config_file = conf_file.name
+
+        
+        menuconfig(kconf)
+        kconf_file.close()
+        conf_file.close()
+
+        for mod in mods_to_add:
+            localRepo.addSubModule(mod)
+
+        for mod in mods_to_remove:
+            localRepo.removeSubModule(mod)
+    else: 
+        for mod in remoteRepo.mods:
+            localRepo.addSubModule(mod)
+        
 
         
 

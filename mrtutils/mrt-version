@@ -59,7 +59,13 @@ class VersionStruct:
     def loadRepo(self,repo):
 
         self.repo = repo
-        self.branch = repo.active_branch.name
+
+        try: 
+            self.branch = repo.active_branch.name
+        except:
+            self.branch = 'DETACHED_' + repo.head.object.hexsha
+            print("Repo in Detached head state")
+            
         self.hash = repo.head.commit.hexsha
 
 
@@ -110,7 +116,7 @@ class VersionStruct:
     def getCommitsSinceLast(self, branch = 'master', change= 'minor' ):
     
         repattern = None
-        count = 0
+        count = 1
 
         if change == 'minor':
             repattern = re.compile(r'\+.*?VERSION_MINOR\s*?(\S*?)\s*?\n' )
@@ -123,7 +129,12 @@ class VersionStruct:
         #iterate through using first-parent method 
         while(len(commit.parents) > 0):
             firstParent = commit.parents[0]
-            diff = self.repo.git.diff(firstParent, commit, self.fileName)
+
+            try:
+                diff = self.repo.git.diff(firstParent, commit, self.fileName)
+            except:
+                return 0
+
             if repattern.search(diff):
                     return count
             
@@ -131,15 +142,21 @@ class VersionStruct:
             commit = firstParent
 
         
-        return count
+        return 0
 
 
-    def print(self, full):
+    def print(self, format: str):
 
-        if full:
-            print("v{0}.{1}.{2}.{3}".format(self.major, self.minor, self.patch, self.build))
-        else :
-            print("v{0}.{1}.{2}".format(self.major, self.minor, self.patch))
+        out = format
+        out = out.replace("$MAJOR", str(self.major))
+        out = out.replace("$MINOR", str(self.minor))
+        out = out.replace("$PATCH", str(self.patch))
+        out = out.replace("$BUILD", str(self.build))
+        out = out.replace("$BRANCH", self.branch)
+        out = out.replace("$HASH", self.hash)
+
+        print(out)
+
 
 
 
@@ -156,7 +173,7 @@ def init_args():
     parser.add_argument('-p', '--patch', type=str, help='Patch', default="")
     parser.add_argument('-b', '--build', type=str, help='build number', default="")
     parser.add_argument('-t', '--tags', action='store_true', help='use version tags in repo', default=False)
-    parser.add_argument('-f', '--full', action='store_true', help='output full version including build number', default=False)
+    parser.add_argument('-f', '--format', type=str, help='Output format', default="$MAJOR.$MINOR.$PATCH")
 
     
 
@@ -191,7 +208,7 @@ def main():
 
 
 
-    vs.print(args.full)
+    vs.print(args.format)
 
 
 

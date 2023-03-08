@@ -27,6 +27,8 @@ import markdown
 from threading import Thread
 from urllib.request import urlopen
 import yaml
+import json
+import requests
 
 devObjBlacklist= ['registers', 'fields', 'packages', 'configs', 'variants', 'pins']
 
@@ -62,7 +64,6 @@ class Submodule:
         self.repo = None
         self.submodrepo = Repo(self.url, True, False)
 
-
     def checkFor(self,mods):
         global relativePath
         self.exists = False
@@ -78,14 +79,18 @@ class Submodule:
 
     def loadYaml(self, yamlObj):
 
-        if 'requires' in yamlObj:
-            for req in yamlObj['requires']:
-                if req == 'Platform':
-                    self.requirements.append('Common')
-                else:
-                    self.requirements.append(req)
-        
-        self.mrtprops = yamlObj
+        try:
+
+            if 'requires' in yamlObj:
+                for req in yamlObj['requires']:
+                    if req == 'Platform':
+                        self.requirements.append('Common')
+                    else:
+                        self.requirements.append(req)
+            
+            self.mrtprops = yamlObj
+        except:
+           print( "Couldnt Load mrt.yml for " + self.name)
 
     def getOtherYaml(self, file):
 
@@ -189,16 +194,6 @@ class Submodule:
         else:
             return None
 
-
-
-
-    def gatherRequirements(self):
-            self.requirements = []
-            #read in all modules
-            regex = re.compile(r'>Requires: (.*?)')
-            reqs = regex.findall(self.readme)
-            for req in requirements:
-                self.requirements.append(req[1])
 
 
 class RepoDirectory:
@@ -349,7 +344,7 @@ class RepoDirectory:
 
 
 class Repo:
-    def __init__(self, path, remote = False, createdir=True):
+    def __init__(self, path :str, remote = False, createdir=True):
 
         self.url = path
         self.path = path
@@ -360,13 +355,25 @@ class Repo:
         nodes = normalUrl.split('/')
         self.name = nodes[-1].replace(".git","")
         self.host = ''
+        self.isGroup = False
+        self.subpath = ""      
 
-        if "bitbucket" in path:
+        if "bitbucket.org" in path:
             self.host = 'bitbucket'
             self.account =  nodes[-2]
-        if "github" in path:
+            self.isRemote = True
+        if "github.com" in path:
             self.host = 'github'
             self.account =  nodes[-2]
+            self.isRemote = True
+        if "gitlab.com" in path:
+            self.host = 'gitlab'
+            self.account = nodes[-2]
+            self.isRemote = True
+
+            if not path.endswith(".git"):
+                self.isGroup = True
+                self.subpath = self.path.replace("https://gitlab.com/","")
 
         self.dir = None 
         if createdir:
@@ -421,17 +428,74 @@ class Repo:
     def getSubModules(self):
         data = ""
 
-        self.rootYaml = self.getRootYaml()
+        if not self.isGroup:
+            self.rootYaml = self.getRootYaml()
 
         if self.isRemote:
 
-            data = self.getFileText('.gitmodules').replace('\r', '').replace('\n', '').replace('\t', '')
-            #read in all modules
-            regex = re.compile(r'\[(.*?)].*?path = (.*?)url = (.*?\.git)')
-            modules = regex.findall(data)
-            for mod in modules:
-                if(mod[1] != "Config"):
-                    self.mods.append(Submodule(mod[1], mod[2]))
+            if self.isGroup:
+                
+                #gitlab by default
+                api = "api/v4/groups/"
+                escapedSubPath = self.subpath.replace("/", "%2f")
+
+
+                apiCall = 'https://{0}.com/{1}/{2}/projects?include_subgroups=true'.format(self.host, api, escapedSubPath)
+                resp = requests.get(apiCall)
+
+                if resp.status_code == 200:
+                    data  = json.loads(resp.content)
+                    inModules = True
+
+                    #check if we are in the Modules directory or not 
+                    for mod in data:
+                        modPath = mod["path_with_namespace"].replace(self.subpath,"")
+                        
+
+                        nodes = modPath.split("/")
+                        
+                        #remove empty strings
+                        while("" in nodes):
+                            nodes.remove("")
+
+                        if nodes[0] == "modules":
+                            inModules = False
+                            break
+
+                    for mod in data:
+                        if "path_with_namespace" in mod: 
+                            modPath = mod["path_with_namespace"].replace(self.subpath,"")
+                            
+                            #If the root group is the Modules directory, we need to add Modules to the path
+                            if inModules:
+                                modPath = "Modules" + modPath
+                            
+                            #capitalize Modules
+                            modPath = modPath.replace("modules","Modules")
+
+                            #remove any leading "/"s
+                            while modPath[0] == '/':
+                                modPath = modPath[1:]
+
+                            nodes = modPath.split("/")
+
+                            #ignore things outside of Module path
+                            if(nodes[0] == "Modules"):
+                                modUrl = mod["http_url_to_repo"]
+                                newSubMod = Submodule(modPath, modUrl)
+                                mrtYaml = newSubMod.submodrepo.getRootYaml()
+                                newSubMod.loadYaml(mrtYaml)
+                                self.mods.append(newSubMod)
+                    
+                
+            else:
+                data = self.getFileText('.gitmodules').replace('\r', '').replace('\n', '').replace('\t', '')
+                #read in all modules
+                regex = re.compile(r'\[(.*?)].*?path = (.*?)url = (.*?\.git)')
+                modules = regex.findall(data)
+                for mod in modules:
+                    if(mod[1] != "Config"):
+                        self.mods.append(Submodule(mod[1], mod[2]))
         else:
             if os.path.isfile(self.path + "/.gitmodules"):
                 file = open(self.path + "/.gitmodules", "r")
@@ -441,6 +505,7 @@ class Repo:
                 modules = regex.findall(data)
                 for mod in modules:
                     self.mods.append(Submodule(mod[1], mod[2]))
+        
         
         for mod in self.mods:
             mod.repo = self
@@ -460,6 +525,8 @@ class Repo:
                 req_url = "https://raw.githubusercontent.com/" + self.account + "/" + self.name + "/master/" + file
             elif(self.host == 'bitbucket'):
                 req_url = "https://bitbucket.org/" + self.account + "/" + self.name + "/raw/master/" + file
+            elif(self.host == 'gitlab'):
+                req_url = self.path.replace(".git","") + "/-/raw/master/" + file
   
             
             try:
@@ -522,7 +589,10 @@ class Repo:
         mod.exists = False
     
     def getKConfigString(self):
-        return self.dir.getKConfigString(0)
+        out = self.dir.getKConfigString(0) 
+
+        print(out)
+        return out
 
     def getConfigString(self):
         text = ""
