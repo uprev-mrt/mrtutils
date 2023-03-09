@@ -1,0 +1,9 @@
+{
+    "major": ${obj.major},
+    "minor": ${obj.minor},
+    "patch": ${obj.patch},
+    "build": ${obj.build},
+    "branch": "${obj.branch}",
+    "hash": "${obj.hash}",
+    "version_string": "${obj.major}.${obj.minor}.${obj.patch}.${obj.build}"
+}

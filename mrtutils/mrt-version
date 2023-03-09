@@ -10,6 +10,8 @@ import git
 import re
 from mrtutils.updates import *
 import subprocess
+import yaml
+import json
 
 args = None
 parser = None
@@ -28,11 +30,66 @@ class VersionStruct:
         self.branch = "none"
         self.prefix =""
         self.hash = ""
-        self.useTags = False
         self.fileName =""
         self.repo = None
+        self.fileType = "none"
+        self.diffRegexMajor = None
+        self.diffRegexMinor = None
 
-    def loadFile(self, path):
+
+    def loadFile(self,path):
+        base_name, extension = os.path.splitext(path)
+
+        self.fileType = extension.replace(".","")
+
+        if os.path.exists(path):
+
+            if self.fileType == "h":
+                self.loadCFile(path)
+
+            elif self.fileType == "yml" or self.fileType == "yaml":
+                self.loadYamlFile(path)
+
+            elif self.fileType == "json":
+                self.loadJsonFile(path)
+            else :
+                print("Unsupported File type: " + self.fileType)
+
+    def loadYamlFile(self,path):
+
+        self.diffRegexMajor = re.compile(r'\+.*?major\s*?(\S*?)\s*?\n' )
+        self.diffRegexMinor = re.compile(r'\+.*?minor\s*?(\S*?)\s*?\n' )
+
+        f = open(path)
+        txt = f.read()
+        dict = yaml.load(txt, Loader=yaml.FullLoader)
+
+        self.major = dict['major']
+        self.minor = dict['minor']
+        self.patch = dict['patch']
+        self.build = dict['build']
+
+    def loadJsonFile(self,path):
+
+        self.diffRegexMajor = re.compile(r'\+.*?major\s*?(\S*?)\s*?\n' )
+        self.diffRegexMinor = re.compile(r'\+.*?minor\s*?(\S*?)\s*?\n' )
+    
+        f = open(path)
+        txt = f.read()
+        dict = json.loads(txt)
+
+        self.major = dict['major']
+        self.minor = dict['minor']
+        self.patch = dict['patch']
+        self.build = dict['build']
+
+        pass
+
+    def loadCFile(self, path):
+
+        self.diffRegexMajor = re.compile(r'\+.*?VERSION_MAJOR\s*?(\S*?)\s*?\n' )
+        self.diffRegexMinor = re.compile(r'\+.*?VERSION_MINOR\s*?(\S*?)\s*?\n' )
+
         f = open(path)
         txt = f.read()
         self.fileName = path
@@ -53,8 +110,6 @@ class VersionStruct:
         self.patch = int(mPatch[0][0].strip())
         self.build = int(mBuild[0][0].strip())
         
-
-        ##TODO parse version.h file
     
     def loadRepo(self,repo):
 
@@ -119,9 +174,9 @@ class VersionStruct:
         count = 1
 
         if change == 'minor':
-            repattern = re.compile(r'\+.*?VERSION_MINOR\s*?(\S*?)\s*?\n' )
+            repattern = self.diffRegexMinor
         elif change == 'major':
-            repattern = re.compile(r'\+.*?VERSION_MAJOR\s*?(\S*?)\s*?\n' )
+            repattern = self.diffRegexMajor
         
         commit = self.repo.commit(branch)
         firstParent = None 
@@ -172,7 +227,6 @@ def init_args():
     parser.add_argument('-n', '--minor', type=str, help='Minor version', default="")
     parser.add_argument('-p', '--patch', type=str, help='Patch', default="")
     parser.add_argument('-b', '--build', type=str, help='build number', default="")
-    parser.add_argument('-t', '--tags', action='store_true', help='use version tags in repo', default=False)
     parser.add_argument('-f', '--format', type=str, help='Output format', default="$MAJOR.$MINOR.$PATCH")
 
     
@@ -184,16 +238,12 @@ def main():
     args = parser.parse_args() 
     vs = VersionStruct()
     th = TemplateHelper()
-    
-    if args.tags :
-        vs.useTags = True 
 
 
     repo = git.Repo(os.getcwd())
     vs.loadRepo(repo)
-
-    if os.path.isfile(args.versionFile):
-        vs.loadFile(args.versionFile)
+    
+    vs.loadFile(args.versionFile)
 
     if not args.major == "":
         vs.setMajor(args.major)
@@ -204,7 +254,7 @@ def main():
     if not args.build == "":
         vs.setBuild(args.build)
 
-    th.buildTemplate(vs, 'templates/version/version.h' , args.versionFile)
+    th.buildTemplate(vs, "templates/version/version." + vs.fileType , args.versionFile)
 
 
 

@@ -356,7 +356,8 @@ class Repo:
         self.name = nodes[-1].replace(".git","")
         self.host = ''
         self.isGroup = False
-        self.subpath = ""      
+        self.subpath = ""     
+        self.default_branch = "master" 
 
         if "bitbucket.org" in path:
             self.host = 'bitbucket'
@@ -440,7 +441,7 @@ class Repo:
                 escapedSubPath = self.subpath.replace("/", "%2f")
 
 
-                apiCall = 'https://{0}.com/{1}/{2}/projects?include_subgroups=true'.format(self.host, api, escapedSubPath)
+                apiCall = 'https://{0}.com/{1}/{2}/projects?include_subgroups=true&order_by=created_at&per_page=10000'.format(self.host, api, escapedSubPath)
                 resp = requests.get(apiCall)
 
                 if resp.status_code == 200:
@@ -479,12 +480,13 @@ class Repo:
 
                             nodes = modPath.split("/")
 
-                            #ignore things outside of Module path
-                            if(nodes[0] == "Modules"):
+                            #ignore any project that had "mrt-ignore" tag
+                            if not"mrt-ignore" in mod["tag_list"]:
                                 modUrl = mod["http_url_to_repo"]
                                 newSubMod = Submodule(modPath, modUrl)
                                 mrtYaml = newSubMod.submodrepo.getRootYaml()
                                 newSubMod.loadYaml(mrtYaml)
+                                newSubMod.submodrepo.default_branch = mod["default_branch"]
                                 self.mods.append(newSubMod)
                     
                 
@@ -522,11 +524,11 @@ class Repo:
             req_url = ""
 
             if(self.host== 'github'):
-                req_url = "https://raw.githubusercontent.com/" + self.account + "/" + self.name + "/master/" + file
+                req_url = "https://raw.githubusercontent.com/" + self.account + "/" + self.name + "/" + self.default_branch + "/" + file
             elif(self.host == 'bitbucket'):
-                req_url = "https://bitbucket.org/" + self.account + "/" + self.name + "/raw/master/" + file
+                req_url = "https://bitbucket.org/" + self.account + "/" + self.name + "/raw/" +self.default_branch + "/" + file
             elif(self.host == 'gitlab'):
-                req_url = self.path.replace(".git","") + "/-/raw/master/" + file
+                req_url = self.path.replace(".git","") + "/-/raw/" + self.default_branch+ "/" + file
   
             
             try:

@@ -93,7 +93,7 @@ def init_args():
     parser.add_argument('localRoot', type=str, nargs='?', help='Local Root of MrT modules', default="MrT")
     parser.add_argument('-a', '--all', action='store_true', help='Skips the UI and just pulls all submodules (used for CI/CD Unit testing)', default= False)
     parser.add_argument('-g', '--gather', action='store_true', help='Gathers the mrt.yml files and creates a single structure', default= False)
-    parser.add_argument('-r', '--remote', type=str, help='remote repo or group to sync from. Overrides $\{MRT_MET_REPO\}', default="")
+    parser.add_argument('-r', '--remote', type=str, help='remote repo or group to sync from. Overrides $\{MRT_REMOTE\}', default="")
 
 
 def main():
@@ -116,14 +116,14 @@ def main():
         metaRepo_path = args.remote 
         print('Using Meta-repo: ' + metaRepo_path)
     elif 'MRT_META_REPO' in os.environ:
-        metaRepo_path = os.environ.get('MRT_META_REPO')
+        metaRepo_path = os.environ.get('MRT_REMOTE')
         print('Using Meta Repo specified by environment: ' + metaRepo_path)
 
 
     remoteRepo = Repo(metaRepo_path)
 
     if remoteRepo.isGroup:
-        print("Gathering modules from Groupd at " + metaRepo_path)
+        print("Gathering modules from Group at " + metaRepo_path)
     else: 
         print("Gathering modules from Meta-Repo at " + metaRepo_path)
 
@@ -154,7 +154,7 @@ def main():
         remoteRepo.crossCheckMods(localRepo)
 
 
-        fileText = remoteRepo.dir.dirs['Modules'].getKConfigString(0)
+        fileText = remoteRepo.dir.dirs["Modules"].getKConfigString(0)
         conf_file_txt = remoteRepo.getConfigString()
 
 
