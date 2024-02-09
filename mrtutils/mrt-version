@@ -21,6 +21,36 @@ parser = None
 th = TemplateHelper()
 
 
+def incrementAlphaVersion(version, n):
+    def incrementChar(c, n):
+        # Increment a single character by n, with rollover
+        alphabet_size = 26
+        new_char_code = ord(c) + n
+        if new_char_code > ord('Z'):
+            rollover = (new_char_code - ord('A')) % alphabet_size
+            return chr(ord('A') + rollover), (new_char_code - ord('A')) // alphabet_size
+        return chr(new_char_code), 0
+    
+    # Convert the version string into a list of characters for easier manipulation
+    version_list = list(version)
+    carry = n
+    i = len(version) - 1
+    
+    # Process each character, starting from the end, to handle rollovers
+    while i >= 0 and carry > 0:
+        incremented_char, carry = incrementChar(version_list[i], carry)
+        version_list[i] = incremented_char
+        i -= 1
+    
+    # If there's still a carry after processing all characters, prepend a new character
+    if carry > 0:
+        version_list.insert(0, chr(ord('A') + carry - 1))
+    
+    # Convert the list of characters back into a string
+    return ''.join(version_list)
+    
+
+
 class VersionStruct:
     def __init__(self):
         self.major = 0
@@ -105,10 +135,21 @@ class VersionStruct:
         mPatch = rePatch.findall(txt)
         mBuild = reBuild.findall(txt)
 
-        self.major = int(mMajor[0][0].strip())
-        self.minor = int(mMinor[0][0].strip())
-        self.patch = int(mPatch[0][0].strip())
-        self.build = int(mBuild[0][0].strip())
+
+        self.major = mMajor[0][0].strip()
+        self.minor = mMinor[0][0].strip()
+        self.patch = mPatch[0][0].strip()
+        self.build = mBuild[0][0].strip()
+
+        #convert to int for numbers 
+        if self.major.isdigit():
+            self.major = int(self.major)
+        if self.minor.isdigit():
+            self.minor = int(self.minor)
+        if self.patch.isdigit():
+            self.patch = int(self.patch)
+        if self.build.isdigit():
+            self.build = int(self.build)
         
     
     def loadRepo(self,repo):
@@ -126,15 +167,24 @@ class VersionStruct:
 
 
     def setMajor(self, str):
-
+        
         if str[0] == '+':
             val = int(str[1:])
-            self.major += val 
+
+            #if major is a number increment 
+            if type(self.major) == int:
+                self.major+=val
+            elif type(self.major) == str:
+                self.major = incrementAlphaVersion(self.major, val)
+                #if major is a single character, we can increment 
             self.minor = 0
             self.patch = 0
         
         else:
-            self.major = int(str)
+            if str.isdigit():
+                self.major = int(str)
+            else:
+                self.major = str
 
     def setMinor(self, str):
         
@@ -143,7 +193,12 @@ class VersionStruct:
             self.patch = 0
         elif str[0] == '+':
             val = int(str[1:])
-            self.minor += val 
+
+
+            if type(self.minor) == int:
+                self.minor+=val
+            elif type(self.minor) == str:
+                self.minor = incrementAlphaVersion(self.minor, val)
             self.patch = 0
         
         else:
@@ -154,19 +209,33 @@ class VersionStruct:
         if str == 'auto':
             self.patch = self.getCommitsSinceLast('master', change='minor')
         elif str[0] == '+':
-            val = int(str[1:])
-            self.patch += val   
+            
+            if type(self.patch) == int:
+                val = int(str[1:])
+                self.patch += val
+            elif type(self.patch) == str:
+                self.patch = incrementAlphaVersion(self.patch, val)
         else:
-            self.patch = int(str)
+            if str.isdigit():
+                self.patch = int(str)
+            else:
+                self.patch = str
 
     def setBuild(self, str):
 
         if str[0] == '+':
             val = int(str[1:])
-            self.build += val 
-        
+
+            if type(self.build) == int:
+                self.build += val
+            elif type(self.build) == str:
+                self.build = incrementAlphaVersion(self.build, val)
         else:
-            self.build = int(str)
+            if str.isdigit():
+                self.build = int(str)
+            else:
+                self.build = str
+
 
     def getCommitsSinceLast(self, branch = 'master', change= 'minor' ):
     
